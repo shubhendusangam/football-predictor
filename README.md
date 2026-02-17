@@ -227,93 +227,31 @@ Dropdown menus with all available teams loaded from the database:
 
 #### 2. Match Prediction
 One-click predictions with detailed probability breakdown:
-
-```
-<img width="973" height="1144" alt="image" src="https://github.com/user-attachments/assets/2f016dc4-595b-4425-b19c-a885ea236e87" />
-
-```
+<img width="1009" height="864" alt="image" src="https://github.com/user-attachments/assets/2ce6145e-1827-4dc4-9885-0e697d57e45f" />
 
 #### 3. Results Visualization
 Color-coded probability bars and confidence indicators:
+<img width="1009" height="228" alt="image" src="https://github.com/user-attachments/assets/fdc1a5cb-16f1-4a00-b290-b38bf80fe568" />
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│  📊 Prediction Results                                         │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│              Arsenal  vs  Chelsea                              │
-│                                                                │
-│         ┌─────────────────────────────┐                        │
-│         │     Predicted Outcome       │                        │
-│         │    ═══════════════════      │                        │
-│         │        HOME_WIN             │                        │
-│         │    ═══════════════════      │                        │
-│         │                             │                        │
-│         │   Confidence: HIGH 🟢       │                        │
-│         └─────────────────────────────┘                        │
-│                                                                │
-│  Probability Breakdown:                                        │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │ Home Win  ████████████████████░░░░░░░░░░  55%    🟢      │  │
-│  │ Draw      ██████████░░░░░░░░░░░░░░░░░░░░  25%    🟡      │  │
-│  │ Away Win  ████████░░░░░░░░░░░░░░░░░░░░░░  20%    🔴      │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
 
 #### 4. Analysis Features
 View underlying statistics used for predictions:
 
-```
-┌────────────────────────────────────────────────────────────────┐
-│  📈 Match Analysis                                             │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  ┌─────────────────────────┐  ┌─────────────────────────┐     │
-│  │       ARSENAL           │  │       CHELSEA           │     │
-│  │         (Home)          │  │        (Away)           │     │
-│  ├─────────────────────────┤  ├─────────────────────────┤     │
-│  │ Form Points:    2.4/3.0 │  │ Form Points:    1.8/3.0 │     │
-│  │ Goals Scored:   2.1/game│  │ Goals Scored:   1.5/game│     │
-│  │ Goals Conceded: 0.8/game│  │ Goals Conceded: 1.2/game│     │
-│  │ Win Streak:     3 games │  │ Win Streak:     1 game  │     │
-│  │ Unbeaten:       5 games │  │ Unbeaten:       2 games │     │
-│  │ Last Match:     2 days  │  │ Last Match:     4 days  │     │
-│  └─────────────────────────┘  └─────────────────────────┘     │
-│                                                                │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │                   HEAD-TO-HEAD RECORD                     │ │
-│  ├──────────────────────────────────────────────────────────┤ │
-│  │                                                          │ │
-│  │   Arsenal Wins     Draws      Chelsea Wins               │ │
-│  │       40%           30%           30%                    │ │
-│  │   ████████████   ██████████   ██████████                 │ │
-│  │                                                          │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
+<img width="1009" height="321" alt="image" src="https://github.com/user-attachments/assets/183810ce-8c0a-401a-85a6-5dea373ec54f" />
+
 
 #### 5. Model Management
 Train/retrain the model and manage data from the UI:
-
-```
 <img width="942" height="319" alt="image" src="https://github.com/user-attachments/assets/06338c8a-6e09-4272-81ee-2a8baf83de11" />
 
-```
 #### 5. Football News
-```
 <img width="984" height="713" alt="image" src="https://github.com/user-attachments/assets/13732236-2ccd-412b-aa00-338fc5c46663" />
 
-```
+
 #### 6. Real-time Status
 See if the ML model is loaded and ready:
-
-```
 <img width="972" height="633" alt="image" src="https://github.com/user-attachments/assets/f74d6a57-ee2d-47a0-9597-f09a1c91cd19" />
 
-```
 
 ---
 
