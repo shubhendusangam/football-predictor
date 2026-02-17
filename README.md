@@ -91,7 +91,7 @@ A Spring Boot application that ingests historical Premier League CSV data and pr
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/football-prediction.git
+git clone https://github.com/<your-username>/football-prediction.git
 cd football-prediction
 ```
 

@@ -31,3 +31,26 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Data files ###
+data/*.db
+data/*.mv.db
+data/*.model
+data/*.trace.db
+!data/.gitkeep
+
+### Logs ###
+logs/
+.logs/
+*.log
+*.log.gz
+
+### OS files ###
+.DS_Store
+Thumbs.db
+
+### Environment ###
+.env
+.env.local
+*.env
+

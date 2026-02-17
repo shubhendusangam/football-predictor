@@ -3,8 +3,12 @@ package com.app.footballprediction.controller;
 import com.app.footballprediction.featureengineering.FeatureEngineeringService;
 import com.app.footballprediction.model.MatchFeatures;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
+import com.app.footballprediction.scheduler.DataUpdateScheduler;
 import com.app.footballprediction.service.CsvIngestionService;
+import com.app.footballprediction.service.FootballDataApiService;
+import com.app.footballprediction.service.NewsService;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.cache.CacheManager;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +43,18 @@ class PredictionControllerApiTest {
 
     @MockitoBean
     private CsvIngestionService csvIngestionService;
+
+    @MockitoBean
+    private DataUpdateScheduler dataUpdateScheduler;
+
+    @MockitoBean
+    private FootballDataApiService footballDataApiService;
+
+    @MockitoBean
+    private NewsService newsService;
+
+    @MockitoBean
+    private CacheManager cacheManager;
 
     @Nested
     @DisplayName("POST /api/predict")
