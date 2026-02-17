@@ -1,0 +1,356 @@
+2026-02-18 00:04:39.927 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_04_05.csv
+2026-02-18 00:04:39.927 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_04_05.csv
+2026-02-18 00:04:40.269 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_04_05.csv → 0 saved, 380 skipped, 342ms
+2026-02-18 00:04:40.276 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_04_05.csv
+2026-02-18 00:04:40.276 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_05_06.csv
+2026-02-18 00:04:40.276 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_05_06.csv
+2026-02-18 00:04:40.450 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_05_06.csv → 0 saved, 380 skipped, 174ms
+2026-02-18 00:04:40.451 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_05_06.csv
+2026-02-18 00:04:40.451 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_06_07.csv
+2026-02-18 00:04:40.451 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_06_07.csv
+2026-02-18 00:04:40.632 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_06_07.csv → 0 saved, 380 skipped, 181ms
+2026-02-18 00:04:40.632 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_06_07.csv
+2026-02-18 00:04:40.632 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_07_08.csv
+2026-02-18 00:04:40.632 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_07_08.csv
+2026-02-18 00:04:40.827 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_07_08.csv → 0 saved, 380 skipped, 195ms
+2026-02-18 00:04:40.828 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_07_08.csv
+2026-02-18 00:04:40.828 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_08_09.csv
+2026-02-18 00:04:40.828 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_08_09.csv
+2026-02-18 00:04:41.044 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_08_09.csv → 0 saved, 380 skipped, 216ms
+2026-02-18 00:04:41.044 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_08_09.csv
+2026-02-18 00:04:41.044 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_09_10.csv
+2026-02-18 00:04:41.044 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_09_10.csv
+2026-02-18 00:04:41.279 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_09_10.csv → 0 saved, 380 skipped, 235ms
+2026-02-18 00:04:41.279 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_09_10.csv
+2026-02-18 00:04:41.279 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_10_11.csv
+2026-02-18 00:04:41.279 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_10_11.csv
+2026-02-18 00:04:41.547 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_10_11.csv → 0 saved, 380 skipped, 268ms
+2026-02-18 00:04:41.547 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_10_11.csv
+2026-02-18 00:04:41.548 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_11_12.csv
+2026-02-18 00:04:41.548 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_11_12.csv
+2026-02-18 00:04:41.822 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_11_12.csv → 0 saved, 380 skipped, 274ms
+2026-02-18 00:04:41.823 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_11_12.csv
+2026-02-18 00:04:41.823 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_12_13.csv
+2026-02-18 00:04:41.823 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_12_13.csv
+2026-02-18 00:04:42.115 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_12_13.csv → 0 saved, 380 skipped, 292ms
+2026-02-18 00:04:42.116 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_12_13.csv
+2026-02-18 00:04:42.116 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_13_14.csv
+2026-02-18 00:04:42.116 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_13_14.csv
+2026-02-18 00:04:42.451 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_13_14.csv → 0 saved, 380 skipped, 335ms
+2026-02-18 00:04:42.452 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_13_14.csv
+2026-02-18 00:04:42.452 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_14_15.csv
+2026-02-18 00:04:42.452 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_14_15.csv
+2026-02-18 00:04:42.788 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_14_15.csv → 0 saved, 381 skipped, 336ms
+2026-02-18 00:04:42.789 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_14_15.csv
+2026-02-18 00:04:42.789 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_15_16.csv
+2026-02-18 00:04:42.789 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_15_16.csv
+2026-02-18 00:04:43.139 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_15_16.csv → 0 saved, 380 skipped, 350ms
+2026-02-18 00:04:43.139 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_15_16.csv
+2026-02-18 00:04:43.139 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_16_17.csv
+2026-02-18 00:04:43.139 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_16_17.csv
+2026-02-18 00:04:43.499 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_16_17.csv → 0 saved, 380 skipped, 360ms
+2026-02-18 00:04:43.499 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_16_17.csv
+2026-02-18 00:04:43.499 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_17_18.csv
+2026-02-18 00:04:43.500 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_17_18.csv
+2026-02-18 00:04:43.887 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_17_18.csv → 0 saved, 380 skipped, 387ms
+2026-02-18 00:04:43.888 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_17_18.csv
+2026-02-18 00:04:43.888 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_18_19.csv
+2026-02-18 00:04:43.888 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_18_19.csv
+2026-02-18 00:04:44.296 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_18_19.csv → 0 saved, 380 skipped, 408ms
+2026-02-18 00:04:44.296 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_18_19.csv
+2026-02-18 00:04:44.296 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_19_20.csv
+2026-02-18 00:04:44.296 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_19_20.csv
+2026-02-18 00:04:44.325 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_19_20.csv → 0 saved, 380 skipped, 29ms
+2026-02-18 00:04:44.326 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_19_20.csv
+2026-02-18 00:04:44.326 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_20_21.csv
+2026-02-18 00:04:44.326 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_20_21.csv
+2026-02-18 00:04:44.373 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_20_21.csv → 0 saved, 380 skipped, 47ms
+2026-02-18 00:04:44.374 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_20_21.csv
+2026-02-18 00:04:44.374 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_21_22.csv
+2026-02-18 00:04:44.374 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_21_22.csv
+2026-02-18 00:04:44.442 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_21_22.csv → 0 saved, 380 skipped, 68ms
+2026-02-18 00:04:44.442 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_21_22.csv
+2026-02-18 00:04:44.443 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_22_23.csv
+2026-02-18 00:04:44.443 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_22_23.csv
+2026-02-18 00:04:44.534 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_22_23.csv → 0 saved, 380 skipped, 91ms
+2026-02-18 00:04:44.534 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_22_23.csv
+2026-02-18 00:04:44.534 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_23_24.csv
+2026-02-18 00:04:44.534 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_23_24.csv
+2026-02-18 00:04:44.639 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_23_24.csv → 0 saved, 380 skipped, 105ms
+2026-02-18 00:04:44.640 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_23_24.csv
+2026-02-18 00:04:44.640 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_24_25.csv
+2026-02-18 00:04:44.640 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_24_25.csv
+2026-02-18 00:04:44.766 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_24_25.csv → 0 saved, 380 skipped, 126ms
+2026-02-18 00:04:44.767 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_24_25.csv
+2026-02-18 00:04:44.767 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_25_26.csv
+2026-02-18 00:04:44.767 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_25_26.csv
+2026-02-18 00:04:45.052 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_25_26.csv → 0 saved, 260 skipped, 285ms
+2026-02-18 00:04:45.053 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_25_26.csv
+2026-02-18 00:04:45.063 INFO  [restartedMain] CsvIngestionService : CSV ingestion complete. Total matches in DB: 8240
+2026-02-18 00:07:01.613 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_04_05.csv
+2026-02-18 00:07:01.613 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_04_05.csv
+2026-02-18 00:07:01.980 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_04_05.csv → 0 saved, 380 skipped, 367ms
+2026-02-18 00:07:01.988 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_04_05.csv
+2026-02-18 00:07:01.988 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_05_06.csv
+2026-02-18 00:07:01.988 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_05_06.csv
+2026-02-18 00:07:02.182 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_05_06.csv → 0 saved, 380 skipped, 194ms
+2026-02-18 00:07:02.183 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_05_06.csv
+2026-02-18 00:07:02.183 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_06_07.csv
+2026-02-18 00:07:02.183 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_06_07.csv
+2026-02-18 00:07:02.359 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_06_07.csv → 0 saved, 380 skipped, 176ms
+2026-02-18 00:07:02.360 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_06_07.csv
+2026-02-18 00:07:02.360 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_07_08.csv
+2026-02-18 00:07:02.360 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_07_08.csv
+2026-02-18 00:07:02.552 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_07_08.csv → 0 saved, 380 skipped, 192ms
+2026-02-18 00:07:02.553 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_07_08.csv
+2026-02-18 00:07:02.553 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_08_09.csv
+2026-02-18 00:07:02.553 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_08_09.csv
+2026-02-18 00:07:02.764 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_08_09.csv → 0 saved, 380 skipped, 211ms
+2026-02-18 00:07:02.764 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_08_09.csv
+2026-02-18 00:07:02.765 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_09_10.csv
+2026-02-18 00:07:02.765 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_09_10.csv
+2026-02-18 00:07:02.988 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_09_10.csv → 0 saved, 380 skipped, 223ms
+2026-02-18 00:07:02.988 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_09_10.csv
+2026-02-18 00:07:02.988 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_10_11.csv
+2026-02-18 00:07:02.988 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_10_11.csv
+2026-02-18 00:07:03.234 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_10_11.csv → 0 saved, 380 skipped, 246ms
+2026-02-18 00:07:03.235 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_10_11.csv
+2026-02-18 00:07:03.235 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_11_12.csv
+2026-02-18 00:07:03.235 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_11_12.csv
+2026-02-18 00:07:03.508 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_11_12.csv → 0 saved, 380 skipped, 273ms
+2026-02-18 00:07:03.508 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_11_12.csv
+2026-02-18 00:07:03.509 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_12_13.csv
+2026-02-18 00:07:03.509 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_12_13.csv
+2026-02-18 00:07:03.791 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_12_13.csv → 0 saved, 380 skipped, 282ms
+2026-02-18 00:07:03.791 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_12_13.csv
+2026-02-18 00:07:03.792 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_13_14.csv
+2026-02-18 00:07:03.792 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_13_14.csv
+2026-02-18 00:07:04.090 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_13_14.csv → 0 saved, 380 skipped, 298ms
+2026-02-18 00:07:04.091 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_13_14.csv
+2026-02-18 00:07:04.091 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_14_15.csv
+2026-02-18 00:07:04.091 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_14_15.csv
+2026-02-18 00:07:04.407 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_14_15.csv → 0 saved, 381 skipped, 316ms
+2026-02-18 00:07:04.407 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_14_15.csv
+2026-02-18 00:07:04.408 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_15_16.csv
+2026-02-18 00:07:04.408 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_15_16.csv
+2026-02-18 00:07:04.742 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_15_16.csv → 0 saved, 380 skipped, 334ms
+2026-02-18 00:07:04.743 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_15_16.csv
+2026-02-18 00:07:04.743 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_16_17.csv
+2026-02-18 00:07:04.743 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_16_17.csv
+2026-02-18 00:07:05.093 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_16_17.csv → 0 saved, 380 skipped, 350ms
+2026-02-18 00:07:05.093 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_16_17.csv
+2026-02-18 00:07:05.093 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_17_18.csv
+2026-02-18 00:07:05.094 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_17_18.csv
+2026-02-18 00:07:05.472 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_17_18.csv → 0 saved, 380 skipped, 378ms
+2026-02-18 00:07:05.472 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_17_18.csv
+2026-02-18 00:07:05.472 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_18_19.csv
+2026-02-18 00:07:05.472 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_18_19.csv
+2026-02-18 00:07:05.861 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_18_19.csv → 0 saved, 380 skipped, 389ms
+2026-02-18 00:07:05.862 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_18_19.csv
+2026-02-18 00:07:05.862 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_19_20.csv
+2026-02-18 00:07:05.862 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_19_20.csv
+2026-02-18 00:07:05.890 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_19_20.csv → 0 saved, 380 skipped, 28ms
+2026-02-18 00:07:05.890 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_19_20.csv
+2026-02-18 00:07:05.890 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_20_21.csv
+2026-02-18 00:07:05.890 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_20_21.csv
+2026-02-18 00:07:05.939 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_20_21.csv → 0 saved, 380 skipped, 49ms
+2026-02-18 00:07:05.939 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_20_21.csv
+2026-02-18 00:07:05.939 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_21_22.csv
+2026-02-18 00:07:05.939 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_21_22.csv
+2026-02-18 00:07:06.005 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_21_22.csv → 0 saved, 380 skipped, 66ms
+2026-02-18 00:07:06.006 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_21_22.csv
+2026-02-18 00:07:06.006 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_22_23.csv
+2026-02-18 00:07:06.006 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_22_23.csv
+2026-02-18 00:07:06.092 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_22_23.csv → 0 saved, 380 skipped, 86ms
+2026-02-18 00:07:06.092 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_22_23.csv
+2026-02-18 00:07:06.092 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_23_24.csv
+2026-02-18 00:07:06.092 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_23_24.csv
+2026-02-18 00:07:06.200 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_23_24.csv → 0 saved, 380 skipped, 107ms
+2026-02-18 00:07:06.200 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_23_24.csv
+2026-02-18 00:07:06.200 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_24_25.csv
+2026-02-18 00:07:06.200 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_24_25.csv
+2026-02-18 00:07:06.322 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_24_25.csv → 0 saved, 380 skipped, 122ms
+2026-02-18 00:07:06.322 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_24_25.csv
+2026-02-18 00:07:06.322 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_25_26.csv
+2026-02-18 00:07:06.322 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_25_26.csv
+2026-02-18 00:07:06.602 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_25_26.csv → 0 saved, 260 skipped, 280ms
+2026-02-18 00:07:06.603 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_25_26.csv
+2026-02-18 00:07:06.614 INFO  [restartedMain] CsvIngestionService : CSV ingestion complete. Total matches in DB: 8240
+2026-02-18 00:13:37.645 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_04_05.csv
+2026-02-18 00:13:37.645 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_04_05.csv
+2026-02-18 00:13:38.039 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_04_05.csv → 0 saved, 380 skipped, 394ms
+2026-02-18 00:13:38.047 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_04_05.csv
+2026-02-18 00:13:38.047 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_05_06.csv
+2026-02-18 00:13:38.047 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_05_06.csv
+2026-02-18 00:13:38.223 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_05_06.csv → 0 saved, 380 skipped, 176ms
+2026-02-18 00:13:38.224 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_05_06.csv
+2026-02-18 00:13:38.224 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_06_07.csv
+2026-02-18 00:13:38.224 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_06_07.csv
+2026-02-18 00:13:38.400 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_06_07.csv → 0 saved, 380 skipped, 175ms
+2026-02-18 00:13:38.400 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_06_07.csv
+2026-02-18 00:13:38.400 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_07_08.csv
+2026-02-18 00:13:38.400 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_07_08.csv
+2026-02-18 00:13:38.599 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_07_08.csv → 0 saved, 380 skipped, 199ms
+2026-02-18 00:13:38.599 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_07_08.csv
+2026-02-18 00:13:38.599 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_08_09.csv
+2026-02-18 00:13:38.599 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_08_09.csv
+2026-02-18 00:13:38.810 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_08_09.csv → 0 saved, 380 skipped, 211ms
+2026-02-18 00:13:38.811 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_08_09.csv
+2026-02-18 00:13:38.811 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_09_10.csv
+2026-02-18 00:13:38.811 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_09_10.csv
+2026-02-18 00:13:39.042 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_09_10.csv → 0 saved, 380 skipped, 231ms
+2026-02-18 00:13:39.042 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_09_10.csv
+2026-02-18 00:13:39.042 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_10_11.csv
+2026-02-18 00:13:39.042 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_10_11.csv
+2026-02-18 00:13:39.292 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_10_11.csv → 0 saved, 380 skipped, 250ms
+2026-02-18 00:13:39.292 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_10_11.csv
+2026-02-18 00:13:39.293 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_11_12.csv
+2026-02-18 00:13:39.293 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_11_12.csv
+2026-02-18 00:13:39.559 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_11_12.csv → 0 saved, 380 skipped, 266ms
+2026-02-18 00:13:39.560 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_11_12.csv
+2026-02-18 00:13:39.560 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_12_13.csv
+2026-02-18 00:13:39.560 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_12_13.csv
+2026-02-18 00:13:39.841 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_12_13.csv → 0 saved, 380 skipped, 281ms
+2026-02-18 00:13:39.842 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_12_13.csv
+2026-02-18 00:13:39.842 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_13_14.csv
+2026-02-18 00:13:39.842 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_13_14.csv
+2026-02-18 00:13:40.143 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_13_14.csv → 0 saved, 380 skipped, 301ms
+2026-02-18 00:13:40.144 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_13_14.csv
+2026-02-18 00:13:40.144 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_14_15.csv
+2026-02-18 00:13:40.144 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_14_15.csv
+2026-02-18 00:13:40.479 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_14_15.csv → 0 saved, 381 skipped, 335ms
+2026-02-18 00:13:40.480 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_14_15.csv
+2026-02-18 00:13:40.480 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_15_16.csv
+2026-02-18 00:13:40.480 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_15_16.csv
+2026-02-18 00:13:40.822 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_15_16.csv → 0 saved, 380 skipped, 342ms
+2026-02-18 00:13:40.822 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_15_16.csv
+2026-02-18 00:13:40.822 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_16_17.csv
+2026-02-18 00:13:40.822 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_16_17.csv
+2026-02-18 00:13:41.183 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_16_17.csv → 0 saved, 380 skipped, 361ms
+2026-02-18 00:13:41.183 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_16_17.csv
+2026-02-18 00:13:41.183 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_17_18.csv
+2026-02-18 00:13:41.184 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_17_18.csv
+2026-02-18 00:13:41.560 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_17_18.csv → 0 saved, 380 skipped, 376ms
+2026-02-18 00:13:41.561 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_17_18.csv
+2026-02-18 00:13:41.561 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_18_19.csv
+2026-02-18 00:13:41.561 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_18_19.csv
+2026-02-18 00:13:41.956 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_18_19.csv → 0 saved, 380 skipped, 395ms
+2026-02-18 00:13:41.957 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_18_19.csv
+2026-02-18 00:13:41.957 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_19_20.csv
+2026-02-18 00:13:41.957 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_19_20.csv
+2026-02-18 00:13:41.986 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_19_20.csv → 0 saved, 380 skipped, 29ms
+2026-02-18 00:13:41.986 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_19_20.csv
+2026-02-18 00:13:41.986 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_20_21.csv
+2026-02-18 00:13:41.986 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_20_21.csv
+2026-02-18 00:13:42.034 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_20_21.csv → 0 saved, 380 skipped, 48ms
+2026-02-18 00:13:42.035 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_20_21.csv
+2026-02-18 00:13:42.035 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_21_22.csv
+2026-02-18 00:13:42.035 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_21_22.csv
+2026-02-18 00:13:42.101 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_21_22.csv → 0 saved, 380 skipped, 66ms
+2026-02-18 00:13:42.102 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_21_22.csv
+2026-02-18 00:13:42.102 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_22_23.csv
+2026-02-18 00:13:42.102 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_22_23.csv
+2026-02-18 00:13:42.189 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_22_23.csv → 0 saved, 380 skipped, 87ms
+2026-02-18 00:13:42.190 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_22_23.csv
+2026-02-18 00:13:42.190 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_23_24.csv
+2026-02-18 00:13:42.190 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_23_24.csv
+2026-02-18 00:13:42.295 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_23_24.csv → 0 saved, 380 skipped, 105ms
+2026-02-18 00:13:42.296 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_23_24.csv
+2026-02-18 00:13:42.296 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_24_25.csv
+2026-02-18 00:13:42.296 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_24_25.csv
+2026-02-18 00:13:42.418 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_24_25.csv → 0 saved, 380 skipped, 122ms
+2026-02-18 00:13:42.418 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_24_25.csv
+2026-02-18 00:13:42.418 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_25_26.csv
+2026-02-18 00:13:42.418 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_25_26.csv
+2026-02-18 00:13:42.700 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_25_26.csv → 0 saved, 260 skipped, 282ms
+2026-02-18 00:13:42.701 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_25_26.csv
+2026-02-18 00:13:42.711 INFO  [restartedMain] CsvIngestionService : CSV ingestion complete. Total matches in DB: 8240
+2026-02-18 00:17:49.588 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_04_05.csv
+2026-02-18 00:17:49.589 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_04_05.csv
+2026-02-18 00:17:49.966 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_04_05.csv → 0 saved, 380 skipped, 377ms
+2026-02-18 00:17:49.973 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_04_05.csv
+2026-02-18 00:17:49.973 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_05_06.csv
+2026-02-18 00:17:49.973 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_05_06.csv
+2026-02-18 00:17:50.151 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_05_06.csv → 0 saved, 380 skipped, 178ms
+2026-02-18 00:17:50.151 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_05_06.csv
+2026-02-18 00:17:50.151 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_06_07.csv
+2026-02-18 00:17:50.151 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_06_07.csv
+2026-02-18 00:17:50.323 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_06_07.csv → 0 saved, 380 skipped, 172ms
+2026-02-18 00:17:50.323 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_06_07.csv
+2026-02-18 00:17:50.324 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_07_08.csv
+2026-02-18 00:17:50.324 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_07_08.csv
+2026-02-18 00:17:50.522 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_07_08.csv → 0 saved, 380 skipped, 198ms
+2026-02-18 00:17:50.522 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_07_08.csv
+2026-02-18 00:17:50.522 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_08_09.csv
+2026-02-18 00:17:50.522 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_08_09.csv
+2026-02-18 00:17:50.734 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_08_09.csv → 0 saved, 380 skipped, 212ms
+2026-02-18 00:17:50.734 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_08_09.csv
+2026-02-18 00:17:50.735 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_09_10.csv
+2026-02-18 00:17:50.735 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_09_10.csv
+2026-02-18 00:17:50.967 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_09_10.csv → 0 saved, 380 skipped, 232ms
+2026-02-18 00:17:50.967 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_09_10.csv
+2026-02-18 00:17:50.967 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_10_11.csv
+2026-02-18 00:17:50.967 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_10_11.csv
+2026-02-18 00:17:51.215 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_10_11.csv → 0 saved, 380 skipped, 248ms
+2026-02-18 00:17:51.215 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_10_11.csv
+2026-02-18 00:17:51.215 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_11_12.csv
+2026-02-18 00:17:51.216 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_11_12.csv
+2026-02-18 00:17:51.479 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_11_12.csv → 0 saved, 380 skipped, 263ms
+2026-02-18 00:17:51.480 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_11_12.csv
+2026-02-18 00:17:51.480 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_12_13.csv
+2026-02-18 00:17:51.480 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_12_13.csv
+2026-02-18 00:17:51.769 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_12_13.csv → 0 saved, 380 skipped, 289ms
+2026-02-18 00:17:51.769 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_12_13.csv
+2026-02-18 00:17:51.769 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_13_14.csv
+2026-02-18 00:17:51.769 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_13_14.csv
+2026-02-18 00:17:52.069 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_13_14.csv → 0 saved, 380 skipped, 300ms
+2026-02-18 00:17:52.069 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_13_14.csv
+2026-02-18 00:17:52.069 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_14_15.csv
+2026-02-18 00:17:52.069 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_14_15.csv
+2026-02-18 00:17:52.390 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_14_15.csv → 0 saved, 381 skipped, 321ms
+2026-02-18 00:17:52.391 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_14_15.csv
+2026-02-18 00:17:52.391 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_15_16.csv
+2026-02-18 00:17:52.391 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_15_16.csv
+2026-02-18 00:17:52.735 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_15_16.csv → 0 saved, 380 skipped, 344ms
+2026-02-18 00:17:52.735 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_15_16.csv
+2026-02-18 00:17:52.735 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_16_17.csv
+2026-02-18 00:17:52.735 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_16_17.csv
+2026-02-18 00:17:53.093 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_16_17.csv → 0 saved, 380 skipped, 358ms
+2026-02-18 00:17:53.094 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_16_17.csv
+2026-02-18 00:17:53.094 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_17_18.csv
+2026-02-18 00:17:53.095 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_17_18.csv
+2026-02-18 00:17:53.470 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_17_18.csv → 0 saved, 380 skipped, 375ms
+2026-02-18 00:17:53.471 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_17_18.csv
+2026-02-18 00:17:53.471 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_18_19.csv
+2026-02-18 00:17:53.471 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_18_19.csv
+2026-02-18 00:17:53.863 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_18_19.csv → 0 saved, 380 skipped, 392ms
+2026-02-18 00:17:53.863 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_18_19.csv
+2026-02-18 00:17:53.864 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_19_20.csv
+2026-02-18 00:17:53.864 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_19_20.csv
+2026-02-18 00:17:53.892 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_19_20.csv → 0 saved, 380 skipped, 28ms
+2026-02-18 00:17:53.892 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_19_20.csv
+2026-02-18 00:17:53.892 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_20_21.csv
+2026-02-18 00:17:53.892 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_20_21.csv
+2026-02-18 00:17:53.940 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_20_21.csv → 0 saved, 380 skipped, 48ms
+2026-02-18 00:17:53.940 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_20_21.csv
+2026-02-18 00:17:53.941 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_21_22.csv
+2026-02-18 00:17:53.941 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_21_22.csv
+2026-02-18 00:17:54.009 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_21_22.csv → 0 saved, 380 skipped, 68ms
+2026-02-18 00:17:54.010 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_21_22.csv
+2026-02-18 00:17:54.010 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_22_23.csv
+2026-02-18 00:17:54.010 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_22_23.csv
+2026-02-18 00:17:54.101 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_22_23.csv → 0 saved, 380 skipped, 91ms
+2026-02-18 00:17:54.101 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_22_23.csv
+2026-02-18 00:17:54.101 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_23_24.csv
+2026-02-18 00:17:54.102 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_23_24.csv
+2026-02-18 00:17:54.209 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_23_24.csv → 0 saved, 380 skipped, 107ms
+2026-02-18 00:17:54.210 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_23_24.csv
+2026-02-18 00:17:54.210 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_24_25.csv
+2026-02-18 00:17:54.210 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_24_25.csv
+2026-02-18 00:17:54.334 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_24_25.csv → 0 saved, 380 skipped, 124ms
+2026-02-18 00:17:54.334 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_24_25.csv
+2026-02-18 00:17:54.334 INFO  [restartedMain] CsvIngestionService : Ingesting CSV: data/PL_25_26.csv
+2026-02-18 00:17:54.334 INFO  [restartedMain] CsvIngestionService : Starting ingestion: data/PL_25_26.csv
+2026-02-18 00:17:54.618 INFO  [restartedMain] CsvIngestionService : Finished ingestion: data/PL_25_26.csv → 0 saved, 260 skipped, 284ms
+2026-02-18 00:17:54.618 INFO  [restartedMain] CsvIngestionService :   → 0 new matches loaded from data/PL_25_26.csv
+2026-02-18 00:17:54.628 INFO  [restartedMain] CsvIngestionService : CSV ingestion complete. Total matches in DB: 8240

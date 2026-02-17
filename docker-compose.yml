@@ -1,0 +1,34 @@
+# ============================================
+# Docker Compose for Football Match Predictor
+# ============================================
+
+version: '3.8'
+
+services:
+  football-predictor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: football-predictor
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xms256m -Xmx512m
+      - SPRING_PROFILES_ACTIVE=docker
+      # Football Data API key (replace with your own)
+      - FOOTBALL_API_KEY=${FOOTBALL_API_KEY:-your_api_key_here}
+    volumes:
+      # Persist H2 database and trained model
+      - football-data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/model/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  football-data:
+    name: football-predictor-data
+

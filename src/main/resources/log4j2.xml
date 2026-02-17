@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="30">
+
+    <Properties>
+        <!-- Log file locations -->
+        <!-- Use absolute project logs directory to avoid ambiguity when running from different working dirs -->
+        <Property name="LOG_DIR">/home/shubhendu.sangam@syndigo.com/Downloads/personal/projects/football-prediction/logs</Property>
+
+        <!-- Console pattern — coloured, readable -->
+        <Property name="CONSOLE_PATTERN">
+            %d{HH:mm:ss.SSS} %highlight{%-5level}{
+            FATAL=red blink,
+            ERROR=red,
+            WARN=yellow,
+            INFO=green,
+            DEBUG=cyan,
+            TRACE=white}
+            [%15.15t] %cyan{%-40.40c{1.}} : %msg%n%throwable
+        </Property>
+
+        <!-- File pattern — full detail, no colour codes -->
+        <Property name="FILE_PATTERN">
+            %d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %c{1} : %msg%n%throwable
+        </Property>
+    </Properties>
+
+    <!-- ── Appenders ─────────────────────────────────────────────── -->
+    <Appenders>
+
+        <!-- Console — coloured output -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${CONSOLE_PATTERN}"/>
+        </Console>
+
+        <!-- API requests/responses log -->
+        <RollingFile name="ApiLog"
+                     fileName="${LOG_DIR}/api/api.log"
+                     filePattern="${LOG_DIR}/api/api-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- CSV ingestion log -->
+        <RollingFile name="IngestionLog"
+                     fileName="${LOG_DIR}/ingestion/ingestion.log"
+                     filePattern="${LOG_DIR}/ingestion/ingestion-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- Model training log -->
+        <RollingFile name="ModelLog"
+                     fileName="${LOG_DIR}/model/model.log"
+                     filePattern="${LOG_DIR}/model/model-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- Feature computation log -->
+        <RollingFile name="FeatureLog"
+                     fileName="${LOG_DIR}/features/features.log"
+                     filePattern="${LOG_DIR}/features/features-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_PATTERN}"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="30"/>
+        </RollingFile>
+
+        <!-- Errors only — all layers write here -->
+        <RollingFile name="ErrorLog"
+                     fileName="${LOG_DIR}/error/error.log"
+                     filePattern="${LOG_DIR}/error/error-%d{yyyy-MM-dd}-%i.log.gz">
+            <PatternLayout pattern="${FILE_PATTERN}"/>
+            <ThresholdFilter level="ERROR" onMatch="ACCEPT" onMismatch="DENY"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy interval="1"/>
+                <SizeBasedTriggeringPolicy size="10MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="60"/>
+        </RollingFile>
+
+        <!-- Async wrapper — wraps all file appenders for non-blocking I/O -->
+        <Async name="AsyncApi">
+            <AppenderRef ref="ApiLog"/>
+        </Async>
+        <Async name="AsyncIngestion">
+            <AppenderRef ref="IngestionLog"/>
+        </Async>
+        <Async name="AsyncModel">
+            <AppenderRef ref="ModelLog"/>
+        </Async>
+        <Async name="AsyncFeature">
+            <AppenderRef ref="FeatureLog"/>
+        </Async>
+        <Async name="AsyncError">
+            <AppenderRef ref="ErrorLog"/>
+        </Async>
+
+    </Appenders>
+
+    <!-- ── Loggers ────────────────────────────────────────────────── -->
+    <Loggers>
+
+        <!-- API layer → api.log + console + error.log -->
+        <Logger name="com.app.footballprediction.controller"
+                level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncApi"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- CSV ingestion → ingestion.log + console + error.log -->
+        <Logger name="com.app.footballprediction.service.CsvIngestionService"
+                level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncIngestion"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- Model training → model.log + console + error.log -->
+        <Logger name="com.app.footballprediction.service.ModelTrainingService"
+                level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncModel"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- Feature engineering → features.log + console + error.log -->
+        <Logger name="com.app.footballprediction.service.FeatureEngineeringService"
+                level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncFeature"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- Spring framework — warn only, reduces noise -->
+        <Logger name="org.springframework" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- Hibernate SQL — set to DEBUG to see all queries -->
+        <Logger name="org.hibernate.SQL" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Root — catches everything not matched above -->
+        <Root level="INFO">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncError"/>
+        </Root>
+
+    </Loggers>
+
+</Configuration>

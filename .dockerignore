@@ -1,0 +1,52 @@
+# Docker ignore file - exclude unnecessary files from build context
+
+# Build output
+target/
+*.jar
+*.war
+*.class
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+.project
+.classpath
+.settings/
+
+# Git
+.git/
+.gitignore
+
+# Logs
+logs/
+*.log
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# Test files
+src/test/
+
+# Maven wrapper (we copy it explicitly)
+# .mvn/ - needed for build
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (avoid recursive copy)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Environment files
+.env
+.env.*
+
+# Data files that will be copied separately
+# data/ - keep this if you want to include pre-built model
+
