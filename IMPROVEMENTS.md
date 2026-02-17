@@ -18,18 +18,18 @@ Your application currently:
 
 Added 10 new predictive features (Phase 3):
 
-| Feature | Description | Impact |
-|---------|-------------|--------|
-| `homeGoalDifference` | Goals scored - conceded (last 5 matches) | High |
-| `awayGoalDifference` | Goals scored - conceded (last 5 matches) | High |
-| `homeOverallFormPoints` | Form across ALL matches (not just home) | Medium |
-| `awayOverallFormPoints` | Form across ALL matches (not just away) | Medium |
-| `homeWinStreak` | Consecutive wins (momentum) | Medium |
-| `awayWinStreak` | Consecutive wins (momentum) | Medium |
-| `homeUnbeatenStreak` | Matches without loss | Medium |
-| `awayUnbeatenStreak` | Matches without loss | Medium |
-| `homeDaysSinceLastMatch` | Rest/fatigue factor | Medium |
-| `awayDaysSinceLastMatch` | Rest/fatigue factor | Medium |
+| Feature                  | Description                               | Impact |
+|:-------------------------|:------------------------------------------|:-------|
+| `homeGoalDifference`     | Goals scored - conceded (last 5 matches)  | High   |
+| `awayGoalDifference`     | Goals scored - conceded (last 5 matches)  | High   |
+| `homeOverallFormPoints`  | Form across ALL matches (not just home)   | Medium |
+| `awayOverallFormPoints`  | Form across ALL matches (not just away)   | Medium |
+| `homeWinStreak`          | Consecutive wins (momentum)               | Medium |
+| `awayWinStreak`          | Consecutive wins (momentum)               | Medium |
+| `homeUnbeatenStreak`     | Matches without loss                      | Medium |
+| `awayUnbeatenStreak`     | Matches without loss                      | Medium |
+| `homeDaysSinceLastMatch` | Rest/fatigue factor                       | Medium |
+| `awayDaysSinceLastMatch` | Rest/fatigue factor                       | Medium |
 
 **Total features: 25** (up from 15)
 

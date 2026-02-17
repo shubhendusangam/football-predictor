@@ -64,17 +64,17 @@ A Spring Boot application that ingests historical Premier League CSV data and pr
 
 ## 🛠️ Tech Stack
 
-| Layer | Technology |
-|-------|------------|
-| Language | Java 21 |
-| Framework | Spring Boot 4.0.2 |
-| ML Library | Weka 3.8.6 (Random Forest) |
-| Data Source | CSV files (Premier League historical data) |
-| Database | H2 (embedded, file-based) |
-| CSV Parsing | OpenCSV 5.12.0 |
-| Logging | Log4j2 with async Disruptor |
-| Testing | JUnit 5, Mockito, AssertJ, MockMvc |
-| Build Tool | Maven |
+| Layer        | Technology                              |
+|:-------------|:----------------------------------------|
+| Language     | Java 21                                 |
+| Framework    | Spring Boot 4.0.2                       |
+| ML Library   | Weka 3.8.6 (Random Forest)              |
+| Data Source  | CSV files (Premier League historical data) |
+| Database     | H2 (embedded, file-based)               |
+| CSV Parsing  | OpenCSV 5.12.0                          |
+| Logging      | Log4j2 with async Disruptor             |
+| Testing      | JUnit 5, Mockito, AssertJ, MockMvc      |
+| Build Tool   | Maven                                   |
 
 ---
 
@@ -149,20 +149,20 @@ docker-compose down
 
 ### Docker Configuration
 
-| File | Description |
-|------|-------------|
-| `Dockerfile` | Multi-stage build (JDK for build, JRE for runtime) |
-| `docker-compose.yml` | Container orchestration with volume persistence |
-| `.dockerignore` | Excludes unnecessary files from build context |
-| `application-docker.properties` | Docker-specific configuration |
+| File                          | Description                                      |
+|:------------------------------|:-------------------------------------------------|
+| `Dockerfile`                  | Multi-stage build (JDK for build, JRE for runtime) |
+| `docker-compose.yml`          | Container orchestration with volume persistence  |
+| `.dockerignore`               | Excludes unnecessary files from build context    |
+| `application-docker.properties` | Docker-specific configuration                  |
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `JAVA_OPTS` | JVM options | `-Xms256m -Xmx512m` |
-| `FOOTBALL_API_KEY` | football-data.org API key | (your key) |
-| `SPRING_PROFILES_ACTIVE` | Active Spring profile | `docker` |
+| Variable                 | Description                | Default              |
+|:-------------------------|:---------------------------|:---------------------|
+| `JAVA_OPTS`              | JVM options                | `-Xms256m -Xmx512m`  |
+| `FOOTBALL_API_KEY`       | football-data.org API key  | (your key)           |
+| `SPRING_PROFILES_ACTIVE` | Active Spring profile      | `docker`             |
 
 ### Persistent Data
 
@@ -539,104 +539,53 @@ GET /api/external/finished?competition=PL
 
 ### Supported Competitions
 
-| Code | Competition | Status |
-|------|-------------|--------|
-| PL | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League | ✅ Supported |
+| Code | Competition                    | Status        |
+|:-----|:-------------------------------|:--------------|
+| PL   | 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League             | ✅ Supported  |
 
 > **Note:** Currently only Premier League is supported as we only have historical data for this competition. Other leagues (La Liga, Bundesliga, Serie A, Ligue 1) may be added in the future.
 
 ---
 
-## 📰 News API Integration (newsapi.org)
-
-The application can fetch football news from [NewsAPI.org](https://newsapi.org/).
-
-### Configuration
-
-Get a free API key at: https://newsapi.org/register
-
-Add to `application.properties`:
-```properties
-news.api.key=YOUR_NEWS_API_KEY
-```
-
-**Free tier:** 100 requests/day
-
-### Get Premier League News
-
-```http
-GET /api/news/premier-league
-```
-
-### Get General Football News
-
-```http
-GET /api/news/football
-```
-
-### Get Team-Specific News
-
-```http
-GET /api/news/team?name=Arsenal
-```
-
-### Response Example
-
-```json
-{
-  "status": "ok",
-  "totalResults": 10,
-  "articles": [
-    {
-      "source": { "name": "BBC Sport" },
-      "title": "Premier League: Arsenal vs Chelsea preview",
-      "description": "Match preview and team news...",
-      "url": "https://...",
-      "urlToImage": "https://...",
-      "publishedAt": "2026-02-18T10:00:00Z"
-    }
-  ]
-}
-```
-
----
 
 ## 🧪 Features Used for Prediction
 
 The model uses **25 features** computed from historical data:
 
 ### Core Features (15)
-| # | Feature | Description | Calculation |
-|---|---------|-------------|-------------|
-| 0 | `homeFormPoints` | Points per game in last 5 home matches | W=3, D=1, L=0 |
-| 1 | `awayFormPoints` | Points per game in last 5 away matches | W=3, D=1, L=0 |
-| 2 | `homeGoalsScoredAvg` | Avg goals scored at home | Last 20 home matches |
-| 3 | `homeGoalsConcededAvg` | Avg goals conceded at home | Last 20 home matches |
-| 4 | `awayGoalsScoredAvg` | Avg goals scored away | Last 20 away matches |
-| 5 | `awayGoalsConcededAvg` | Avg goals conceded away | Last 20 away matches |
-| 6 | `homeTotalGoalsAvg` | Avg total goals in home team's matches | Last 5 matches |
-| 7 | `awayTotalGoalsAvg` | Avg total goals in away team's matches | Last 5 matches |
-| 8 | `h2hHomeWinRate` | Head-to-head home win rate | All historical H2H |
-| 9 | `h2hDrawRate` | Head-to-head draw rate | All historical H2H |
-| 10 | `h2hAwayWinRate` | Head-to-head away win rate | All historical H2H |
-| 11 | `homeShotsOnTargetAvg` | Avg shots on target at home | Last 10 home matches |
-| 12 | `awayShotsOnTargetAvg` | Avg shots on target away | Last 10 away matches |
-| 13 | `homeCornersAvg` | Avg corners at home | Last 10 home matches |
-| 14 | `awayCornersAvg` | Avg corners away | Last 10 away matches |
+
+| #  | Feature                | Description                             | Calculation           |
+|:---|:-----------------------|:----------------------------------------|:----------------------|
+| 0  | `homeFormPoints`       | Points per game in last 5 home matches  | W=3, D=1, L=0         |
+| 1  | `awayFormPoints`       | Points per game in last 5 away matches  | W=3, D=1, L=0         |
+| 2  | `homeGoalsScoredAvg`   | Avg goals scored at home                | Last 20 home matches  |
+| 3  | `homeGoalsConcededAvg` | Avg goals conceded at home              | Last 20 home matches  |
+| 4  | `awayGoalsScoredAvg`   | Avg goals scored away                   | Last 20 away matches  |
+| 5  | `awayGoalsConcededAvg` | Avg goals conceded away                 | Last 20 away matches  |
+| 6  | `homeTotalGoalsAvg`    | Avg total goals in home team's matches  | Last 5 matches        |
+| 7  | `awayTotalGoalsAvg`    | Avg total goals in away team's matches  | Last 5 matches        |
+| 8  | `h2hHomeWinRate`       | Head-to-head home win rate              | All historical H2H    |
+| 9  | `h2hDrawRate`          | Head-to-head draw rate                  | All historical H2H    |
+| 10 | `h2hAwayWinRate`       | Head-to-head away win rate              | All historical H2H    |
+| 11 | `homeShotsOnTargetAvg` | Avg shots on target at home             | Last 10 home matches  |
+| 12 | `awayShotsOnTargetAvg` | Avg shots on target away                | Last 10 away matches  |
+| 13 | `homeCornersAvg`       | Avg corners at home                     | Last 10 home matches  |
+| 14 | `awayCornersAvg`       | Avg corners away                        | Last 10 away matches  |
 
 ### Enhanced Features (10)
-| # | Feature | Description | Impact |
-|---|---------|-------------|--------|
-| 15 | `homeGoalDifference` | Goals scored - conceded (last 5 matches) | High |
-| 16 | `awayGoalDifference` | Goals scored - conceded (last 5 matches) | High |
-| 17 | `homeOverallFormPoints` | Form across ALL matches (not just home) | Medium |
-| 18 | `awayOverallFormPoints` | Form across ALL matches (not just away) | Medium |
-| 19 | `homeWinStreak` | Consecutive wins (momentum) | Medium |
-| 20 | `awayWinStreak` | Consecutive wins (momentum) | Medium |
-| 21 | `homeUnbeatenStreak` | Matches without loss | Medium |
-| 22 | `awayUnbeatenStreak` | Matches without loss | Medium |
-| 23 | `homeDaysSinceLastMatch` | Rest/fatigue factor | Medium |
-| 24 | `awayDaysSinceLastMatch` | Rest/fatigue factor | Medium |
+
+| #  | Feature                  | Description                               | Impact |
+|:---|:-------------------------|:------------------------------------------|:-------|
+| 15 | `homeGoalDifference`     | Goals scored - conceded (last 5 matches)  | High   |
+| 16 | `awayGoalDifference`     | Goals scored - conceded (last 5 matches)  | High   |
+| 17 | `homeOverallFormPoints`  | Form across ALL matches (not just home)   | Medium |
+| 18 | `awayOverallFormPoints`  | Form across ALL matches (not just away)   | Medium |
+| 19 | `homeWinStreak`          | Consecutive wins (momentum)               | Medium |
+| 20 | `awayWinStreak`          | Consecutive wins (momentum)               | Medium |
+| 21 | `homeUnbeatenStreak`     | Matches without loss                      | Medium |
+| 22 | `awayUnbeatenStreak`     | Matches without loss                      | Medium |
+| 23 | `homeDaysSinceLastMatch` | Rest/fatigue factor                       | Medium |
+| 24 | `awayDaysSinceLastMatch` | Rest/fatigue factor                       | Medium |
 
 > ⚠️ **No data leakage:** Only pre-match knowable features are used. In-game stats from the match being predicted are never included.
 
@@ -650,15 +599,23 @@ src/
 │   ├── java/com/app/footballprediction/
 │   │   ├── FootballPredictionApplication.java  # Entry point + ApplicationRunner
 │   │   ├── config/
-│   │   │   ├── WekaModelConfig.java            # Loads saved model as @Bean
-│   │   │   └── RequestLoggingFilter.java       # HTTP request logging
+│   │   │   ├── CacheConfig.java                # Caching configuration
+│   │   │   ├── FootballApiConfig.java          # External API config
+│   │   │   ├── RateLimitFilter.java            # API rate limiting
+│   │   │   ├── RequestLoggingFilter.java       # HTTP request logging
+│   │   │   └── WekaModelConfig.java            # Loads saved model as @Bean
 │   │   ├── controller/
-│   │   │   └── PredictionController.java       # REST API endpoints
+│   │   │   ├── ExternalApiController.java      # football-data.org endpoints
+│   │   │   └── PredictionController.java       # Main REST API endpoints
 │   │   ├── dto/
 │   │   │   ├── PredictRequest.java             # { homeTeam, awayTeam }
-│   │   │   └── PredictResponse.java            # Prediction + probabilities
+│   │   │   ├── PredictResponse.java            # Prediction + probabilities
+│   │   │   ├── UpcomingPredictionResponse.java # Upcoming match predictions
+│   │   │   └── external/                       # External API DTOs
+│   │   │       ├── FootballApiResponse.java
+│   │   │       └── StandingsResponse.java
 │   │   ├── featureengineering/
-│   │   │   └── FeatureEngineeringService.java  # Computes ML features
+│   │   │   └── FeatureEngineeringService.java  # Computes 25 ML features
 │   │   ├── model/
 │   │   │   ├── Match.java                      # JPA entity (@Entity, @Table)
 │   │   │   └── MatchFeatures.java              # Feature vector POJO
@@ -666,19 +623,28 @@ src/
 │   │   │   └── ModelTrainingService.java       # Weka RF training + prediction
 │   │   ├── repository/
 │   │   │   └── MatchRepository.java            # JPA queries (form, H2H, etc.)
+│   │   ├── scheduler/
+│   │   │   └── DataUpdateScheduler.java        # Auto-update data weekly
 │   │   └── service/
 │   │       ├── CsvIngestionService.java        # CSV parsing + batch insert
-│   │       └── FootballDataService.java        # (API integration placeholder)
+│   │       ├── FootballDataApiService.java     # football-data.org API client
+│   │       └── FootballDataService.java        # Data orchestration
 │   └── resources/
 │       ├── application.properties              # Configuration
+│       ├── application-docker.properties       # Docker-specific config
 │       ├── log4j2.xml                          # Logging config
+│       ├── static/                             # Web UI files
+│       │   ├── index.html
+│       │   ├── css/styles.css
+│       │   └── js/app.js
 │       └── data/                               # Premier League CSVs (22 seasons)
 │           ├── PL_04_05.csv ... PL_18_19.csv   # Historical data
 │           ├── PL_19_20.csv ... PL_24_25.csv   # Recent seasons
 │           └── PL_25_26.csv                    # Current season
 └── test/
     └── java/com/app/footballprediction/
-        └── FootballPredictionApplicationTests.java
+        ├── FootballPredictionApplicationTests.java
+        └── FootballPredictionE2ETest.java
 ```
 
 ---
@@ -722,11 +688,11 @@ src/
 
 Football outcomes are inherently difficult to predict. Expected accuracy benchmarks:
 
-| Benchmark | Accuracy |
-|-----------|----------|
-| Naive baseline (always predict Home Win) | ~45% |
-| This model (Random Forest) | ~53–56% |
-| State of the art (with xG data) | ~58% |
+| Benchmark                               | Accuracy |
+|:----------------------------------------|:---------|
+| Naive baseline (always predict Home Win) | ~45%    |
+| This model (Random Forest)              | ~53–56%  |
+| State of the art (with xG data)         | ~58%     |
 
 Evaluation uses **temporal split** — trained on older matches, tested on most recent 20%. Standard K-fold is avoided because match data is time-series.
 
@@ -833,18 +799,18 @@ mvn test -Dtest=MatchTest
 
 ### Test Suite Overview
 
-| Category | Test Class | Tests | Description |
-|----------|------------|-------|-------------|
-| **Unit** | `MatchTest` | 11 | Entity methods (points, goals) |
-| **Unit** | `MatchFeaturesTest` | 4 | Feature vector POJO |
-| **Unit** | `PredictRequestTest` | 4 | Request DTO |
-| **Unit** | `PredictResponseTest` | 5 | Response DTO |
-| **Unit** | `FeatureEngineeringServiceTest` | 5 | Feature computation (mocked) |
-| **Unit** | `ModelTrainingServiceTest` | 7 | ML training logic (mocked) |
-| **Integration** | `MatchRepositoryIntegrationTest` | 12 | JPA queries with H2 |
-| **API** | `PredictionControllerApiTest` | 11 | REST endpoints (MockMvc) |
-| **E2E** | `FootballPredictionE2ETest` | 8 | Full application flow |
-| **Context** | `FootballPredictionApplicationTests` | 6 | Bean wiring verification |
+| Category        | Test Class                        | Tests | Description                    |
+|:----------------|:----------------------------------|:-----:|:-------------------------------|
+| **Unit**        | `MatchTest`                       | 11    | Entity methods (points, goals) |
+| **Unit**        | `MatchFeaturesTest`               | 4     | Feature vector POJO            |
+| **Unit**        | `PredictRequestTest`              | 4     | Request DTO                    |
+| **Unit**        | `PredictResponseTest`             | 5     | Response DTO                   |
+| **Unit**        | `FeatureEngineeringServiceTest`   | 5     | Feature computation (mocked)   |
+| **Unit**        | `ModelTrainingServiceTest`        | 7     | ML training logic (mocked)     |
+| **Integration** | `MatchRepositoryIntegrationTest`  | 12    | JPA queries with H2            |
+| **API**         | `PredictionControllerApiTest`     | 11    | REST endpoints (MockMvc)       |
+| **E2E**         | `FootballPredictionE2ETest`       | 8     | Full application flow          |
+| **Context**     | `FootballPredictionApplicationTests` | 6  | Bean wiring verification       |
 
 ### Test Configuration
 
@@ -866,16 +832,16 @@ logging.level.com.app.footballprediction=WARN
 
 ### Test Coverage
 
-| Component | Unit | Integration | API | E2E |
-|-----------|:----:|:-----------:|:---:|:---:|
-| Match entity | ✅ | - | - | - |
-| MatchFeatures | ✅ | - | - | - |
-| DTOs | ✅ | - | - | - |
-| FeatureEngineeringService | ✅ | - | - | - |
-| ModelTrainingService | ✅ | - | - | - |
-| MatchRepository | - | ✅ | - | - |
-| PredictionController | - | - | ✅ | ✅ |
-| Full Application | - | - | - | ✅ |
+| Component                 | Unit | Integration | API | E2E |
+|:--------------------------|:----:|:-----------:|:---:|:---:|
+| Match entity              | ✅   | -           | -   | -   |
+| MatchFeatures             | ✅   | -           | -   | -   |
+| DTOs                      | ✅   | -           | -   | -   |
+| FeatureEngineeringService | ✅   | -           | -   | -   |
+| ModelTrainingService      | ✅   | -           | -   | -   |
+| MatchRepository           | -    | ✅          | -   | -   |
+| PredictionController      | -    | -           | ✅  | ✅  |
+| Full Application          | -    | -           | -   | ✅  |
 
 ---
 

@@ -93,12 +93,12 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 
 **Purpose:** Main entry point and startup orchestrator. Implements `ApplicationRunner` to execute initialization logic after Spring context loads.
 
-| Method | Description |
-|--------|-------------|
-| `main(String[] args)` | Bootstrap method that launches the Spring Boot application using `SpringApplication.run()`. |
-| `run(ApplicationArguments args)` | Executes after Spring context is fully loaded. Orchestrates: (1) CSV data ingestion, (2) Model loading or training. Ensures the application is ready to serve predictions. |
-| `printBanner()` | Logs the application startup banner with project name and tech stack info. |
-| `printReadyBanner()` | Logs available endpoints and tools (H2 console URL) when application is ready. |
+| Method                         | Description                                                                                                                                                                      |
+|:-------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `main(String[] args)`          | Bootstrap method that launches the Spring Boot application using `SpringApplication.run()`.                                                                                     |
+| `run(ApplicationArguments args)` | Executes after Spring context is fully loaded. Orchestrates: (1) CSV data ingestion, (2) Model loading or training. Ensures the application is ready to serve predictions.   |
+| `printBanner()`                | Logs the application startup banner with project name and tech stack info.                                                                                                       |
+| `printReadyBanner()`           | Logs available endpoints and tools (H2 console URL) when application is ready.                                                                                                   |
 
 ---
 
@@ -110,9 +110,9 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 
 **Purpose:** Spring `@Configuration` class that loads pre-trained Weka model and schema from disk at startup. Provides beans for dependency injection into `ModelTrainingService`.
 
-| Method | Description |
-|--------|-------------|
-| `trainedModel()` | **@Bean** — Loads the serialized `RandomForest` classifier from `model.output.path`. Returns `null` if file doesn't exist (triggers fresh training). |
+| Method             | Description                                                                                                                                              |
+|:-------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `trainedModel()`   | **@Bean** — Loads the serialized `RandomForest` classifier from `model.output.path`. Returns `null` if file doesn't exist (triggers fresh training).    |
 | `trainingHeader()` | **@Bean** — Loads the Weka `Instances` schema (attribute definitions) saved alongside the model. Required to construct valid `Instance` objects for prediction. |
 
 ---
@@ -123,8 +123,8 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 
 **Purpose:** Servlet filter that logs all incoming HTTP requests and outgoing responses with timing information.
 
-| Method | Description |
-|--------|-------------|
+| Method                                                | Description                                                                                                                            |
+|:------------------------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------|
 | `doFilter(ServletRequest, ServletResponse, FilterChain)` | Intercepts every HTTP request. Logs: (1) Incoming request method, URI, and client IP, (2) Outgoing response status and duration in milliseconds. |
 
 ---
@@ -137,15 +137,15 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 
 **Purpose:** REST controller exposing all API endpoints for predictions, model management, and data operations.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `predict(PredictRequest)` | `POST /api/predict` | **Main prediction endpoint.** Validates input (homeTeam, awayTeam), builds features from historical data, runs model inference, and returns probabilities with confidence level. |
-| `trainModel()` | `POST /api/model/train` | Triggers full model training pipeline. Loads all matches, builds features, trains Random Forest, evaluates on test set, saves model to disk. Returns evaluation report. |
-| `modelStatus()` | `GET /api/model/status` | Returns JSON indicating whether the ML model is loaded and ready for predictions. |
-| `reloadData()` | `POST /api/data/reload` | Re-ingests all configured CSV files. Useful after adding new season data. Skips duplicates automatically. |
-| `labelToText(String)` | — | **Private helper.** Converts prediction code ("H"/"D"/"A") to human-readable text ("HOME_WIN"/"DRAW"/"AWAY_WIN"). |
-| `getConfidence(double[])` | — | **Private helper.** Determines confidence level based on highest probability: HIGH (≥0.55), MEDIUM (≥0.45), LOW (<0.45). |
-| `round(double)` | — | **Private helper.** Rounds double to 2 decimal places for clean JSON output. |
+| Method                    | Endpoint              | Description                                                                                                                                                     |
+|:--------------------------|:----------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `predict(PredictRequest)` | `POST /api/predict`   | **Main prediction endpoint.** Validates input (homeTeam, awayTeam), builds features from historical data, runs model inference, and returns probabilities with confidence level. |
+| `trainModel()`            | `POST /api/model/train` | Triggers full model training pipeline. Loads all matches, builds features, trains Random Forest, evaluates on test set, saves model to disk. Returns evaluation report. |
+| `modelStatus()`           | `GET /api/model/status` | Returns JSON indicating whether the ML model is loaded and ready for predictions.                                                                               |
+| `reloadData()`            | `POST /api/data/reload` | Re-ingests all configured CSV files. Useful after adding new season data. Skips duplicates automatically.                                                       |
+| `labelToText(String)`     | —                     | **Private helper.** Converts prediction code ("H"/"D"/"A") to human-readable text ("HOME_WIN"/"DRAW"/"AWAY_WIN").                                               |
+| `getConfidence(double[])` | —                     | **Private helper.** Determines confidence level based on highest probability: HIGH (≥0.55), MEDIUM (≥0.45), LOW (<0.45).                                        |
+| `round(double)`           | —                     | **Private helper.** Rounds double to 2 decimal places for clean JSON output.                                                                                     |
 
 ---
 
@@ -157,16 +157,16 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 
 **Purpose:** Reads Premier League CSV files from classpath and persists match data to the database. Handles parsing, validation, and duplicate detection.
 
-| Method | Description |
-|--------|-------------|
-| `ingestAll()` | **Public API.** Iterates all CSV paths from `csv.data.paths` config, calls `ingestFile()` for each, logs total matches loaded. |
-| `ingestFile(String)` | Reads a single CSV file from classpath. Parses headers, validates required columns, iterates rows, skips duplicates, saves new matches in batch. Returns count of new records. |
-| `buildColumnIndex(String[])` | **Private.** Creates a `Map<String, Integer>` mapping column names to their indices for efficient row parsing. |
-| `validateRequiredColumns(Map, String)` | **Private.** Ensures required columns (Date, HomeTeam, AwayTeam, FTHG, FTAG, FTR) exist. Throws `IllegalArgumentException` if missing. |
-| `parseRow(String[], Map)` | **Private.** Converts a CSV row into a `Match` entity. Returns `null` for future fixtures, postponed matches, or rows with unparsable data. |
-| `getString(String[], Map, String)` | **Private.** Safely extracts a trimmed string value from row by column name. Returns `null` if missing or empty. |
-| `getInt(String[], Map, String)` | **Private.** Parses integer from column. Returns `null` if missing or not a valid number. |
-| `parseDate(String)` | **Private.** Attempts to parse date string using "dd/MM/yy" then "dd/MM/yyyy" formats. Returns `null` on failure. |
+| Method                              | Description                                                                                                                                              |
+|:------------------------------------|:---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `ingestAll()`                       | **Public API.** Iterates all CSV paths from `csv.data.paths` config, calls `ingestFile()` for each, logs total matches loaded.                          |
+| `ingestFile(String)`                | Reads a single CSV file from classpath. Parses headers, validates required columns, iterates rows, skips duplicates, saves new matches in batch. Returns count of new records. |
+| `buildColumnIndex(String[])`        | **Private.** Creates a `Map<String, Integer>` mapping column names to their indices for efficient row parsing.                                           |
+| `validateRequiredColumns(Map, String)` | **Private.** Ensures required columns (Date, HomeTeam, AwayTeam, FTHG, FTAG, FTR) exist. Throws `IllegalArgumentException` if missing.                |
+| `parseRow(String[], Map)`           | **Private.** Converts a CSV row into a `Match` entity. Returns `null` for future fixtures, postponed matches, or rows with unparsable data.             |
+| `getString(String[], Map, String)`  | **Private.** Safely extracts a trimmed string value from row by column name. Returns `null` if missing or empty.                                        |
+| `getInt(String[], Map, String)`     | **Private.** Parses integer from column. Returns `null` if missing or not a valid number.                                                                |
+| `parseDate(String)`                 | **Private.** Attempts to parse date string using "dd/MM/yy" then "dd/MM/yyyy" formats. Returns `null` on failure.                                        |
 
 ---
 
