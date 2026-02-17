@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Properties>
+        <!-- Console pattern — simple for tests -->
+        <Property name="CONSOLE_PATTERN">
+            %d{HH:mm:ss.SSS} %-5level [%15.15t] %-40.40c{1.} : %msg%n%throwable
+        </Property>
+    </Properties>
+
+    <!-- ── Appenders ─────────────────────────────────────────────── -->
+    <Appenders>
+        <!-- Console only for tests -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${CONSOLE_PATTERN}"/>
+            <ThresholdFilter level="INFO" onMatch="ACCEPT" onMismatch="DENY"/>
+        </Console>
+    </Appenders>
+
+    <!-- ── Loggers ───────────────────────────────────────────────── -->
+    <Loggers>
+        <!-- Suppress noisy Spring logs during tests -->
+        <Logger name="org.springframework" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Logger name="org.hibernate" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Logger name="com.zaxxer.hikari" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Application logs -->
+        <Logger name="com.app.footballprediction" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Root logger -->
+        <Root level="WARN">
+            <AppenderRef ref="Console"/>
+        </Root>
+    </Loggers>
+
+</Configuration>
+

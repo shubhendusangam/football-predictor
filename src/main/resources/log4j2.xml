@@ -3,8 +3,8 @@
 
     <Properties>
         <!-- Log file locations -->
-        <!-- Use absolute project logs directory to avoid ambiguity when running from different working dirs -->
-        <Property name="LOG_DIR">/home/shubhendu.sangam@syndigo.com/Downloads/personal/projects/football-prediction/logs</Property>
+        <!-- Use relative path for portability across different environments -->
+        <Property name="LOG_DIR">./logs</Property>
 
         <!-- Console pattern — coloured, readable -->
         <Property name="CONSOLE_PATTERN">
