@@ -205,19 +205,19 @@ Dropdown menus with all available teams loaded from the database:
 │  🎯 Make a Prediction                                          │
 │                                                                │
 │  Home Team                        Away Team                    │
-│  ┌──────────────────────┐        ┌──────────────────────┐     │
-│  │ Select a team...   ▼ │   VS   │ Select a team...   ▼ │     │
-│  ├──────────────────────┤        └──────────────────────┘     │
-│  │ Arsenal             │                                      │
-│  │ Aston Villa         │                                      │
-│  │ Bournemouth         │                                      │
-│  │ Brentford           │                                      │
-│  │ Brighton            │                                      │
-│  │ Chelsea             │                                      │
-│  │ Crystal Palace      │                                      │
-│  │ Everton             │                                      │
-│  │ Fulham              │                                      │
-│  │ ...                 │                                      │
+│  ┌──────────────────────┐        ┌──────────────────────┐      │
+│  │ Select a team...   ▼ │   VS   │ Select a team...   ▼ │      │
+│  ├──────────────────────┤        └──────────────────────┘      │
+│  │ Arsenal             │                                       │
+│  │ Aston Villa         │                                       │
+│  │ Bournemouth         │                                       │
+│  │ Brentford           │                                       │
+│  │ Brighton            │                                       │
+│  │ Chelsea             │                                       │
+│  │ Crystal Palace      │                                       │
+│  │ Everton             │                                       │
+│  │ Fulham              │                                       │
+│  │ ...                 │                                       │
 │  └──────────────────────┘                                      │
 │                                                                │
 │              [ Predict Match ]                                 │
@@ -229,22 +229,8 @@ Dropdown menus with all available teams loaded from the database:
 One-click predictions with detailed probability breakdown:
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  ⚽ Football Match Predictor                    [Model Ready]  │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  🎯 Make a Prediction                                          │
-│                                                                │
-│  Home Team                        Away Team                    │
-│  ┌──────────────────────┐        ┌──────────────────────┐     │
-│  │ Arsenal            ▼ │   VS   │ Chelsea            ▼ │     │
-│  └──────────────────────┘        └──────────────────────┘     │
-│                                                                │
-│              [ 🔮 Predict Match ]                              │
-│                    ↓                                           │
-│              Processing...                                     │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+<img width="973" height="1144" alt="image" src="https://github.com/user-attachments/assets/2f016dc4-595b-4425-b19c-a885ea236e87" />
+
 ```
 
 #### 3. Results Visualization
@@ -267,11 +253,11 @@ Color-coded probability bars and confidence indicators:
 │         └─────────────────────────────┘                        │
 │                                                                │
 │  Probability Breakdown:                                        │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ Home Win  ████████████████████░░░░░░░░░░  55%    🟢      │ │
-│  │ Draw      ██████████░░░░░░░░░░░░░░░░░░░░  25%    🟡      │ │
-│  │ Away Win  ████████░░░░░░░░░░░░░░░░░░░░░░  20%    🔴      │ │
-│  └──────────────────────────────────────────────────────────┘ │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │ Home Win  ████████████████████░░░░░░░░░░  55%    🟢      │  │
+│  │ Draw      ██████████░░░░░░░░░░░░░░░░░░░░  25%    🟡      │  │
+│  │ Away Win  ████████░░░░░░░░░░░░░░░░░░░░░░  20%    🔴      │  │
+│  └──────────────────────────────────────────────────────────┘  │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -313,64 +299,20 @@ View underlying statistics used for predictions:
 Train/retrain the model and manage data from the UI:
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  ⚙️ Admin Panel                                                │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  Model Management                                              │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │                                                          │ │
-│  │  [ 🔄 Retrain Model ]     [ 📥 Reload CSV Data ]        │ │
-│  │                                                          │ │
-│  │  [ 🔄 Update & Retrain ]  (Downloads latest + retrains) │ │
-│  │                                                          │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-│  Last Training: Feb 18, 2026 at 06:00 AM                       │
-│  Training Accuracy: 54.2%                                      │
-│  Total Matches in DB: 8,420                                    │
-│                                                                │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │ Training Log:                                            │ │
-│  │ ────────────────────────────────────────────────────     │ │
-│  │ ✓ Loaded 8,420 matches from database                    │ │
-│  │ ✓ Built features for 7,850 matches                      │ │
-│  │ ✓ Training set: 6,280 | Test set: 1,570                 │ │
-│  │ ✓ Random Forest trained (100 trees)                     │ │
-│  │ ✓ Model saved to ./data/match_predictor.model           │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
-```
+<img width="942" height="319" alt="image" src="https://github.com/user-attachments/assets/06338c8a-6e09-4272-81ee-2a8baf83de11" />
 
+```
+#### 5. Football News
+```
+<img width="984" height="713" alt="image" src="https://github.com/user-attachments/assets/13732236-2ccd-412b-aa00-338fc5c46663" />
+
+```
 #### 6. Real-time Status
 See if the ML model is loaded and ready:
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  ⚽ Football Match Predictor                                   │
-├────────────────────────────────────────────────────────────────┤
-│                                                                │
-│  System Status                                                 │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │                                                          │ │
-│  │  🟢 Model Status:     READY                              │ │
-│  │  🟢 Database:         Connected (8,420 matches)          │ │
-│  │  🟢 API:              Online                             │ │
-│  │  🟢 Scheduler:        Active (next run: Mon 6 AM)        │ │
-│  │                                                          │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-│  Quick Stats                                                   │
-│  ┌──────────────────────────────────────────────────────────┐ │
-│  │  📊 Seasons Loaded:      22 (2004-2026)                  │ │
-│  │  📊 Total Matches:       8,420                           │ │
-│  │  📊 Teams Available:     47                              │ │
-│  │  📊 Model Accuracy:      54.2%                           │ │
-│  │  📊 Features Used:       25                              │ │
-│  └──────────────────────────────────────────────────────────┘ │
-│                                                                │
-└────────────────────────────────────────────────────────────────┘
+<img width="972" height="633" alt="image" src="https://github.com/user-attachments/assets/f74d6a57-ee2d-47a0-9597-f09a1c91cd19" />
+
 ```
 
 ---
