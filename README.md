@@ -11,11 +11,11 @@ A Spring Boot application that ingests historical Premier League CSV data and pr
 │                         DATA FLOW ARCHITECTURE                          │
 └─────────────────────────────────────────────────────────────────────────┘
 
-    CSV Files (Premier League 2004-2025 | 21 Seasons | ~8000 matches)
+    CSV Files (Premier League 2004-2026 | 22 Seasons | ~8000 matches)
     └── src/main/resources/data/
         ├── PL_04_05.csv ... PL_18_19.csv   (Historical data)
-        ├── PL_19_20.csv ... PL_23_24.csv   (Recent seasons)
-        └── PL_24_25.csv                     (Current season)
+        ├── PL_19_20.csv ... PL_24_25.csv   (Recent seasons)
+        └── PL_25_26.csv                     (Current season)
                 │
                 ▼
     ┌──────────────────────────────┐
@@ -177,22 +177,6 @@ docker volume inspect football-predictor-data
 # Backup data
 docker cp football-predictor:/app/data ./backup
 ```
-  ✓  Application ready                            
-───────────────────────────────────────────────────
-  Web UI:                                          
-  http://localhost:8080     → Web Interface       
-───────────────────────────────────────────────────
-  Endpoints:                                       
-  POST /api/predict       → predict a match       
-  POST /api/model/train   → retrain the model     
-  GET  /api/model/status  → check model status    
-  GET  /api/teams         → list all teams        
-  POST /api/data/reload   → re-ingest CSV files   
-───────────────────────────────────────────────────
-  Tools:                                           
-  http://localhost:8080/h2-console  → view DB     
-═══════════════════════════════════════════════════
-```
 
 ---
 
@@ -208,7 +192,10 @@ The application includes a modern, responsive web UI accessible at `http://local
 - **Model Management**: Train/retrain the model and reload CSV data directly from the UI
 - **Real-time Status**: See if the ML model is loaded and ready for predictions
 
-### Screenshots:
+### Screenshots
+
+#### 1. Team Selection
+Dropdown menus with all available teams loaded from the database:
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
@@ -216,23 +203,172 @@ The application includes a modern, responsive web UI accessible at `http://local
 ├────────────────────────────────────────────────────────────────┤
 │                                                                │
 │  🎯 Make a Prediction                                          │
-│  ┌──────────────┐        ┌──────────────┐                     │
-│  │ Arsenal    ▼ │   VS   │ Chelsea    ▼ │                     │
-│  └──────────────┘        └──────────────┘                     │
+│                                                                │
+│  Home Team                        Away Team                    │
+│  ┌──────────────────────┐        ┌──────────────────────┐     │
+│  │ Select a team...   ▼ │   VS   │ Select a team...   ▼ │     │
+│  ├──────────────────────┤        └──────────────────────┘     │
+│  │ Arsenal             │                                      │
+│  │ Aston Villa         │                                      │
+│  │ Bournemouth         │                                      │
+│  │ Brentford           │                                      │
+│  │ Brighton            │                                      │
+│  │ Chelsea             │                                      │
+│  │ Crystal Palace      │                                      │
+│  │ Everton             │                                      │
+│  │ Fulham              │                                      │
+│  │ ...                 │                                      │
+│  └──────────────────────┘                                      │
+│                                                                │
 │              [ Predict Match ]                                 │
 │                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 2. Match Prediction
+One-click predictions with detailed probability breakdown:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  ⚽ Football Match Predictor                    [Model Ready]  │
 ├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  🎯 Make a Prediction                                          │
+│                                                                │
+│  Home Team                        Away Team                    │
+│  ┌──────────────────────┐        ┌──────────────────────┐     │
+│  │ Arsenal            ▼ │   VS   │ Chelsea            ▼ │     │
+│  └──────────────────────┘        └──────────────────────┘     │
+│                                                                │
+│              [ 🔮 Predict Match ]                              │
+│                    ↓                                           │
+│              Processing...                                     │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 3. Results Visualization
+Color-coded probability bars and confidence indicators:
+
+```
+┌────────────────────────────────────────────────────────────────┐
 │  📊 Prediction Results                                         │
+├────────────────────────────────────────────────────────────────┤
 │                                                                │
-│         Arsenal  vs  Chelsea                                   │
+│              Arsenal  vs  Chelsea                              │
 │                                                                │
-│         Predicted Outcome                                      │
-│         ═══ HOME_WIN ═══                                       │
-│              HIGH                                              │
+│         ┌─────────────────────────────┐                        │
+│         │     Predicted Outcome       │                        │
+│         │    ═══════════════════      │                        │
+│         │        HOME_WIN             │                        │
+│         │    ═══════════════════      │                        │
+│         │                             │                        │
+│         │   Confidence: HIGH 🟢       │                        │
+│         └─────────────────────────────┘                        │
 │                                                                │
-│  Home Win  ████████████████░░░░░░░░░  55%                     │
-│  Draw      ████████░░░░░░░░░░░░░░░░░  25%                     │
-│  Away Win  ██████░░░░░░░░░░░░░░░░░░░  20%                     │
+│  Probability Breakdown:                                        │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │ Home Win  ████████████████████░░░░░░░░░░  55%    🟢      │ │
+│  │ Draw      ██████████░░░░░░░░░░░░░░░░░░░░  25%    🟡      │ │
+│  │ Away Win  ████████░░░░░░░░░░░░░░░░░░░░░░  20%    🔴      │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 4. Analysis Features
+View underlying statistics used for predictions:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  📈 Match Analysis                                             │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐     │
+│  │       ARSENAL           │  │       CHELSEA           │     │
+│  │         (Home)          │  │        (Away)           │     │
+│  ├─────────────────────────┤  ├─────────────────────────┤     │
+│  │ Form Points:    2.4/3.0 │  │ Form Points:    1.8/3.0 │     │
+│  │ Goals Scored:   2.1/game│  │ Goals Scored:   1.5/game│     │
+│  │ Goals Conceded: 0.8/game│  │ Goals Conceded: 1.2/game│     │
+│  │ Win Streak:     3 games │  │ Win Streak:     1 game  │     │
+│  │ Unbeaten:       5 games │  │ Unbeaten:       2 games │     │
+│  │ Last Match:     2 days  │  │ Last Match:     4 days  │     │
+│  └─────────────────────────┘  └─────────────────────────┘     │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │                   HEAD-TO-HEAD RECORD                     │ │
+│  ├──────────────────────────────────────────────────────────┤ │
+│  │                                                          │ │
+│  │   Arsenal Wins     Draws      Chelsea Wins               │ │
+│  │       40%           30%           30%                    │ │
+│  │   ████████████   ██████████   ██████████                 │ │
+│  │                                                          │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 5. Model Management
+Train/retrain the model and manage data from the UI:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  ⚙️ Admin Panel                                                │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  Model Management                                              │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │                                                          │ │
+│  │  [ 🔄 Retrain Model ]     [ 📥 Reload CSV Data ]        │ │
+│  │                                                          │ │
+│  │  [ 🔄 Update & Retrain ]  (Downloads latest + retrains) │ │
+│  │                                                          │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  Last Training: Feb 18, 2026 at 06:00 AM                       │
+│  Training Accuracy: 54.2%                                      │
+│  Total Matches in DB: 8,420                                    │
+│                                                                │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │ Training Log:                                            │ │
+│  │ ────────────────────────────────────────────────────     │ │
+│  │ ✓ Loaded 8,420 matches from database                    │ │
+│  │ ✓ Built features for 7,850 matches                      │ │
+│  │ ✓ Training set: 6,280 | Test set: 1,570                 │ │
+│  │ ✓ Random Forest trained (100 trees)                     │ │
+│  │ ✓ Model saved to ./data/match_predictor.model           │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+└────────────────────────────────────────────────────────────────┘
+```
+
+#### 6. Real-time Status
+See if the ML model is loaded and ready:
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  ⚽ Football Match Predictor                                   │
+├────────────────────────────────────────────────────────────────┤
+│                                                                │
+│  System Status                                                 │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │                                                          │ │
+│  │  🟢 Model Status:     READY                              │ │
+│  │  🟢 Database:         Connected (8,420 matches)          │ │
+│  │  🟢 API:              Online                             │ │
+│  │  🟢 Scheduler:        Active (next run: Mon 6 AM)        │ │
+│  │                                                          │ │
+│  └──────────────────────────────────────────────────────────┘ │
+│                                                                │
+│  Quick Stats                                                   │
+│  ┌──────────────────────────────────────────────────────────┐ │
+│  │  📊 Seasons Loaded:      22 (2004-2026)                  │ │
+│  │  📊 Total Matches:       8,420                           │ │
+│  │  📊 Teams Available:     47                              │ │
+│  │  📊 Model Accuracy:      54.2%                           │ │
+│  │  📊 Features Used:       25                              │ │
+│  └──────────────────────────────────────────────────────────┘ │
 │                                                                │
 └────────────────────────────────────────────────────────────────┘
 ```
@@ -461,11 +597,15 @@ GET /api/news/team?name=Arsenal
     }
   ]
 }
+```
 
 ---
 
 ## 🧪 Features Used for Prediction
 
+The model uses **25 features** computed from historical data:
+
+### Core Features (15)
 | # | Feature | Description | Calculation |
 |---|---------|-------------|-------------|
 | 0 | `homeFormPoints` | Points per game in last 5 home matches | W=3, D=1, L=0 |
@@ -483,6 +623,20 @@ GET /api/news/team?name=Arsenal
 | 12 | `awayShotsOnTargetAvg` | Avg shots on target away | Last 10 away matches |
 | 13 | `homeCornersAvg` | Avg corners at home | Last 10 home matches |
 | 14 | `awayCornersAvg` | Avg corners away | Last 10 away matches |
+
+### Enhanced Features (10)
+| # | Feature | Description | Impact |
+|---|---------|-------------|--------|
+| 15 | `homeGoalDifference` | Goals scored - conceded (last 5 matches) | High |
+| 16 | `awayGoalDifference` | Goals scored - conceded (last 5 matches) | High |
+| 17 | `homeOverallFormPoints` | Form across ALL matches (not just home) | Medium |
+| 18 | `awayOverallFormPoints` | Form across ALL matches (not just away) | Medium |
+| 19 | `homeWinStreak` | Consecutive wins (momentum) | Medium |
+| 20 | `awayWinStreak` | Consecutive wins (momentum) | Medium |
+| 21 | `homeUnbeatenStreak` | Matches without loss | Medium |
+| 22 | `awayUnbeatenStreak` | Matches without loss | Medium |
+| 23 | `homeDaysSinceLastMatch` | Rest/fatigue factor | Medium |
+| 24 | `awayDaysSinceLastMatch` | Rest/fatigue factor | Medium |
 
 > ⚠️ **No data leakage:** Only pre-match knowable features are used. In-game stats from the match being predicted are never included.
 
@@ -518,13 +672,10 @@ src/
 │   └── resources/
 │       ├── application.properties              # Configuration
 │       ├── log4j2.xml                          # Logging config
-│       └── data/                               # Premier League CSVs
-│           ├── PL_19_20.csv
-│           ├── PL_20_21.csv
-│           ├── PL_21_22.csv
-│           ├── PL_22_23.csv
-│           ├── PL_23_24.csv
-│           └── PL_24_25.csv
+│       └── data/                               # Premier League CSVs (22 seasons)
+│           ├── PL_04_05.csv ... PL_18_19.csv   # Historical data
+│           ├── PL_19_20.csv ... PL_24_25.csv   # Recent seasons
+│           └── PL_25_26.csv                    # Current season
 └── test/
     └── java/com/app/footballprediction/
         └── FootballPredictionApplicationTests.java
@@ -550,7 +701,7 @@ src/
    └── Avoids data leakage from future matches
         │
         ▼
-4. Convert to Weka Instances (15 numeric features + 1 nominal label)
+4. Convert to Weka Instances (25 numeric features + 1 nominal label)
         │
         ▼
 5. Train Random Forest
@@ -596,7 +747,12 @@ spring.h2.console.path=/h2-console
 spring.jpa.hibernate.ddl-auto=update
 
 # ─── CSV Data Sources ─────────────────────────────
-csv.data.paths=data/PL_19_20.csv,data/PL_20_21.csv,data/PL_21_22.csv,data/PL_22_23.csv,data/PL_23_24.csv,data/PL_24_25.csv
+csv.data.paths=data/PL_04_05.csv,data/PL_05_06.csv,data/PL_06_07.csv,data/PL_07_08.csv,\
+data/PL_08_09.csv,data/PL_09_10.csv,data/PL_10_11.csv,data/PL_11_12.csv,\
+data/PL_12_13.csv,data/PL_13_14.csv,data/PL_14_15.csv,data/PL_15_16.csv,\
+data/PL_16_17.csv,data/PL_17_18.csv,data/PL_18_19.csv,data/PL_19_20.csv,\
+data/PL_20_21.csv,data/PL_21_22.csv,data/PL_22_23.csv,data/PL_23_24.csv,\
+data/PL_24_25.csv,data/PL_25_26.csv
 
 # ─── Weka Model ───────────────────────────────────
 model.output.path=./data/match_predictor.model
@@ -631,18 +787,18 @@ Rows with empty `FTR` or unparsable dates are automatically skipped.
 ## 🗺️ Roadmap
 
 - [x] CSV data ingestion (OpenCSV)
-- [x] Feature engineering pipeline (form, H2H, goals)
+- [x] Feature engineering pipeline (25 features including form, H2H, goals, streaks)
 - [x] Random Forest classifier (Weka)
 - [x] REST API with Spring Boot
 - [x] Model persistence (load on startup)
 - [x] H2 database console
 - [x] Comprehensive test suite (unit, integration, API, E2E)
+- [x] Docker support with docker-compose
+- [x] Live data from football-data.org API
+- [x] Scheduled data updates (auto-retrain)
 - [ ] Add xG features from Understat/FBref
-- [ ] Live data from football-data.org API
 - [ ] Upgrade to Gradient Boosting (SMILE library)
-- [ ] Docker support
 - [ ] Swagger/OpenAPI documentation
-- [ ] Scheduled model retraining
 
 ---
 
@@ -726,8 +882,9 @@ logging.level.com.app.footballprediction=WARN
 ## 📚 Documentation & Resources
 
 - **[DESIGN.md](DESIGN.md)** — Comprehensive design document with class descriptions and method references
-- **Premier League CSVs** — Historical match data (2019-2025)
-- [football-data.org](https://www.football-data.org) — Match data API (for future live integration)
+- **[IMPROVEMENTS.md](IMPROVEMENTS.md)** — Enhancement plan and implemented improvements
+- **Premier League CSVs** — Historical match data (2004-2026, 22 seasons)
+- [football-data.org](https://www.football-data.org) — Live match data API integration
 - [Weka documentation](https://waikato.github.io/weka-wiki/) — ML library reference
 
 ---
@@ -738,4 +895,4 @@ MIT License — feel free to use, modify, and distribute.
 
 ---
 
-> Built with Java 21 + Spring Boot 4 + Weka | Premier League data 2019-2025
+> Built with Java 21 + Spring Boot 4 + Weka | Premier League data 2004-2026

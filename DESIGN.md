@@ -22,9 +22,9 @@
 
 The Football Match Outcome Predictor is a Spring Boot application that:
 
-1. **Ingests** historical Premier League match data from CSV files
+1. **Ingests** historical Premier League match data from CSV files (22 seasons, 2004-2026)
 2. **Stores** match records in an H2 embedded database
-3. **Computes** statistical features (form, goals, head-to-head) for each team
+3. **Computes** 25 statistical features (form, goals, head-to-head, streaks, rest days) for each team
 4. **Trains** a Random Forest classifier using the Weka ML library
 5. **Predicts** match outcomes (Home Win / Draw / Away Win) via REST API
 
@@ -194,7 +194,7 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 |--------|-------------|
 | `buildFeaturesForTraining(Match)` | **Public API.** Builds features using the match's own date as cutoff (prevents data leakage). Sets `actualResult` as the label for supervised learning. |
 | `buildFeaturesForPrediction(String, String)` | **Public API.** Builds features using today's date as cutoff. No label set (used for inference). |
-| `buildFeatures(String, String, LocalDate)` | **Private core.** Fetches historical data from repository and computes all 15 features: form, goals, H2H, shots, corners. |
+| `buildFeatures(String, String, LocalDate)` | **Private core.** Fetches historical data from repository and computes all 25 features: form, goals, H2H, shots, corners, streaks, rest days. |
 | `calcFormPoints(List<Match>, String, int)` | **Private.** Calculates average points per game over last N matches. W=3, D=1, L=0. |
 | `calcGoalsScoredAvg(List<Match>, String)` | **Private.** Average goals scored by team in last 20 matches. |
 | `calcGoalsConcededAvg(List<Match>, String)` | **Private.** Average goals conceded by team in last 20 matches. |
@@ -221,7 +221,7 @@ The Football Match Outcome Predictor is a Spring Boot application that:
 | `getPredictedLabel(double[])` | **Public API.** Converts probability array to class label ("H"/"D"/"A") by selecting highest probability. |
 | `isModelLoaded()` | **Public API.** Returns `true` if both `trainedModel` and `trainingHeader` are non-null. |
 | `loadModelFromDisk()` | Manually loads model and schema from file. (Usually handled by `WekaModelConfig` at startup.) |
-| `buildAttributes()` | **Private.** Defines Weka dataset schema: 15 numeric features + 1 nominal class label. Order must match index constants. |
+| `buildAttributes()` | **Private.** Defines Weka dataset schema: 25 numeric features + 1 nominal class label. Order must match index constants. |
 | `toWekaInstances(List<MatchFeatures>, ArrayList<Attribute>, String)` | **Private.** Converts list of features into Weka `Instances` dataset for training/evaluation. |
 | `toWekaInstance(MatchFeatures, Instances)` | **Private.** Converts single feature vector to Weka `Instance`. Uses `safe()` to handle NaN/Infinity. |
 | `saveModel(RandomForest, Instances)` | **Private.** Serializes trained model and schema to disk using `ObjectOutputStream`. |
