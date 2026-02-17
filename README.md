@@ -233,25 +233,30 @@ One-click predictions with detailed probability breakdown:
 Color-coded probability bars and confidence indicators:
 <img width="1009" height="228" alt="image" src="https://github.com/user-attachments/assets/fdc1a5cb-16f1-4a00-b290-b38bf80fe568" />
 
-
 #### 4. Analysis Features
 View underlying statistics used for predictions:
-
 <img width="1009" height="321" alt="image" src="https://github.com/user-attachments/assets/183810ce-8c0a-401a-85a6-5dea373ec54f" />
-
 
 #### 5. Model Management
 Train/retrain the model and manage data from the UI:
 <img width="942" height="319" alt="image" src="https://github.com/user-attachments/assets/06338c8a-6e09-4272-81ee-2a8baf83de11" />
 
-#### 5. Football News
+#### 6. Football News
 <img width="984" height="713" alt="image" src="https://github.com/user-attachments/assets/13732236-2ccd-412b-aa00-338fc5c46663" />
 
-
-#### 6. Real-time Status
+#### 7. Real-time Status
 See if the ML model is loaded and ready:
 <img width="972" height="633" alt="image" src="https://github.com/user-attachments/assets/f74d6a57-ee2d-47a0-9597-f09a1c91cd19" />
 
+#### 8. Calender
+Premier League Calendar : Prediction based on the selected date
+<img width="1009" height="489" alt="image" src="https://github.com/user-attachments/assets/52b71589-b087-4019-8ba1-56b50c0164af" />
+
+#### 9. Predict upcoming Matches
+<img width="607" height="1286" alt="image" src="https://github.com/user-attachments/assets/f14b0c2f-f320-4543-bd24-64c1338d72bb" />
+
+#### 10. Current Standing
+<img width="749" height="785" alt="image" src="https://github.com/user-attachments/assets/65a35d88-1ca3-4aa6-b1ea-43a97f6f70f4" />
 
 ---
 
