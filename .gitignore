@@ -14,7 +14,7 @@ target/
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -32,12 +32,17 @@ build/
 ### VS Code ###
 .vscode/
 
-### Data files ###
-data/*.db
-data/*.mv.db
-data/*.model
-data/*.trace.db
-!data/.gitkeep
+### Data files (all modules) ###
+**/data/*.db
+**/data/*.mv.db
+**/data/*.model
+**/data/*.trace.db
+**/data/model_backups/
+!**/data/.gitkeep
+
+### PID files ###
+*.pid
+.*.pid
 
 ### Logs ###
 logs/

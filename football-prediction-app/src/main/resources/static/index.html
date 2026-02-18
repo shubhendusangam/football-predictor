@@ -295,88 +295,124 @@
             </section>
 
             <!-- Admin Section -->
-            <section class="card admin-card">
-                <h2 class="card-title">⚙️ Model Management</h2>
-
-                <!-- Basic Training Options -->
-                <div class="admin-section-group">
-                    <h3 class="admin-subtitle">📊 Basic Training</h3>
-                    <div class="admin-buttons">
-                        <button class="btn btn-secondary" id="trainModelBtn">
-                            <span class="btn-text">🧠 Train Model</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-secondary" id="reloadDataBtn">
-                            <span class="btn-text">📁 Reload Data</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-primary" id="updateDataBtn">
-                            <span class="btn-text">🔄 Update & Retrain</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-secondary" id="checkStatusBtn">
-                            <span class="btn-text">🔍 Check Status</span>
+            <section class="card admin-card" id="adminCard">
+                <div class="admin-header">
+                    <h2 class="card-title">⚙️ Model Management</h2>
+                    <div class="admin-auth-status" id="adminAuthStatus">
+                        <span class="auth-badge locked" id="authBadge">🔒 Admin Only</span>
+                        <button class="btn btn-secondary btn-sm" id="adminLogoutBtn" style="display: none;">
+                            <span class="btn-text">🚪 Logout</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- Advanced Training Options -->
-                <div class="admin-section-group">
-                    <h3 class="admin-subtitle">🚀 Advanced Training</h3>
-                    <div class="admin-buttons">
-                        <button class="btn btn-accent" id="trainAdvancedBtn">
-                            <span class="btn-text">⚡ Advanced Train</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-secondary" id="trainCVBtn">
-                            <span class="btn-text">📈 Cross-Validation</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-secondary" id="trainBoostingBtn">
-                            <span class="btn-text">📊 Gradient Boosting</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-secondary" id="trainEnsembleBtn">
-                            <span class="btn-text">🤝 Ensemble Model</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
+                <!-- Admin Login Overlay -->
+                <div class="admin-login-overlay" id="adminLoginOverlay">
+                    <div class="login-content">
+                        <div class="login-icon">🔐</div>
+                        <h3>Admin Authentication Required</h3>
+                        <p class="login-hint">Enter your admin credentials to access model management features</p>
+                        <form id="adminLoginForm" class="admin-login-form">
+                            <div class="login-field">
+                                <label for="adminUsername">Username</label>
+                                <input type="text" id="adminUsername" name="username" placeholder="Enter username" required autocomplete="username">
+                            </div>
+                            <div class="login-field">
+                                <label for="adminPassword">Password</label>
+                                <input type="password" id="adminPassword" name="password" placeholder="Enter password" required autocomplete="current-password">
+                            </div>
+                            <div class="login-error" id="loginError" style="display: none;">
+                                <span class="error-icon">⚠️</span>
+                                <span class="error-text" id="loginErrorText">Invalid credentials</span>
+                            </div>
+                            <button type="submit" class="btn btn-primary login-btn" id="adminLoginBtn">
+                                <span class="btn-text">🔓 Login as Admin</span>
+                                <span class="btn-loader" style="display: none;">
+                                    <span class="spinner"></span>
+                                </span>
+                            </button>
+                        </form>
                     </div>
                 </div>
 
-                <!-- Model Analysis Options -->
-                <div class="admin-section-group">
-                    <h3 class="admin-subtitle">🔬 Model Analysis</h3>
-                    <div class="admin-buttons">
-                        <button class="btn btn-secondary" id="gridSearchBtn">
-                            <span class="btn-text">🔍 Grid Search</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
-                        <button class="btn btn-secondary" id="compareModelsBtn">
-                            <span class="btn-text">📋 Compare Models</span>
-                            <span class="btn-loader" style="display: none;">⏳</span>
-                        </button>
+                <!-- Admin Controls (hidden until authenticated) -->
+                <div class="admin-controls" id="adminControls" style="display: none;">
+                    <!-- Basic Training Options -->
+                    <div class="admin-section-group">
+                        <h3 class="admin-subtitle">📊 Basic Training</h3>
+                        <div class="admin-buttons">
+                            <button class="btn btn-secondary" id="trainModelBtn">
+                                <span class="btn-text">🧠 Train Model</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-secondary" id="reloadDataBtn">
+                                <span class="btn-text">📁 Reload Data</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-primary" id="updateDataBtn">
+                                <span class="btn-text">🔄 Update & Retrain</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-secondary" id="checkStatusBtn">
+                                <span class="btn-text">🔍 Check Status</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <p class="admin-hint">💡 <strong>Advanced Train</strong> performs grid search + cross-validation + ensemble for best accuracy</p>
-                <p class="admin-hint">💡 <strong>Grid Search</strong> finds optimal hyperparameters for Random Forest and AdaBoost</p>
-                <div class="admin-output" id="adminOutput" style="display: none;">
-                    <pre id="adminOutputText"></pre>
+                    <!-- Advanced Training Options -->
+                    <div class="admin-section-group">
+                        <h3 class="admin-subtitle">🚀 Advanced Training</h3>
+                        <div class="admin-buttons">
+                            <button class="btn btn-accent" id="trainAdvancedBtn">
+                                <span class="btn-text">⚡ Advanced Train</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-secondary" id="trainCVBtn">
+                                <span class="btn-text">📈 Cross-Validation</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-secondary" id="trainBoostingBtn">
+                                <span class="btn-text">📊 Gradient Boosting</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-secondary" id="trainEnsembleBtn">
+                                <span class="btn-text">🤝 Ensemble Model</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Model Analysis Options -->
+                    <div class="admin-section-group">
+                        <h3 class="admin-subtitle">🔬 Model Analysis</h3>
+                        <div class="admin-buttons">
+                            <button class="btn btn-secondary" id="gridSearchBtn">
+                                <span class="btn-text">🔍 Grid Search</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                            <button class="btn btn-secondary" id="compareModelsBtn">
+                                <span class="btn-text">📋 Compare Models</span>
+                                <span class="btn-loader" style="display: none;">⏳</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <p class="admin-hint">💡 <strong>Advanced Train</strong> performs grid search + cross-validation + ensemble for best accuracy</p>
+                    <p class="admin-hint">💡 <strong>Grid Search</strong> finds optimal hyperparameters for Random Forest and AdaBoost</p>
+                    <div class="admin-output" id="adminOutput" style="display: none;">
+                        <pre id="adminOutputText"></pre>
+                    </div>
                 </div>
             </section>
 
-            <!-- PL News Section -->
+            <!-- Football News Section -->
             <section class="card news-card">
                 <div class="news-header">
-                    <h2 class="card-title">📰 Premier League News</h2>
+                    <h2 class="card-title">📰 Football News</h2>
                     <button class="btn btn-secondary btn-sm" id="refreshNewsBtn">
                         <span class="btn-text">🔄 Refresh</span>
                         <span class="btn-loader" style="display: none;">⏳</span>
                     </button>
-                </div>
-                <div class="news-tabs">
-                    <button class="news-tab active" data-tab="pl">Premier League</button>
-                    <button class="news-tab" data-tab="football">Football</button>
                 </div>
                 <div class="news-list" id="newsList">
                     <div class="news-loading" id="newsLoading">

@@ -32,10 +32,12 @@ public class WekaModelConfig {
       try (ObjectInputStream ois = new ObjectInputStream(
             new FileInputStream(file))) {
          RandomForest model = (RandomForest) ois.readObject();
-         log.info("Weka model loaded from {}", modelOutputPath);
+         log.info("✓ Weka model loaded from {}", modelOutputPath);
          return model;
       } catch (Exception e) {
-         log.error("Failed to load model: {}", e.getMessage());
+         log.error("Failed to load model from {}: {} - {}",
+               modelOutputPath, e.getClass().getSimpleName(), e.getMessage());
+         log.error("Model file exists but cannot be deserialized. A new model will be trained.");
          return null;
       }
    }
@@ -52,10 +54,11 @@ public class WekaModelConfig {
             new FileInputStream(file))) {
          ois.readObject(); // skip the model — read header second
          Instances header = (Instances) ois.readObject();
-         log.info("Weka schema loaded from {}", modelOutputPath);
+         log.info("✓ Weka schema loaded from {}", modelOutputPath);
          return header;
       } catch (Exception e) {
-         log.error("Failed to load schema: {}", e.getMessage());
+         log.error("Failed to load schema from {}: {} - {}",
+               modelOutputPath, e.getClass().getSimpleName(), e.getMessage());
          return null;
       }
    }

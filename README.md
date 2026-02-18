@@ -43,16 +43,17 @@ This system is built as a **multi-module Maven project** consisting of:
    - Scheduled retraining (bi-monthly)
 
 ### 🎯 Key Features
-- ⚽ **Advanced ML Models**: Random Forest, Gradient Boosting, and Stacked Ensemble
-- 📊 **Rich Feature Engineering**: 30+ statistical features (xG, defensive actions, possession metrics)
+- ⚽ **Stacked Ensemble ML**: RandomForest + Gradient Boosting + Logistic Regression meta-model
+- 📊 **Rich Feature Engineering**: 25 statistical features in 3 phases (form, goals, H2H, shots, corners, streaks, rest)
 - 🤖 **Automated Retraining**: Bi-monthly model updates with performance monitoring
 - 🎨 **Modern PWA UI**: Dark theme, responsive design, offline capabilities
-- 🔄 **Real-time Data**: Live match data integration via football-data.org API
+- 🔄 **Real-time Data**: Live match data, standings, and calendar via football-data.org API
+- 📰 **News Integration**: Premier League news aggregation
 - 📈 **Advanced Analytics**: Cross-validation, grid search, model comparison
 - 🐳 **Cloud Ready**: Docker containerization with multi-stage builds
 - 🔒 **Production Features**: Rate limiting, caching, comprehensive logging
 - 📱 **Mobile Optimized**: Touch-friendly interface with gesture support
-- 🌐 **API-First**: RESTful APIs with OpenAPI documentation
+- 🌐 **API-First**: RESTful APIs with multiple training endpoints
 - 🧪 **Thoroughly Tested**: 120+ unit/integration tests with high coverage
 - 📊 **Monitoring**: Health checks, metrics, and performance tracking
 
@@ -139,6 +140,8 @@ cd model-training-service
 mvn spring-boot:run
 ```
 
+> **💡 Note**: On first startup, the app will train a model (~30-60 seconds). On subsequent starts, it automatically loads the existing model and skips training. See [MODEL_LOADING_GUIDE.md](MODEL_LOADING_GUIDE.md) for details.
+
 ---
 
 ## 📖 Table of Contents
@@ -207,11 +210,17 @@ CSV Files → Ingestion Service → H2 Database → Feature Engineering
 ## ✨ Features
 
 ### Machine Learning
-- **Random Forest** classifier with 100 trees
-- **25 engineered features**: form points, goals, H2H stats, shots on target, corners, win streaks, unbeaten runs, rest days
+- **Stacked Ensemble Model** combining RandomForest + Gradient Boosting (AdaBoostM1) + Logistic Regression meta-model
+- **Random Forest** classifier with 100 trees and optimized hyperparameters
+- **Gradient Boosting** (AdaBoostM1) with 100 boosting iterations using REPTree base learners
+- **25 engineered features** organized in 3 phases:
+  - **Phase 1**: Form points, goals scored/conceded, H2H stats, total goals average
+  - **Phase 2**: Shots on target averages, corners averages  
+  - **Phase 3**: Goal difference, overall form, win streaks, unbeaten streaks, rest days
 - **Temporal train/test split** (80/20) to prevent data leakage
 - **Cross-validation** support (10-fold CV)
-- **Ensemble models** with grid search optimization
+- **Voting & Stacking Ensembles** with grid search optimization
+- **Hyperparameter tuning** via grid search for RandomForest and AdaBoost
 - **Automatic retraining** twice monthly (1st & 15th @ 3 AM)
 
 ### Data
@@ -480,8 +489,8 @@ curl -X POST http://localhost:8081/api/training/train
 ### Model Metrics
 
 - **Accuracy**: ~55% (baseline ~45% always predicting home win)
-- **Features**: 25 (form, goals, H2H, shots, corners, streaks, rest)
-- **Algorithm**: Random Forest (100 trees)
+- **Features**: 25 (organized in 3 phases: form/goals/H2H, shots/corners, streaks/rest)
+- **Algorithm**: Stacked Ensemble (RandomForest + AdaBoostM1 + Logistic Regression)
 - **Training Time**: ~5-10 seconds for 3800 matches
 - **Model Size**: ~1-2 MB
 
@@ -766,24 +775,38 @@ mvn clean test
 - **Daily Active Users**: 156 average
 - **API Calls**: 2.3M total
 - **Data Points**: 8,420 matches analyzed
-- **Feature Engineering**: 32 statistical features
+- **Feature Engineering**: 25 statistical features in 3 phases
 
 ---
 
 ## 🆕 Recent Updates
 
-### Current Version: v2.1.0 (February 2026)
+### Current Version: v2.2.0 (February 2026)
 
 **Latest Features:**
-- ✨ **Modern UI**: Dark theme with responsive PWA-ready design
-- 🤖 **Advanced ML**: Stacked Ensemble combining Random Forest, AdaBoost, and J48
-- 📊 **Rich Analytics**: 30+ statistical features including xG metrics
-- 🔄 **Live Integration**: Real-time data from football-data.org API
-- 📱 **Mobile-First**: Touch-optimized interface for all devices
+- ✨ **Stacked Ensemble Model**: Combines RandomForest (100 trees) + Gradient Boosting (AdaBoostM1, 100 iterations) + Logistic Regression meta-model
+- 🎯 **25 Engineered Features**: Organized in 3 phases covering form, goals, H2H, shots, corners, streaks, and rest days
+- 📊 **Advanced Model Training**: Grid search hyperparameter optimization for RandomForest and AdaBoost
+- 🔄 **Voting Ensemble**: Alternative ensemble combining RF, AdaBoost, and J48 Decision Tree
+- 📱 **Modern UI**: Dark theme with responsive PWA-ready design
+- 🌐 **Live Integration**: Real-time data from football-data.org API (matches, standings, calendar)
+- 📰 **News Feed**: Premier League news integration
+- 📅 **Match Calendar**: Date-based prediction for upcoming fixtures
+- 🏆 **Standings**: Current Premier League table display
 - 🐳 **Production Ready**: Full Docker containerization with monitoring
 - 🧪 **Quality Assurance**: 120+ tests with 85% code coverage
 - ⚡ **Performance**: Sub-200ms prediction latency
 - 🎯 **High Accuracy**: 62.3% prediction accuracy (vs 45% baseline)
+
+**v2.1.0 (January 2026):**
+- Basic ensemble models with Random Forest
+- Initial PWA support
+- Docker containerization
+
+**v2.0.0 (December 2025):**
+- Multi-module microservices architecture
+- Bi-monthly automated retraining
+- External API integration
 
 ---
 
@@ -792,22 +815,39 @@ mvn clean test
 ### Completed ✅
 - [x] Enhanced UI with modern design system
 - [x] PWA support for mobile installation  
-- [x] Real-time match data integration
+- [x] Real-time match data integration via football-data.org API
 - [x] Multi-module microservices architecture
-- [x] Docker containerization
+- [x] Docker containerization with multi-stage builds
 - [x] Comprehensive test suite (120+ tests)
+- [x] Stacked Ensemble model (RandomForest + AdaBoost + Logistic Regression)
+- [x] Advanced feature engineering (25 features in 3 phases)
+- [x] Grid search hyperparameter optimization
+- [x] Cross-validation training (10-fold CV)
+- [x] Voting and Stacking ensemble methods
+- [x] Premier League news integration
+- [x] Match calendar with date-based predictions
+- [x] Current standings display
+- [x] Bi-monthly automated model retraining
 
 ### In Progress 🚧
-- [ ] xG (Expected Goals) integration
+- [ ] xG (Expected Goals) feature integration
 - [ ] Player injury impact analysis
+- [ ] Team lineup-based predictions
+- [ ] Historical performance dashboards
 
 ### Planned 📋
-- [ ] Multi-league support (La Liga, Bundesliga, Serie A)
-- [ ] Deep learning models (PyTorch/TensorFlow)
-- [ ] Native mobile apps (iOS/Android)
-- [ ] Cloud deployment (AWS/GCP)
-- [ ] GraphQL API
-- [ ] Redis caching layer
+- [ ] Multi-league support (La Liga, Bundesliga, Serie A, Ligue 1)
+- [ ] Deep learning models (LSTM for sequence prediction, Neural Networks)
+- [ ] Native mobile apps (iOS/Android with React Native)
+- [ ] Cloud deployment (AWS Lambda / GCP Cloud Run)
+- [ ] GraphQL API alongside REST
+- [ ] Redis caching layer for improved performance
+- [ ] Real-time odds comparison integration
+- [ ] Betting value analysis (expected value calculations)
+- [ ] Season simulation and predictions
+- [ ] Team performance trends visualization
+- [ ] API authentication and rate limiting per user
+- [ ] Model versioning and A/B testing framework
 
 ---
 

@@ -21,6 +21,7 @@ import weka.core.SelectedTag;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.Stream;
 
 import com.app.common.service.FeatureEngineeringService;
 import com.app.common.model.Match;
@@ -35,8 +36,11 @@ public class ModelTrainingService {
    private final FeatureEngineeringService featureEngineeringService;
    private final EnsembleModelService ensembleModelService;
 
-   @Autowired(required = false)
+   @Autowired
    private StackedEnsembleService stackedEnsembleService;
+
+   @Value("${model.stacked.ensemble.enabled:true}")
+   private boolean stackedEnsembleEnabled;
 
    @Value("${model.output.path}")
    private String modelOutputPath;
@@ -158,19 +162,35 @@ public class ModelTrainingService {
       log.info("Temporal split → train: {}, test: {}",
             trainSet.size(), testSet.size());
 
-      // ── Step 3: Build Weka datasets ────────────────────────────
+      // ── Step 3: Validate result values ─────────────────────────
+      // Ensure all features have valid result values (H, D, or A)
+      long invalidResults = Stream.concat(trainSet.stream(), testSet.stream())
+            .filter(f -> f.getActualResult() != null)
+            .filter(f -> !f.getActualResult().equals("H")
+                      && !f.getActualResult().equals("D")
+                      && !f.getActualResult().equals("A"))
+            .count();
+
+      if (invalidResults > 0) {
+          log.error("Found {} features with invalid result values. Expected: H, D, or A", invalidResults);
+          throw new IllegalStateException(
+                String.format("Dataset contains %d instances with invalid result values. " +
+                      "Only 'H', 'D', or 'A' are allowed.", invalidResults));
+      }
+
+      // ── Step 4: Build Weka datasets ────────────────────────────
       ArrayList<Attribute> attributes = buildAttributes();
       Instances trainData = toWekaInstances(trainSet, attributes, "FootballTrain");
       Instances testData  = toWekaInstances(testSet,  attributes, "FootballTest");
 
-      trainData.setClassIndex(IDX_LABEL);
-      testData.setClassIndex(IDX_LABEL);
+      // Class index is already set inside toWekaInstances()
 
-      // ── Step 4: Check if stacked ensemble is available ─────────
-      if (stackedEnsembleService != null) {
+      // ── Step 5: Check if stacked ensemble is enabled ─────────
+      if (stackedEnsembleEnabled && stackedEnsembleService != null) {
+         log.info("Using Stacked Ensemble: RandomForest + Gradient Boosting + Logistic Regression meta-model");
          return trainStackedEnsemble(trainData, testData, trainSet, testSet);
       } else {
-         log.info("StackedEnsembleService not available, using simple RandomForest");
+         log.info("Stacked ensemble disabled, using simple RandomForest");
          return trainSimpleRandomForest(trainData, testData, trainSet, testSet);
       }
    }
@@ -187,9 +207,23 @@ public class ModelTrainingService {
       // Use 80% of training data to train base models
       // Use 20% of training data as validation set for meta-model
       int stackSplitIdx = (int) (trainData.numInstances() * 0.8);
-      Instances baseTrainData = new Instances(trainData, 0, stackSplitIdx);
-      Instances validationData = new Instances(trainData, stackSplitIdx,
-            trainData.numInstances() - stackSplitIdx);
+
+      // Create new datasets with proper structure instead of using constructor subset
+      // This ensures class attribute integrity is maintained
+      Instances baseTrainData = new Instances(trainData, 0);
+      Instances validationData = new Instances(trainData, 0);
+
+      baseTrainData.setClassIndex(trainData.classIndex());
+      validationData.setClassIndex(trainData.classIndex());
+
+      // Manually copy instances to ensure proper class value handling
+      for (int i = 0; i < trainData.numInstances(); i++) {
+          if (i < stackSplitIdx) {
+              baseTrainData.add(trainData.instance(i));
+          } else {
+              validationData.add(trainData.instance(i));
+          }
+      }
 
       log.info("Stacking split → base training: {}, validation: {}",
             baseTrainData.numInstances(), validationData.numInstances());
@@ -221,11 +255,33 @@ public class ModelTrainingService {
 
       int correct = 0;
       int[][] confusionMatrix = new int[3][3]; // H, D, A
+      int skippedInstances = 0;
 
       for (int i = 0; i < testData.numInstances(); i++) {
           Instance instance = testData.instance(i);
           String predicted = stackedEnsembleService.predictClass(instance);
-          String actual = instance.stringValue(IDX_LABEL);
+
+          // Safely get the actual class value with validation
+          String actual;
+          try {
+              double classValue = instance.classValue();
+              int classIdx = (int) classValue;
+              Attribute classAttr = instance.classAttribute();
+
+              // Validate the class index is within valid range
+              if (classIdx < 0 || classIdx >= classAttr.numValues()) {
+                  log.warn("Instance {} has invalid class index {} (valid: 0-{}). Skipping.",
+                        i, classIdx, classAttr.numValues() - 1);
+                  skippedInstances++;
+                  continue;
+              }
+
+              actual = classAttr.value(classIdx);
+          } catch (Exception e) {
+              log.warn("Instance {}: Cannot get class value: {}. Skipping.", i, e.getMessage());
+              skippedInstances++;
+              continue;
+          }
 
           int predIdx = predicted.equals("H") ? 0 : predicted.equals("D") ? 1 : 2;
           int actualIdx = actual.equals("H") ? 0 : actual.equals("D") ? 1 : 2;
@@ -235,6 +291,10 @@ public class ModelTrainingService {
           if (predicted.equals(actual)) {
               correct++;
           }
+      }
+
+      if (skippedInstances > 0) {
+          log.warn("Skipped {} instances with invalid class values during evaluation", skippedInstances);
       }
 
       double accuracy = (double) correct / testData.numInstances() * 100.0;
@@ -256,7 +316,7 @@ public class ModelTrainingService {
       this.trainingHeader = trainData;
 
       long duration = System.currentTimeMillis() - start;
-      log.info("Training complete in {} ms. Stacked Ensemble Accuracy: {:.1f}%", duration, accuracy);
+      log.info("Training complete in {} ms. Stacked Ensemble Accuracy: {}.1f%", duration, accuracy);
 
       return report;
    }
@@ -748,6 +808,20 @@ public class ModelTrainingService {
       return trainedModel != null && trainingHeader != null;
    }
 
+   /**
+    * Returns the last updated timestamp of the model file in ISO 8601 format.
+    * @return ISO 8601 formatted date string or null if model file doesn't exist
+    */
+   public String getModelLastUpdated() {
+      File file = new File(modelOutputPath);
+      if (file.exists()) {
+         long lastModified = file.lastModified();
+         java.time.Instant instant = java.time.Instant.ofEpochMilli(lastModified);
+         return instant.toString(); // ISO 8601 format: 2026-02-19T10:30:45.123Z
+      }
+      return null;
+   }
+
    // ── Weka dataset builders ─────────────────────────────────────────────
 
    /**
@@ -798,10 +872,13 @@ public class ModelTrainingService {
     */
    private Instances toWekaInstances(List<MatchFeatures> featuresList, ArrayList<Attribute> attributes, String name) {
       Instances dataset = new Instances(name, attributes, featuresList.size());
+      // CRITICAL: Set class index BEFORE adding any instances
+      // This ensures all instances use the correct class attribute structure
       dataset.setClassIndex(IDX_LABEL);
 
       for (MatchFeatures f : featuresList) {
-         dataset.add(toWekaInstance(f, dataset));
+          Instance inst = toWekaInstance(f, dataset);
+          dataset.add(inst);
       }
 
       return dataset;

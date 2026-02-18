@@ -32,7 +32,10 @@ const ENDPOINTS = {
     // News endpoints
     newsPL: `${API_BASE}/news/premier-league`,
     newsFootball: `${API_BASE}/news/football`,
-    newsTeam: `${API_BASE}/news/team`
+    newsTeam: `${API_BASE}/news/team`,
+    // Admin endpoints
+    adminVerify: `${API_BASE}/admin/verify`,
+    adminLogout: `${API_BASE}/admin/logout`
 };
 
 // Responsive utilities
@@ -141,6 +144,17 @@ const elements = {
     errorHint: document.getElementById('errorHint'),
 
     // Admin elements
+    adminCard: document.getElementById('adminCard'),
+    adminLoginOverlay: document.getElementById('adminLoginOverlay'),
+    adminControls: document.getElementById('adminControls'),
+    adminLoginForm: document.getElementById('adminLoginForm'),
+    adminUsername: document.getElementById('adminUsername'),
+    adminPassword: document.getElementById('adminPassword'),
+    adminLoginBtn: document.getElementById('adminLoginBtn'),
+    adminLogoutBtn: document.getElementById('adminLogoutBtn'),
+    authBadge: document.getElementById('authBadge'),
+    loginError: document.getElementById('loginError'),
+    loginErrorText: document.getElementById('loginErrorText'),
     trainModelBtn: document.getElementById('trainModelBtn'),
     reloadDataBtn: document.getElementById('reloadDataBtn'),
     updateDataBtn: document.getElementById('updateDataBtn'),
@@ -180,7 +194,6 @@ const elements = {
     newsList: document.getElementById('newsList'),
     newsLoading: document.getElementById('newsLoading'),
     newsEmpty: document.getElementById('newsEmpty'),
-    newsTabs: document.querySelectorAll('.news-tab'),
 
     // Toast container
     toastContainer: document.getElementById('toastContainer')
@@ -260,6 +273,203 @@ function formatPercent(value) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// Admin Authentication
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Admin authentication state
+let adminAuth = {
+    isAuthenticated: false,
+    credentials: null
+};
+
+/**
+ * Get admin credentials from session storage
+ */
+function getStoredAdminCredentials() {
+    try {
+        const stored = sessionStorage.getItem('adminCredentials');
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error('Failed to parse stored credentials');
+    }
+    return null;
+}
+
+/**
+ * Store admin credentials in session storage
+ */
+function storeAdminCredentials(username, password) {
+    const credentials = btoa(`${username}:${password}`);
+    sessionStorage.setItem('adminCredentials', JSON.stringify({ credentials }));
+    adminAuth.credentials = credentials;
+    adminAuth.isAuthenticated = true;
+}
+
+/**
+ * Clear admin credentials
+ */
+function clearAdminCredentials() {
+    sessionStorage.removeItem('adminCredentials');
+    adminAuth.credentials = null;
+    adminAuth.isAuthenticated = false;
+}
+
+/**
+ * Make an authenticated API request (for admin endpoints)
+ */
+async function adminApiRequest(url, options = {}) {
+    if (!adminAuth.credentials) {
+        throw { status: 401, error: 'Not authenticated' };
+    }
+
+    return apiRequest(url, {
+        ...options,
+        headers: {
+            ...options.headers,
+            'Authorization': `Basic ${adminAuth.credentials}`
+        }
+    });
+}
+
+/**
+ * Verify admin credentials with the server
+ */
+async function verifyAdminCredentials(username, password) {
+    const credentials = btoa(`${username}:${password}`);
+
+    try {
+        const response = await fetch(ENDPOINTS.adminVerify, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Basic ${credentials}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            storeAdminCredentials(username, password);
+            return { success: true };
+        } else {
+            return { success: false, error: 'Invalid credentials' };
+        }
+    } catch (error) {
+        return { success: false, error: 'Network error' };
+    }
+}
+
+/**
+ * Handle admin login form submission
+ */
+async function handleAdminLogin(event) {
+    event.preventDefault();
+
+    const username = elements.adminUsername.value.trim();
+    const password = elements.adminPassword.value;
+
+    if (!username || !password) {
+        showLoginError('Please enter username and password');
+        return;
+    }
+
+    setButtonLoading(elements.adminLoginBtn, true);
+    hideLoginError();
+
+    const result = await verifyAdminCredentials(username, password);
+
+    setButtonLoading(elements.adminLoginBtn, false);
+
+    if (result.success) {
+        showAdminControls();
+        showToast('Admin authenticated successfully', 'success');
+        // Clear the form
+        elements.adminLoginForm.reset();
+    } else {
+        showLoginError(result.error || 'Authentication failed');
+    }
+}
+
+/**
+ * Handle admin logout
+ */
+function handleAdminLogout() {
+    clearAdminCredentials();
+    hideAdminControls();
+    showToast('Logged out successfully', 'info');
+}
+
+/**
+ * Show admin controls (after successful login)
+ */
+function showAdminControls() {
+    elements.adminLoginOverlay.style.display = 'none';
+    elements.adminControls.style.display = 'block';
+    elements.authBadge.textContent = '🔓 Admin';
+    elements.authBadge.classList.remove('locked');
+    elements.authBadge.classList.add('unlocked');
+    elements.adminLogoutBtn.style.display = 'inline-flex';
+}
+
+/**
+ * Hide admin controls (show login overlay)
+ */
+function hideAdminControls() {
+    elements.adminLoginOverlay.style.display = 'block';
+    elements.adminControls.style.display = 'none';
+    elements.authBadge.textContent = '🔒 Admin Only';
+    elements.authBadge.classList.remove('unlocked');
+    elements.authBadge.classList.add('locked');
+    elements.adminLogoutBtn.style.display = 'none';
+}
+
+/**
+ * Show login error message
+ */
+function showLoginError(message) {
+    elements.loginErrorText.textContent = message;
+    elements.loginError.style.display = 'flex';
+}
+
+/**
+ * Hide login error message
+ */
+function hideLoginError() {
+    elements.loginError.style.display = 'none';
+}
+
+/**
+ * Initialize admin authentication
+ * Check if there are stored credentials and verify them
+ */
+async function initAdminAuth() {
+    const stored = getStoredAdminCredentials();
+    if (stored && stored.credentials) {
+        adminAuth.credentials = stored.credentials;
+
+        // Verify the stored credentials are still valid
+        try {
+            const response = await fetch(ENDPOINTS.adminVerify, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Basic ${stored.credentials}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                adminAuth.isAuthenticated = true;
+                showAdminControls();
+            } else {
+                clearAdminCredentials();
+            }
+        } catch (error) {
+            clearAdminCredentials();
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // API Functions
 // ═══════════════════════════════════════════════════════════════════════════
 
@@ -269,11 +479,11 @@ function formatPercent(value) {
 async function checkModelStatus() {
     try {
         const data = await apiRequest(ENDPOINTS.modelStatus);
-        updateModelStatus(data.modelLoaded);
+        updateModelStatus(data.modelLoaded, data.lastUpdated);
         return data;
     } catch (error) {
         console.error('Failed to check model status:', error);
-        updateModelStatus(false);
+        updateModelStatus(false, null);
         return { modelLoaded: false };
     }
 }
@@ -281,9 +491,25 @@ async function checkModelStatus() {
 /**
  * Update model status UI
  */
-function updateModelStatus(isLoaded) {
+function updateModelStatus(isLoaded, lastUpdated) {
     elements.statusIndicator.className = 'status-indicator ' + (isLoaded ? 'ready' : 'not-ready');
     elements.statusText.textContent = isLoaded ? 'Model Ready' : 'Model Not Loaded';
+    if (lastUpdated) {
+        // Format timestamp based on user's locale and timezone
+        const date = new Date(lastUpdated);
+        const formattedDate = date.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZoneName: 'short'
+        });
+        elements.lastUpdated.textContent = 'Last updated: ' + formattedDate;
+    } else {
+        elements.lastUpdated.textContent = 'Last updated: --';
+    }
 }
 
 /**
@@ -348,13 +574,18 @@ async function trainModel() {
     showAdminOutput('Training model... This may take 30-60 seconds.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.trainModel, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.trainModel, { method: 'POST' });
         showAdminOutput(data.report || 'Model trained successfully!');
         showToast('Model trained successfully!', 'success');
         checkModelStatus();
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Training failed'}`);
-        showToast('Model training failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Training failed'}`);
+            showToast('Model training failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.trainModelBtn, false);
     }
@@ -368,13 +599,18 @@ async function reloadData() {
     showAdminOutput('Reloading data from CSV files...');
 
     try {
-        const data = await apiRequest(ENDPOINTS.reloadData, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.reloadData, { method: 'POST' });
         showAdminOutput(data.status || 'Data reloaded successfully!');
         showToast('Data reloaded!', 'success');
         loadTeams(); // Refresh team list
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Data reload failed'}`);
-        showToast('Data reload failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Data reload failed'}`);
+            showToast('Data reload failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.reloadDataBtn, false);
     }
@@ -388,14 +624,19 @@ async function updateData() {
     showAdminOutput('🔄 Downloading latest data from football-data.co.uk...\nThis may take 1-2 minutes if retraining is needed.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.updateData, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.updateData, { method: 'POST' });
         showAdminOutput(data.result || 'Data updated successfully!');
         showToast('Data updated!', 'success');
         loadTeams(); // Refresh team list
         checkModelStatus(); // Refresh model status
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Data update failed'}`);
-        showToast('Data update failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Data update failed'}`);
+            showToast('Data update failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.updateDataBtn, false);
     }
@@ -413,13 +654,18 @@ async function trainAdvanced() {
     showAdminOutput('⚡ Starting ADVANCED training...\nThis performs grid search + cross-validation + ensemble.\nMay take 3-5 minutes.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.trainAdvanced, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.trainAdvanced, { method: 'POST' });
         showAdminOutput(data.report || 'Advanced training completed!');
         showToast('Advanced training completed!', 'success');
         checkModelStatus();
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Advanced training failed'}`);
-        showToast('Advanced training failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Advanced training failed'}`);
+            showToast('Advanced training failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.trainAdvancedBtn, false);
     }
@@ -433,13 +679,18 @@ async function trainWithCrossValidation() {
     showAdminOutput('📈 Starting Cross-Validation training (10-fold)...\nThis provides more reliable accuracy estimates.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.trainCV, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.trainCV, { method: 'POST' });
         showAdminOutput(data.report || 'Cross-validation training completed!');
         showToast('Cross-validation training completed!', 'success');
         checkModelStatus();
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Cross-validation training failed'}`);
-        showToast('Cross-validation training failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Cross-validation training failed'}`);
+            showToast('Cross-validation training failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.trainCVBtn, false);
     }
@@ -453,13 +704,18 @@ async function trainGradientBoosting() {
     showAdminOutput('📊 Starting Gradient Boosting training...\nAdaBoost often performs better than Random Forest for tabular data.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.trainBoosting, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.trainBoosting, { method: 'POST' });
         showAdminOutput(data.report || 'Gradient Boosting training completed!');
         showToast('Gradient Boosting training completed!', 'success');
         checkModelStatus();
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Gradient Boosting training failed'}`);
-        showToast('Gradient Boosting training failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Gradient Boosting training failed'}`);
+            showToast('Gradient Boosting training failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.trainBoostingBtn, false);
     }
@@ -473,13 +729,18 @@ async function trainEnsemble() {
     showAdminOutput('🤝 Starting Ensemble training...\nCombining Random Forest + AdaBoost + J48 Decision Tree.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.trainEnsemble, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.trainEnsemble, { method: 'POST' });
         showAdminOutput(data.report || 'Ensemble training completed!');
         showToast('Ensemble training completed!', 'success');
         checkModelStatus();
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Ensemble training failed'}`);
-        showToast('Ensemble training failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Ensemble training failed'}`);
+            showToast('Ensemble training failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.trainEnsembleBtn, false);
     }
@@ -493,12 +754,17 @@ async function performGridSearch() {
     showAdminOutput('🔍 Starting Grid Search...\nTesting different hyperparameter combinations for Random Forest and AdaBoost.\nThis may take 2-4 minutes.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.gridSearch, { method: 'POST' });
+        const data = await adminApiRequest(ENDPOINTS.gridSearch, { method: 'POST' });
         showAdminOutput(data.report || 'Grid search completed!');
         showToast('Grid search completed!', 'success');
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Grid search failed'}`);
-        showToast('Grid search failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Grid search failed'}`);
+            showToast('Grid search failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.gridSearchBtn, false);
     }
@@ -512,12 +778,17 @@ async function compareModels() {
     showAdminOutput('📋 Comparing models...\nEvaluating Random Forest, AdaBoost, J48, and Ensemble using 10-fold cross-validation.');
 
     try {
-        const data = await apiRequest(ENDPOINTS.compareModels, { method: 'GET' });
+        const data = await adminApiRequest(ENDPOINTS.compareModels, { method: 'GET' });
         showAdminOutput(data.report || 'Model comparison completed!');
         showToast('Model comparison completed!', 'success');
     } catch (error) {
-        showAdminOutput(`Error: ${error.error || 'Model comparison failed'}`);
-        showToast('Model comparison failed', 'error');
+        if (error.status === 401) {
+            handleAdminLogout();
+            showToast('Session expired. Please login again.', 'error');
+        } else {
+            showAdminOutput(`Error: ${error.error || 'Model comparison failed'}`);
+            showToast('Model comparison failed', 'error');
+        }
     } finally {
         setButtonLoading(elements.compareModelsBtn, false);
     }
@@ -932,17 +1203,18 @@ function generateFormIndicator(won, draw, lost, played) {
 }
 
 /**
- * Format match date for display
+ * Format match date for display (uses user's locale and timezone)
  */
 function formatMatchDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString(undefined, {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        timeZoneName: 'short'
     });
 }
 
@@ -958,11 +1230,11 @@ function formatDateForApi(date) {
 }
 
 /**
- * Format date for display
+ * Format date for display (uses user's locale)
  */
 function formatDateForDisplay(dateStr) {
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString(undefined, {
         weekday: 'long',
         day: 'numeric',
         month: 'short',
@@ -1096,12 +1368,12 @@ function createCalendarMatchCard(match) {
 }
 
 /**
- * Format match time
+ * Format match time (uses user's locale and timezone)
  */
 function formatMatchTime(dateString) {
     if (!dateString) return 'TBD';
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-GB', {
+    return date.toLocaleTimeString(undefined, {
         hour: '2-digit',
         minute: '2-digit'
     });
@@ -1134,21 +1406,16 @@ function initCalendar() {
 // News Functions
 // ═══════════════════════════════════════════════════════════════════════════
 
-let currentNewsTab = 'pl';
-
 /**
- * Fetch news based on current tab
+ * Fetch football news
  */
-async function fetchNews(tab = currentNewsTab) {
-    currentNewsTab = tab;
-
+async function fetchNews() {
     elements.newsLoading.style.display = 'block';
     elements.newsEmpty.style.display = 'none';
     elements.newsList.querySelectorAll('.news-article').forEach(el => el.remove());
 
     try {
-        const endpoint = tab === 'pl' ? ENDPOINTS.newsPL : ENDPOINTS.newsFootball;
-        const data = await apiRequest(endpoint);
+        const data = await apiRequest(ENDPOINTS.newsFootball);
 
         elements.newsLoading.style.display = 'none';
 
@@ -1233,33 +1500,97 @@ function formatNewsDate(dateString) {
     if (diffHours < 24) return `${diffHours}h ago`;
     if (diffDays < 7) return `${diffDays}d ago`;
 
-    return date.toLocaleDateString('en-GB', {
+    return date.toLocaleDateString(undefined, {
         day: 'numeric',
         month: 'short'
     });
 }
 
 /**
- * Handle news tab click
+ * Initialize news - fetch football news on load
  */
-function handleNewsTabClick(e) {
-    const tab = e.target.dataset.tab;
-    if (!tab) return;
+function initNews() {
+    fetchNews();
+}
 
-    // Update active tab
-    elements.newsTabs.forEach(t => t.classList.remove('active'));
-    e.target.classList.add('active');
+// ═══════════════════════════════════════════════════════════════════════════
+// Responsive Utilities
+// ═══════════════════════════════════════════════════════════════════════════
 
-    // Fetch news for selected tab
-    fetchNews(tab);
+/**
+ * Initialize responsive features
+ */
+function initResponsive() {
+    // Add body classes based on device/viewport
+    updateResponsiveClasses();
+
+    // Listen for resize events with debouncing
+    window.addEventListener('resize', RESPONSIVE.onResize(() => {
+        updateResponsiveClasses();
+    }));
+
+    // Detect virtual keyboard on mobile
+    if (RESPONSIVE.isMobile()) {
+        detectVirtualKeyboard();
+    }
 }
 
 /**
- * Initialize news
+ * Update body classes based on current viewport
  */
-function initNews() {
-    // Fetch initial news
-    fetchNews('pl');
+function updateResponsiveClasses() {
+    const breakpoint = RESPONSIVE.getCurrentBreakpoint();
+    const isMobile = RESPONSIVE.isMobile();
+    const isTouch = RESPONSIVE.isTouchDevice();
+
+    // Remove old breakpoint classes
+    document.body.classList.remove('bp-xs', 'bp-sm', 'bp-md', 'bp-lg', 'bp-xl');
+    document.body.classList.remove('is-mobile', 'is-desktop', 'is-touch');
+
+    // Add current breakpoint class
+    document.body.classList.add(`bp-${breakpoint}`);
+
+    // Add device type classes
+    document.body.classList.add(isMobile ? 'is-mobile' : 'is-desktop');
+    if (isTouch) {
+        document.body.classList.add('is-touch');
+    }
+}
+
+/**
+ * Detect virtual keyboard open/close on mobile
+ */
+function detectVirtualKeyboard() {
+    const initialHeight = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+        const currentHeight = window.innerHeight;
+        const heightDiff = initialHeight - currentHeight;
+
+        // If height reduced significantly, keyboard is likely open
+        if (heightDiff > 150) {
+            document.body.classList.add('keyboard-open');
+        } else {
+            document.body.classList.remove('keyboard-open');
+        }
+    });
+}
+
+/**
+ * Load standings data (placeholder for lazy loading)
+ */
+function loadStandings() {
+    // Fetch standings if not already loaded
+    const competition = 'PL';
+    fetchStandings(competition);
+}
+
+/**
+ * Load news data (placeholder for lazy loading)
+ */
+function loadNews() {
+    // Fetch football news
+    fetchNews();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1278,6 +1609,10 @@ async function init() {
     elements.reloadDataBtn.addEventListener('click', reloadData);
     elements.updateDataBtn.addEventListener('click', updateData);
     elements.checkStatusBtn.addEventListener('click', handleCheckStatus);
+
+    // Admin authentication event listeners
+    elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
+    elements.adminLogoutBtn.addEventListener('click', handleAdminLogout);
 
     // Advanced training event listeners
     elements.trainAdvancedBtn.addEventListener('click', trainAdvanced);
@@ -1309,8 +1644,10 @@ async function init() {
     });
 
     // News event listeners
-    elements.refreshNewsBtn.addEventListener('click', () => fetchNews(currentNewsTab));
-    elements.newsTabs.forEach(tab => tab.addEventListener('click', handleNewsTabClick));
+    elements.refreshNewsBtn.addEventListener('click', () => fetchNews());
+
+    // Initialize admin authentication
+    await initAdminAuth();
 
     // Initialize calendar with today's date
     initCalendar();
@@ -1387,50 +1724,210 @@ function initAdvancedOptions() {
 
 // Quick match suggestions
 async function initQuickMatches() {
+    if (!elements.quickMatchesGrid) return;
+
+    // Show loading state
+    elements.quickMatchesGrid.innerHTML = '<p class="loading-text">Loading upcoming matches...</p>';
+
     try {
         const upcomingMatches = await fetchUpcomingMatches();
-        renderQuickMatches(upcomingMatches.slice(0, 4)); // Show top 4
+        if (upcomingMatches && upcomingMatches.length > 0) {
+            renderQuickMatches(upcomingMatches.slice(0, 4)); // Show top 4
+        } else {
+            // No matches, use fallback
+            renderQuickMatches(getFallbackMatches().slice(0, 4));
+        }
     } catch (error) {
         console.warn('Could not load quick matches:', error);
-        hideQuickMatches();
+        // Use fallback matches
+        renderQuickMatches(getFallbackMatches().slice(0, 4));
     }
 }
 
 function renderQuickMatches(matches) {
     if (!elements.quickMatchesGrid) return;
 
-    elements.quickMatchesGrid.innerHTML = matches.map(match => `
-        <div class="quick-match-item" onclick="selectQuickMatch('${match.homeTeam}', '${match.awayTeam}', '${match.date}')">
+    if (!matches || matches.length === 0) {
+        elements.quickMatchesGrid.innerHTML = '<p class="no-matches">No upcoming matches available</p>';
+        return;
+    }
+
+    elements.quickMatchesGrid.innerHTML = matches.map((match, index) => {
+        const predictionClass = match.predictionCode ? getPredictionClass(match.predictionCode) : '';
+        const homeFlag = match.homeTeamCrest ? `<img src="${match.homeTeamCrest}" alt="${match.homeTeam}" class="quick-match-crest">` : '';
+        const awayFlag = match.awayTeamCrest ? `<img src="${match.awayTeamCrest}" alt="${match.awayTeam}" class="quick-match-crest">` : '';
+
+        // Build team form HTML (last 5 matches)
+        const homeFormHtml = buildQuickMatchFormHtml(match.homeTeamForm);
+        const awayFormHtml = buildQuickMatchFormHtml(match.awayTeamForm);
+
+        return `
+        <div class="quick-match-item" data-index="${index}" data-home="${match.homeTeam}" data-away="${match.awayTeam}">
             <div class="quick-match-teams">
-                <span class="quick-match-team">${match.homeTeam}</span>
+                <div class="quick-match-team-wrapper">
+                    ${homeFlag}
+                    <div class="quick-match-team-info">
+                        <span class="quick-match-team">${match.homeTeam}</span>
+                        ${homeFormHtml}
+                    </div>
+                </div>
                 <span class="quick-match-vs">vs</span>
-                <span class="quick-match-team">${match.awayTeam}</span>
+                <div class="quick-match-team-wrapper away">
+                    <div class="quick-match-team-info">
+                        <span class="quick-match-team">${match.awayTeam}</span>
+                        ${awayFormHtml}
+                    </div>
+                    ${awayFlag}
+                </div>
             </div>
             <div class="quick-match-info">
                 <span class="match-date">${formatDate(match.date)}</span>
-                <span class="match-confidence">${match.confidence || 'High'} Confidence</span>
+                ${match.prediction ? `<span class="quick-match-prediction ${predictionClass}">${match.prediction}</span>` : ''}
+                <span class="match-confidence ${(match.confidence || '').toLowerCase()}">${match.confidence || 'Medium'}</span>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
+
+    // Add click event listeners to quick match items
+    const quickMatchItems = elements.quickMatchesGrid.querySelectorAll('.quick-match-item');
+    quickMatchItems.forEach(item => {
+        item.addEventListener('click', () => {
+            const homeTeam = item.dataset.home;
+            const awayTeam = item.dataset.away;
+            selectQuickMatch(homeTeam, awayTeam);
+        });
+    });
 }
 
-function selectQuickMatch(homeTeam, awayTeam, date) {
+/**
+ * Build form HTML for quick match cards (simplified version)
+ * Shows compact W/D/L badges or position info
+ */
+function buildQuickMatchFormHtml(teamForm) {
+    if (!teamForm) return '';
+
+    // Try to get recent form string first (e.g., "W,W,D,L,W" or "WWDLW")
+    let formString = teamForm.recentForm || teamForm.form;
+
+    if (formString) {
+        return createQuickFormBadge(formString);
+    }
+
+    // If no form string available, show compact position and points instead
+    if (teamForm.position || teamForm.points !== undefined) {
+        let info = '';
+        if (teamForm.position) {
+            info += `<span class="quick-form-position">#${teamForm.position}</span>`;
+        }
+        if (teamForm.points !== undefined) {
+            info += `<span class="quick-form-pts">${teamForm.points}pts</span>`;
+        }
+        return `<div class="quick-form-info">${info}</div>`;
+    }
+
+    return '';
+}
+
+/**
+ * Create compact form badge for quick matches
+ */
+function createQuickFormBadge(formString) {
+    if (!formString) return '';
+
+    // Handle both comma-separated and continuous formats
+    let results;
+    if (formString.includes(',')) {
+        results = formString.split(',').map(r => r.trim());
+    } else {
+        results = formString.split('');
+    }
+
+    // Filter to only W, D, L and take last 5
+    results = results.filter(r => ['W', 'D', 'L'].includes(r.toUpperCase())).slice(-5);
+
+    if (results.length === 0) return '';
+
+    const badges = results.map(r => {
+        const result = r.toUpperCase();
+        return `<span class="quick-form-item ${result}">${result}</span>`;
+    }).join('');
+
+    return `<div class="quick-form-badge">${badges}</div>`;
+}
+
+function selectQuickMatch(homeTeam, awayTeam) {
+    // Set home team
     if (elements.homeTeamSelect) {
-        elements.homeTeamSelect.value = homeTeam;
+        // Find the matching option (case-insensitive partial match)
+        const homeOption = findTeamOption(elements.homeTeamSelect, homeTeam);
+        if (homeOption) {
+            elements.homeTeamSelect.value = homeOption.value;
+        } else {
+            console.warn(`Home team "${homeTeam}" not found in dropdown`);
+        }
     }
+
+    // Set away team
     if (elements.awayTeamSelect) {
-        elements.awayTeamSelect.value = awayTeam;
-    }
-    if (elements.matchDateInput) {
-        elements.matchDateInput.value = date;
+        const awayOption = findTeamOption(elements.awayTeamSelect, awayTeam);
+        if (awayOption) {
+            elements.awayTeamSelect.value = awayOption.value;
+        } else {
+            console.warn(`Away team "${awayTeam}" not found in dropdown`);
+        }
     }
 
     // Update form indicators
     updateTeamFormIndicator(homeTeam, 'home');
     updateTeamFormIndicator(awayTeam, 'away');
 
+    // Scroll to prediction form
+    elements.predictionForm?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
     // Show success feedback
-    showToast('Match selected! Ready to predict.', 'success');
+    showToast(`Selected: ${homeTeam} vs ${awayTeam}`, 'success');
+
+    // Automatically trigger prediction after a short delay
+    setTimeout(() => {
+        if (elements.homeTeamSelect?.value && elements.awayTeamSelect?.value) {
+            makePrediction(elements.homeTeamSelect.value, elements.awayTeamSelect.value);
+        }
+    }, 500);
+}
+
+/**
+ * Find a team option in a select element by name (case-insensitive partial match)
+ */
+function findTeamOption(selectElement, teamName) {
+    if (!selectElement || !teamName) return null;
+
+    const normalizedName = teamName.toLowerCase().trim();
+    const options = Array.from(selectElement.options);
+
+    // Try exact match first
+    let match = options.find(opt => opt.value.toLowerCase() === normalizedName);
+    if (match) return match;
+
+    // Try partial match (for names like "Man United" vs "Manchester United")
+    match = options.find(opt => {
+        const optValue = opt.value.toLowerCase();
+        return optValue.includes(normalizedName) || normalizedName.includes(optValue);
+    });
+    if (match) return match;
+
+    // Try matching common abbreviations
+    const abbreviations = {
+        'man united': 'manchester united',
+        'man city': 'manchester city',
+        'spurs': 'tottenham',
+        'wolves': 'wolverhampton'
+    };
+
+    const expanded = abbreviations[normalizedName] || normalizedName;
+    match = options.find(opt => opt.value.toLowerCase().includes(expanded));
+
+    return match;
 }
 
 function hideQuickMatches() {
@@ -1669,30 +2166,60 @@ function formatDateForInput(date) {
 }
 
 async function fetchUpcomingMatches() {
-    // Mock data for now - replace with actual API call
+    try {
+        // Use the actual API to fetch upcoming matches with predictions
+        const data = await apiRequest(`${ENDPOINTS.externalPredict}?competition=PL&limit=4`);
+
+        if (data.predictions && data.predictions.length > 0) {
+            return data.predictions.map(match => ({
+                homeTeam: match.homeTeam,
+                awayTeam: match.awayTeam,
+                homeTeamCrest: match.homeTeamCrest,
+                awayTeamCrest: match.awayTeamCrest,
+                homeTeamForm: match.homeTeamForm,
+                awayTeamForm: match.awayTeamForm,
+                date: match.matchDate,
+                confidence: match.confidence || 'Medium',
+                prediction: match.prediction,
+                predictionCode: match.predictionCode
+            }));
+        }
+
+        // Fallback to mock data if API fails
+        return getFallbackMatches();
+    } catch (error) {
+        console.warn('Could not fetch upcoming matches from API:', error);
+        // Return fallback data
+        return getFallbackMatches();
+    }
+}
+
+function getFallbackMatches() {
+    // Fallback mock data when API is unavailable
+    const today = new Date();
     return [
         {
             homeTeam: 'Arsenal',
             awayTeam: 'Chelsea',
-            date: '2026-02-20',
+            date: new Date(today.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString(),
             confidence: 'High'
         },
         {
             homeTeam: 'Liverpool',
             awayTeam: 'Manchester City',
-            date: '2026-02-22',
+            date: new Date(today.getTime() + 4 * 24 * 60 * 60 * 1000).toISOString(),
             confidence: 'Medium'
         },
         {
-            homeTeam: 'Manchester United',
+            homeTeam: 'Man United',
             awayTeam: 'Tottenham',
-            date: '2026-02-23',
+            date: new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000).toISOString(),
             confidence: 'High'
         },
         {
             homeTeam: 'Newcastle',
             awayTeam: 'Brighton',
-            date: '2026-02-24',
+            date: new Date(today.getTime() + 6 * 24 * 60 * 60 * 1000).toISOString(),
             confidence: 'Medium'
         }
     ];

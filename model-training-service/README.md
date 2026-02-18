@@ -5,11 +5,30 @@ A separate Spring Boot microservice for training and testing machine learning mo
 ## Overview
 
 This service is responsible for:
-- Training the Random Forest model on historical match data
-- Testing and evaluating model performance
+- Training the Stacked Ensemble model (RandomForest + AdaBoostM1 + Logistic Regression)
+- Supporting multiple training modes (basic, CV, grid search, ensemble)
+- Testing and evaluating model performance with detailed metrics
 - Providing model information via REST API
 - Automatically retraining the model twice monthly (1st and 15th at 3:00 AM)
 - Storing trained models in the shared data folder
+
+## Model Architecture
+
+The service implements a **Stacked Ensemble** combining:
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    STACKED ENSEMBLE                         │
+├─────────────────────────────────────────────────────────────┤
+│  Base Model 1: RandomForest (100 trees, 5 features/split)   │
+│  Base Model 2: AdaBoostM1 (100 iterations, REPTree base)    │
+│  Meta Model:   Logistic Regression (combines predictions)   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Feature Engineering (25 Features)
+- **Phase 1**: Form points, goals scored/conceded, H2H rates, total goals
+- **Phase 2**: Shots on target averages, corners averages  
+- **Phase 3**: Goal difference, overall form, win/unbeaten streaks, rest days
 
 ## Architecture
 
@@ -160,17 +179,25 @@ Logs are stored in `../logs/model-training/`:
 ## Model Training Process
 
 1. **Data Loading**: Fetches all matches from database ordered by date
-2. **Feature Engineering**: Builds 25 features for each match
-3. **Temporal Split**: 80% training, 20% testing (chronological)
-4. **Model Training**: Random Forest with 100 trees
-5. **Evaluation**: Tests on held-out test set
-6. **Persistence**: Saves model to shared data folder
+2. **Feature Engineering**: Builds 25 features per match across 3 phases
+3. **Data Split**: 
+   - Training: 64% for base model training
+   - Validation: 16% for meta-model training
+   - Test: 20% for final evaluation (chronological)
+4. **Base Model Training**: 
+   - RandomForest: 100 trees, 5 features per split
+   - AdaBoostM1: 100 boosting iterations with REPTree base learner
+5. **Meta-Model Training**: Logistic Regression on validation set predictions
+6. **Evaluation**: Tests on held-out test set
+7. **Persistence**: Saves model to shared data folder
 
 ## Performance
 
-- **Training Time**: ~5-10 seconds for 3800 matches
-- **Accuracy**: ~50-55% (baseline ~45%)
-- **Memory**: ~512MB recommended
+- **Training Time**: ~10-30 seconds for full Stacked Ensemble (3800 matches)
+- **Accuracy**: ~55-62% (baseline ~45%)
+- **Algorithm**: Stacked Ensemble (RF + AdaBoost + Logistic Regression)
+- **Features**: 25 in 3 phases
+- **Memory**: ~512MB-1GB recommended
 - **Disk**: Model file ~1-2MB
 
 ## Troubleshooting
@@ -207,12 +234,39 @@ grep "SCHEDULED" ../logs/model-training/training.log
 
 ### Changing ML Algorithm
 
-Currently uses Random Forest. To use a different algorithm:
+Currently uses Stacked Ensemble (RandomForest + AdaBoostM1 + Logistic Regression). 
+To use a different algorithm:
 
-1. Modify `ModelTrainingService.trainModel()` method
-2. Replace `RandomForest` with desired classifier
-3. Update hyperparameters
-4. Test and evaluate performance
+1. Modify `ModelTrainingService.trainAndEvaluate()` method
+2. Set `model.stacked-ensemble.enabled=false` to use simple RandomForest
+3. Or implement new ensemble in `StackedEnsembleService`
+4. Update hyperparameters as needed
+5. Test and evaluate performance
+
+### Available Training Modes
+
+- **Stacked Ensemble** (default): RF + AdaBoost + LR meta-model
+- **Simple RandomForest**: Basic RF with 100 trees
+- **Cross-Validation**: 10-fold CV for model evaluation
+- **Grid Search**: Hyperparameter optimization
+- **Voting Ensemble**: RF + AdaBoost + J48 with majority voting
+
+## Roadmap
+
+### Completed ✅
+- [x] Stacked Ensemble model architecture
+- [x] 25-feature engineering in 3 phases
+- [x] Grid search hyperparameter optimization
+- [x] Cross-validation support
+- [x] Bi-monthly automated retraining
+- [x] REST API for training operations
+
+### Planned 📋
+- [ ] xG (Expected Goals) feature integration
+- [ ] Neural network models (LSTM, MLP)
+- [ ] Real-time model performance monitoring
+- [ ] A/B testing for model versions
+- [ ] Incremental learning support
 
 ## License
 

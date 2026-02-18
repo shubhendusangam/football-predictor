@@ -56,8 +56,6 @@ services:
       - football-data:/app/data
       - football-logs:/app/logs
     restart: unless-stopped
-    depends_on:
-      - football-predictor
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8081/api/training/model-info"]
       interval: 30s

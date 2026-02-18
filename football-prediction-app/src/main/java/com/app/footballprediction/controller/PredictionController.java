@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import com.app.footballprediction.dto.PredictRequest;
@@ -274,6 +275,45 @@ public class PredictionController {
    }
 
    /**
+    * Train Stacked Ensemble model: RandomForest + Gradient Boosting + Logistic Regression meta-model.
+    * This is the most advanced ensemble approach using model stacking.
+    * <p>
+    * Architecture:
+    * - Base Model 1: RandomForest (100 trees)
+    * - Base Model 2: Gradient Boosting (AdaBoostM1, 100 iterations)
+    * - Meta Model: Logistic Regression (combines base model predictions)
+    * <p>
+    * POST /api/model/train/stacked
+    */
+   @PostMapping("/model/train/stacked")
+   public ResponseEntity<?> trainStackedEnsemble() {
+      try {
+         log.info("Stacked Ensemble training requested via API...");
+         log.info("Architecture: RandomForest + Gradient Boosting + Logistic Regression meta-model");
+         String report = modelTrainingService.trainAndEvaluate();
+         return ResponseEntity.ok(Map.of(
+               "status", "success",
+               "modelType", "STACKED_ENSEMBLE",
+               "architecture", Map.of(
+                     "baseModel1", "RandomForest (100 trees)",
+                     "baseModel2", "Gradient Boosting (AdaBoostM1, 100 iterations)",
+                     "metaModel", "Logistic Regression"
+               ),
+               "report", report
+         ));
+      } catch (IllegalStateException e) {
+         return ResponseEntity.badRequest().body(Map.of(
+               "error", e.getMessage()
+         ));
+      } catch (Exception e) {
+         log.error("Stacked Ensemble training failed: {}", e.getMessage());
+         return ResponseEntity.internalServerError().body(Map.of(
+               "error", e.getMessage()
+         ));
+      }
+   }
+
+   /**
     * Perform hyperparameter grid search.
     * <p>
     * POST /api/model/grid-search
@@ -327,18 +367,22 @@ public class PredictionController {
 
    /**
     * Check whether the model is loaded and ready.
-    * <p>
+   /**
     * GET /api/model/status
     */
    @GetMapping("/model/status")
    public ResponseEntity<?> modelStatus() {
       boolean loaded = modelTrainingService.isModelLoaded();
-      return ResponseEntity.ok(Map.of(
-            "modelLoaded", loaded,
-            "hint", loaded
-                  ? "Ready to predict. Call POST /api/predict"
-                  : "Model not loaded. Call POST /api/model/train"
-      ));
+      String lastUpdated = modelTrainingService.getModelLastUpdated();
+      Map<String, Object> response = new HashMap<>();
+      response.put("modelLoaded", loaded);
+      response.put("hint", loaded
+            ? "Ready to predict. Call POST /api/predict"
+            : "Model not loaded. Call POST /api/model/train");
+      if (lastUpdated != null) {
+         response.put("lastUpdated", lastUpdated);
+      }
+      return ResponseEntity.ok(response);
    }
 
    // ── Data management ───────────────────────────────────────────────────
