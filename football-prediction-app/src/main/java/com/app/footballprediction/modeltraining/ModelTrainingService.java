@@ -201,6 +201,24 @@ public class ModelTrainingService {
 
       // ── Step 3: Evaluate ───────────────────────────────────────
       log.info("Evaluating stacked ensemble on test set...");
+
+      // Validate test data structure
+      if (testData.numInstances() == 0) {
+         throw new IllegalStateException("Test data has no instances!");
+      }
+
+      Instance firstInstance = testData.instance(0);
+      int numAttributes = firstInstance.numAttributes();
+      log.info("Test data validation: {} instances, {} attributes per instance",
+            testData.numInstances(), numAttributes);
+
+      if (numAttributes <= IDX_LABEL) {
+         throw new IllegalStateException(String.format(
+               "Test data has insufficient attributes! Expected at least %d attributes (for IDX_LABEL=%d), " +
+               "but found only %d attributes. This suggests feature engineering failed during test setup.",
+               IDX_LABEL + 1, IDX_LABEL, numAttributes));
+      }
+
       int correct = 0;
       int[][] confusionMatrix = new int[3][3]; // H, D, A
 

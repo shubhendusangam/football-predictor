@@ -3,6 +3,7 @@ package com.app.footballprediction;
 import org.jspecify.annotations.NonNull;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 import lombok.RequiredArgsConstructor;
@@ -10,12 +11,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.service.CsvIngestionService;
 
 @SpringBootApplication(scanBasePackages = {"com.app.footballprediction", "com.app.common"})
 @EnableJpaRepositories(basePackages = {"com.app.footballprediction", "com.app.common"})
+@EntityScan(basePackages = {"com.app.footballprediction", "com.app.common"})
 @EnableScheduling
 @RequiredArgsConstructor
 @Slf4j
@@ -23,6 +26,9 @@ public class FootballPredictionApplication implements ApplicationRunner {
 
    private final CsvIngestionService csvIngestionService;
    private final ModelTrainingService modelTrainingService;
+
+   @Value("${model.training.enabled:true}")
+   private boolean modelTrainingEnabled;
 
    public static void main(String[] args) {
       SpringApplication.run(FootballPredictionApplication.class, args);
@@ -50,7 +56,10 @@ public class FootballPredictionApplication implements ApplicationRunner {
       // ── Step 2: Model loading / training ──────────────────────
       log.info("► Step 2: Checking model...");
 
-      if (modelTrainingService.isModelLoaded()) {
+      if (!modelTrainingEnabled) {
+         log.info("  Model training disabled via configuration. Skipping model operations.");
+         log.info("  This is typical for test environments with insufficient data.");
+      } else if (modelTrainingService.isModelLoaded()) {
          // WekaModelConfig already loaded it from disk at startup
          log.info("  ✓ Model loaded by Spring at startup. Ready to predict!");
 
