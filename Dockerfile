@@ -1,17 +1,21 @@
 # ============================================
-# Football Match Predictor - Dockerfile
+# Football Match Predictor - Multi-Module Dockerfile
 # Multi-stage build for optimized image size
 # ============================================
 
-# Stage 1: Build
+# Stage 1: Build All Modules
 FROM eclipse-temurin:21-jdk-alpine AS builder
 
 WORKDIR /app
 
-# Copy Maven wrapper and pom.xml first (for better caching)
+# Copy Maven wrapper and parent pom.xml first (for better caching)
 COPY mvnw .
 COPY .mvn .mvn
 COPY pom.xml .
+
+# Copy module pom.xml files
+COPY football-prediction-app/pom.xml football-prediction-app/
+COPY model-training-service/pom.xml model-training-service/
 
 # Make mvnw executable
 RUN chmod +x mvnw
@@ -19,14 +23,17 @@ RUN chmod +x mvnw
 # Download dependencies (cached if pom.xml unchanged)
 RUN ./mvnw dependency:go-offline -B
 
-# Copy source code
-COPY src src
+# Copy all source code
+COPY football-prediction-app/src football-prediction-app/src
+COPY model-training-service/src model-training-service/src
 
-# Build the application (skip tests for faster build)
-RUN ./mvnw package -DskipTests -B
+# Build all modules (skip tests for faster build)
+RUN ./mvnw clean package -DskipTests -B
 
-# Stage 2: Runtime
+# Stage 2: Runtime for Main Application
 FROM eclipse-temurin:21-jre-alpine
+
+ARG MODULE_NAME=football-prediction-app
 
 WORKDIR /app
 
@@ -38,13 +45,14 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 # Create data directory for H2 database and model
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+RUN mkdir -p /app/data /app/logs && chown -R appuser:appgroup /app
 
 # Copy the built JAR from builder stage
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/${MODULE_NAME}/target/*.jar app.jar
 
-# Copy static resources (CSV data files)
-COPY --from=builder /app/src/main/resources/data /app/data/csv
+# Copy static resources and data files if they exist
+COPY --from=builder --chown=appuser:appgroup /app/${MODULE_NAME}/src/main/resources/data /app/data/csv 2>/dev/null || true
+COPY --from=builder --chown=appuser:appgroup /app/${MODULE_NAME}/data /app/data 2>/dev/null || true
 
 # Switch to non-root user
 USER appuser

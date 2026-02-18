@@ -1,14 +1,21 @@
 # ============================================
 # Docker Compose for Football Match Predictor
 # ============================================
+# This compose file runs both services:
+# 1. football-predictor (port 8080) - Main prediction API
+# 2. model-training-service (port 8081) - Model training and testing API
+# ============================================
 
 version: '3.8'
 
 services:
+  # Main Football Prediction Application
   football-predictor:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./football-prediction-app
+      dockerfile: ../Dockerfile
+      args:
+        MODULE_NAME: football-prediction-app
     container_name: football-predictor
     ports:
       - "8080:8080"
@@ -20,15 +27,53 @@ services:
     volumes:
       # Persist H2 database and trained model
       - football-data:/app/data
+      - football-logs:/app/logs
     restart: unless-stopped
+    depends_on:
+      - model-training-service
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/model/status"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - football-network
+
+  # Model Training Service
+  model-training-service:
+    build:
+      context: ./model-training-service
+      dockerfile: Dockerfile
+    container_name: model-training-service
+    ports:
+      - "8081:8081"
+    environment:
+      - JAVA_OPTS=-Xms512m -Xmx1024m
+      - SPRING_PROFILES_ACTIVE=docker
+    volumes:
+      # Share database and model storage with main app
+      - football-data:/app/data
+      - football-logs:/app/logs
+    restart: unless-stopped
+    depends_on:
+      - football-predictor
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/api/training/model-info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - football-network
 
 volumes:
   football-data:
     name: football-predictor-data
+  football-logs:
+    name: football-predictor-logs
+
+networks:
+  football-network:
+    driver: bridge
 

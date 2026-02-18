@@ -54,3 +54,9 @@ Thumbs.db
 .env.local
 *.env
 
+### Build artifacts ###
+*.class
+
+### Test artifacts ###
+**/LAST_TEST_RUN.txt
+

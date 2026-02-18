@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
+    <meta name="description" content="AI-powered football match predictor using advanced machine learning algorithms to analyze team performance and predict Premier League match outcomes with 62% accuracy">
+    <meta name="keywords" content="football, prediction, AI, machine learning, Premier League, match analysis, sports betting, data science">
+    <meta name="author" content="Football Prediction Team">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Football Predictor">
+    <meta name="format-detection" content="telephone=no">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://football-predictor.com/">
+    <meta property="og:title" content="⚽ AI Football Match Predictor">
+    <meta property="og:description" content="Predict Premier League match outcomes with 62% accuracy using advanced ML algorithms">
+    <meta property="og:image" content="/assets/og-image.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://football-predictor.com/">
+    <meta property="twitter:title" content="⚽ AI Football Match Predictor">
+    <meta property="twitter:description" content="Predict Premier League match outcomes with 62% accuracy using advanced ML algorithms">
+    <meta property="twitter:image" content="/assets/twitter-image.png">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+
+    <title>⚽ AI Football Match Predictor | 62% Accuracy ML Predictions</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Preload critical resources -->
+    <link rel="preload" href="js/app.js" as="script">
+    <link rel="preload" href="css/styles.css" as="style">
+
+    <!-- Structured Data for SEO -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Football Match Predictor",
+        "description": "AI-powered football match outcome predictor using machine learning",
+        "url": "https://football-predictor.com",
+        "applicationCategory": "Sports",
+        "operatingSystem": "Web Browser"
+    }
+    </script>
+</head>
+<body>
+    <!-- Skip to main content for accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="header-main">
+                    <h1 class="header-title">
+                        <span class="title-icon">⚽</span>
+                        <span class="title-text">AI Football Predictor</span>
+                        <span class="accuracy-badge">62% Accuracy</span>
+                    </h1>
+                    <p class="subtitle">Advanced machine learning predictions for Premier League matches</p>
+                    <div class="header-stats">
+                        <div class="stat-item">
+                            <span class="stat-value" id="totalPredictions">1,247</span>
+                            <span class="stat-label">Predictions Made</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">30+</span>
+                            <span class="stat-label">ML Features</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">Real-time</span>
+                            <span class="stat-label">Data Updates</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="model-status" id="modelStatus">
+                <span class="status-indicator" id="statusIndicator"></span>
+                <span class="status-text" id="statusText">Checking model...</span>
+                <span class="last-updated" id="lastUpdated">Last updated: --</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content" id="main-content">
+            <!-- Prediction Card -->
+            <section class="card prediction-card">
+                <div class="card-header">
+                    <h2 class="card-title">🎯 Make a Prediction</h2>
+                    <div class="prediction-mode-toggle">
+                        <button type="button" class="mode-btn active" data-mode="manual">Manual</button>
+                        <button type="button" class="mode-btn" data-mode="upcoming">Upcoming</button>
+                    </div>
+                </div>
+
+                <!-- Quick Match Suggestions -->
+                <div class="quick-matches" id="quickMatches">
+                    <h3 class="quick-matches-title">⚡ Quick Predictions</h3>
+                    <div class="quick-matches-grid" id="quickMatchesGrid">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <form id="predictionForm" class="prediction-form">
+                    <div class="form-section">
+                        <div class="team-selection">
+                            <div class="team-input">
+                                <label for="homeTeam">
+                                    <span class="label-icon">🏠</span>
+                                    Home Team
+                                </label>
+                                <select id="homeTeam" required>
+                                    <option value="">Select Home Team</option>
+                                </select>
+                                <div class="team-form-indicator" id="homeForm"></div>
+                            </div>
+
+                            <div class="match-info">
+                                <div class="vs-badge">VS</div>
+                                <div class="match-date-selection">
+                                    <label for="matchDateInput" class="sr-only">Match Date</label>
+                                    <input type="date" id="matchDateInput" min="2024-01-01" class="date-input">
+                                </div>
+                            </div>
+
+                            <div class="team-input">
+                                <label for="awayTeam">
+                                    <span class="label-icon">✈️</span>
+                                    Away Team
+                                </label>
+                                <select id="awayTeam" required>
+                                    <option value="">Select Away Team</option>
+                                </select>
+                                <div class="team-form-indicator" id="awayForm"></div>
+                            </div>
+                        </div>
+
+                        <!-- Advanced Options -->
+                        <div class="advanced-options" id="advancedOptions">
+                            <div class="options-toggle">
+                                <button type="button" class="toggle-btn" id="toggleAdvanced">
+                                    ⚙️ Advanced Options
+                                    <span class="toggle-icon">▼</span>
+                                </button>
+                            </div>
+                            <div class="options-content" style="display: none;">
+                                <div class="option-group">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="includeWeather" checked>
+                                        <span class="checkmark"></span>
+                                        Include weather conditions
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="includeInjuries" checked>
+                                        <span class="checkmark"></span>
+                                        Consider injury reports
+                                    </label>
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="includeRecent" checked>
+                                        <span class="checkmark"></span>
+                                        Recent form (last 5 games)
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="predictBtn">
+                            <span class="btn-icon">🎯</span>
+                            <span class="btn-text">Predict Match Outcome</span>
+                            <span class="btn-loader" style="display: none;">
+                                <span class="spinner"></span>
+                            </span>
+                        </button>
+                        <div class="prediction-confidence" id="predictionConfidence" style="display: none;">
+                            <span class="confidence-text">Model Confidence: </span>
+                            <span class="confidence-value" id="confidenceValue">--</span>
+                        </div>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Results Section -->
+            <section class="card results-card" id="resultsCard" style="display: none;">
+                <h2 class="card-title">📊 Prediction Results</h2>
+                <div class="results-content">
+                    <!-- Match Header -->
+                    <div class="match-header" id="matchHeader">
+                        <span class="team-name" id="resultHomeTeam">Arsenal</span>
+                        <span class="vs-text">vs</span>
+                        <span class="team-name" id="resultAwayTeam">Chelsea</span>
+                    </div>
+
+                    <!-- Prediction Badge -->
+                    <div class="prediction-badge" id="predictionBadge">
+                        <span class="prediction-label">Predicted Outcome</span>
+                        <span class="prediction-value" id="predictionValue">HOME_WIN</span>
+                        <span class="confidence-badge" id="confidenceBadge">HIGH</span>
+                    </div>
+
+                    <!-- Probability Bars -->
+                    <div class="probability-section">
+                        <h3>Win Probabilities</h3>
+                        <div class="probability-bars">
+                            <div class="prob-item">
+                                <div class="prob-label">
+                                    <span>Home Win</span>
+                                    <span class="prob-value" id="probHomeValue">55%</span>
+                                </div>
+                                <div class="prob-bar">
+                                    <div class="prob-fill home-win" id="probHomeFill" style="width: 55%"></div>
+                                </div>
+                            </div>
+                            <div class="prob-item">
+                                <div class="prob-label">
+                                    <span>Draw</span>
+                                    <span class="prob-value" id="probDrawValue">25%</span>
+                                </div>
+                                <div class="prob-bar">
+                                    <div class="prob-fill draw" id="probDrawFill" style="width: 25%"></div>
+                                </div>
+                            </div>
+                            <div class="prob-item">
+                                <div class="prob-label">
+                                    <span>Away Win</span>
+                                    <span class="prob-value" id="probAwayValue">20%</span>
+                                </div>
+                                <div class="prob-bar">
+                                    <div class="prob-fill away-win" id="probAwayFill" style="width: 20%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features Summary -->
+                    <div class="features-section">
+                        <h3>📈 Analysis Features</h3>
+                        <div class="features-grid" id="featuresGrid">
+                            <div class="feature-item">
+                                <span class="feature-label">Home Form</span>
+                                <span class="feature-value" id="homeFormPoints">2.4</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-label">Away Form</span>
+                                <span class="feature-value" id="awayFormPoints">1.8</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-label">Home Goals Avg</span>
+                                <span class="feature-value" id="homeGoalsAvg">2.1</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-label">Away Goals Avg</span>
+                                <span class="feature-value" id="awayGoalsAvg">1.3</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-label">H2H Home Win</span>
+                                <span class="feature-value" id="h2hHomeWin">45%</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-label">H2H Draw</span>
+                                <span class="feature-value" id="h2hDraw">30%</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-label">H2H Away Win</span>
+                                <span class="feature-value" id="h2hAwayWin">25%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Error Message -->
+            <section class="card error-card" id="errorCard" style="display: none;">
+                <div class="error-content">
+                    <span class="error-icon">⚠️</span>
+                    <p class="error-message" id="errorMessage">An error occurred</p>
+                    <p class="error-hint" id="errorHint"></p>
+                </div>
+            </section>
+
+            <!-- Admin Section -->
+            <section class="card admin-card">
+                <h2 class="card-title">⚙️ Model Management</h2>
+
+                <!-- Basic Training Options -->
+                <div class="admin-section-group">
+                    <h3 class="admin-subtitle">📊 Basic Training</h3>
+                    <div class="admin-buttons">
+                        <button class="btn btn-secondary" id="trainModelBtn">
+                            <span class="btn-text">🧠 Train Model</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-secondary" id="reloadDataBtn">
+                            <span class="btn-text">📁 Reload Data</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-primary" id="updateDataBtn">
+                            <span class="btn-text">🔄 Update & Retrain</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-secondary" id="checkStatusBtn">
+                            <span class="btn-text">🔍 Check Status</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Advanced Training Options -->
+                <div class="admin-section-group">
+                    <h3 class="admin-subtitle">🚀 Advanced Training</h3>
+                    <div class="admin-buttons">
+                        <button class="btn btn-accent" id="trainAdvancedBtn">
+                            <span class="btn-text">⚡ Advanced Train</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-secondary" id="trainCVBtn">
+                            <span class="btn-text">📈 Cross-Validation</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-secondary" id="trainBoostingBtn">
+                            <span class="btn-text">📊 Gradient Boosting</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-secondary" id="trainEnsembleBtn">
+                            <span class="btn-text">🤝 Ensemble Model</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Model Analysis Options -->
+                <div class="admin-section-group">
+                    <h3 class="admin-subtitle">🔬 Model Analysis</h3>
+                    <div class="admin-buttons">
+                        <button class="btn btn-secondary" id="gridSearchBtn">
+                            <span class="btn-text">🔍 Grid Search</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                        <button class="btn btn-secondary" id="compareModelsBtn">
+                            <span class="btn-text">📋 Compare Models</span>
+                            <span class="btn-loader" style="display: none;">⏳</span>
+                        </button>
+                    </div>
+                </div>
+
+                <p class="admin-hint">💡 <strong>Advanced Train</strong> performs grid search + cross-validation + ensemble for best accuracy</p>
+                <p class="admin-hint">💡 <strong>Grid Search</strong> finds optimal hyperparameters for Random Forest and AdaBoost</p>
+                <div class="admin-output" id="adminOutput" style="display: none;">
+                    <pre id="adminOutputText"></pre>
+                </div>
+            </section>
+
+            <!-- PL News Section -->
+            <section class="card news-card">
+                <div class="news-header">
+                    <h2 class="card-title">📰 Premier League News</h2>
+                    <button class="btn btn-secondary btn-sm" id="refreshNewsBtn">
+                        <span class="btn-text">🔄 Refresh</span>
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                    </button>
+                </div>
+                <div class="news-tabs">
+                    <button class="news-tab active" data-tab="pl">Premier League</button>
+                    <button class="news-tab" data-tab="football">Football</button>
+                </div>
+                <div class="news-list" id="newsList">
+                    <div class="news-loading" id="newsLoading">
+                        <span>Loading news...</span>
+                    </div>
+                    <!-- News articles will be populated here -->
+                </div>
+                <div class="news-empty" id="newsEmpty" style="display: none;">
+                    <span class="news-empty-icon">📰</span>
+                    <p>No news available at the moment</p>
+                    <p class="news-hint">News is fetched from BBC Sport, Sky Sports & The Guardian RSS feeds</p>
+                </div>
+            </section>
+
+            <!-- PL Calendar Section -->
+            <section class="card calendar-card">
+                <div class="calendar-header">
+                    <h2 class="card-title">📆 Premier League Calendar</h2>
+                    <span class="competition-badge">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
+                </div>
+                <div class="calendar-controls">
+                    <div class="date-picker-wrapper">
+                        <label for="calendarDateInput">Select Date:</label>
+                        <input type="date" id="calendarDateInput" class="date-input">
+                    </div>
+                    <button class="btn btn-primary" id="fetchByDateBtn">
+                        <span class="btn-text">🔍 Find Matches</span>
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                    </button>
+                    <div class="quick-dates">
+                        <button class="btn btn-secondary btn-sm" id="todayBtn">Today</button>
+                        <button class="btn btn-secondary btn-sm" id="tomorrowBtn">Tomorrow</button>
+                        <button class="btn btn-secondary btn-sm" id="weekendBtn">Weekend</button>
+                    </div>
+                </div>
+
+                <!-- Calendar Results -->
+                <div class="calendar-results" id="calendarResults" style="display: none;">
+                    <div class="calendar-date-header" id="calendarDateHeader">
+                        <span class="selected-date" id="selectedDateDisplay">Monday, 17 Feb 2026</span>
+                        <span class="match-count" id="matchCount">3 matches</span>
+                    </div>
+                    <div class="calendar-matches-list" id="calendarMatchesList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- No Matches Message -->
+                <div class="no-matches-message" id="noMatchesMessage" style="display: none;">
+                    <span class="no-matches-icon">⚽</span>
+                    <p>No Premier League matches scheduled for this date</p>
+                    <p class="no-matches-hint">Try selecting another date or check upcoming matches</p>
+                </div>
+            </section>
+
+            <!-- Upcoming Matches Section -->
+            <section class="card upcoming-card">
+                <div class="upcoming-header">
+                    <h2 class="card-title">📅 Upcoming Premier League Predictions</h2>
+                    <span class="competition-badge">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
+                </div>
+                <div class="upcoming-controls">
+                    <button class="btn btn-primary" id="fetchUpcomingBtn">
+                        <span class="btn-text">🔮 Predict Upcoming Matches</span>
+                        <span class="btn-loader" style="display: none;">⏳</span>
+                    </button>
+                    <span class="api-note">⚡ Uses football-data.org API (10 req/min limit)</span>
+                </div>
+
+                <!-- Upcoming Matches Results -->
+                <div class="upcoming-results" id="upcomingResults" style="display: none;">
+                    <div class="upcoming-info" id="upcomingInfo">
+                        <span class="competition-name" id="competitionName">Premier League</span>
+                        <span class="matchday-info" id="matchdayInfo">Matchday 25</span>
+                    </div>
+                    <div class="matches-list" id="matchesList">
+                        <!-- Dynamically populated -->
+                    </div>
+                </div>
+
+                <!-- Standings Section -->
+                <div class="standings-section" id="standingsSection" style="display: none;">
+                    <h3>📊 Current Standings</h3>
+                    <div class="standings-table-wrapper">
+                        <table class="standings-table" id="standingsTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Team</th>
+                                    <th>P</th>
+                                    <th>W</th>
+                                    <th>D</th>
+                                    <th>L</th>
+                                    <th>GF</th>
+                                    <th>GA</th>
+                                    <th>Pts</th>
+                                    <th>Form</th>
+                                </tr>
+                            </thead>
+                            <tbody id="standingsBody">
+                                <!-- Dynamically populated -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Football Match Predictor | Built with Spring Boot & Machine Learning</p>
+        </footer>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
+
