@@ -140,7 +140,7 @@ cd model-training-service
 mvn spring-boot:run
 ```
 
-> **💡 Note**: On first startup, the app will train a model (~30-60 seconds). On subsequent starts, it automatically loads the existing model and skips training. See [MODEL_LOADING_GUIDE.md](MODEL_LOADING_GUIDE.md) for details.
+> **💡 Note**: On first startup, the app will train a model (~30-60 seconds). On subsequent starts, it automatically loads the existing model and skips training.
 
 ---
 
