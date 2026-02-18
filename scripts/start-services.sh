@@ -121,12 +121,6 @@ else
     exit 1
 fi
 
-# No need to change directory - everything is built from root
-mvn clean package -DskipTests
-cd ..
-
-if [ $? -eq 0 ]; then
-    print_success "Training service built successfully"
 echo ""
 echo "╔════════════════════════════════════════════════════════════╗"
 echo "║   Multi-Module Build Complete!                             ║"
@@ -197,7 +191,7 @@ case $choice in
         print_success "Build complete. Services not started."
         echo ""
         echo "To start services manually:"
-        echo "  Main app:        java -jar target/football-prediction-1.0.0.jar"
+        echo "  Main app:         java -jar football-prediction-app/target/football-prediction-app-1.0.0.jar"
         echo "  Training service: java -jar model-training-service/target/model-training-service-1.0.0.jar"
         ;;
     *)
