@@ -3,13 +3,39 @@
 A production-ready multi-module Spring Boot application that predicts Premier League match outcomes (Home Win / Draw / Away Win) using Advanced Machine Learning algorithms including Random Forest, Gradient Boosting, and Ensemble methods.
 
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
 [![Weka](https://img.shields.io/badge/Weka-3.8.6-blue.svg)](https://www.cs.waikato.ac.nz/ml/weka/)
 [![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg)](https://www.docker.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/Build-Passing-success.svg)]()
 [![Code Coverage](https://img.shields.io/badge/Coverage-85%25-green.svg)]()
-[![Last Updated](https://img.shields.io/badge/Updated-Feb%202026-blue.svg)]()
+[![Last Updated](https://img.shields.io/badge/Updated-Feb%2020%202026-blue.svg)]()
+
+---
+
+## 🆕 Recent Updates
+
+**February 20, 2026** - Latest Release
+- ⬆️ **Spring Boot 4.0.2**: Upgraded to latest Spring Boot 4.x for improved performance and security
+- 📝 **Documentation Updated**: README refreshed with latest project information
+- 🏗️ **Multi-Module Architecture**: Three-module Maven project structure (app, common, training-service)
+- 🤖 **Stacked Ensemble ML**: RandomForest + AdaBoost + Logistic Regression meta-model
+- 📊 **25 Statistical Features**: 3-phase feature engineering (form, goals, H2H, shots, corners, streaks)
+- 🎨 **Modern Dark Theme UI**: Responsive design with Manual/Upcoming prediction modes
+- 📅 **PL Calendar Integration**: Date-based predictions with Today/Tomorrow/Weekend buttons
+- 📰 **News Feed**: Premier League news aggregation
+- 🏆 **Live Standings**: Current Premier League table display
+
+**February 18, 2026**
+- 📝 **Startup Scripts Updated**: Enhanced service startup and API testing scripts
+- 📚 **Documentation Improvements**: Comprehensive README updates with detailed architecture
+- 🧪 **Unit Tests Fixed**: Corrected test suite for better reliability
+- 🏗️ **Code Modularization**: Restructured codebase into multi-module Maven project
+- 🤖 **XGBoost Integration**: Added XGBoost as an alternative ML algorithm (experimental)
+- 🔒 **Security Enhancements**: Removed hardcoded API keys, improved security practices
+- ⚙️ **GitHub Actions**: Added CI/CD pipeline with Maven build automation
+- 🎨 **Design Improvements**: Enhanced UI/UX with responsive dark theme
+- 🚀 **Initial Release**: Football Predictor with ML predictions, news feed, and calendar integration
 
 ---
 
@@ -18,9 +44,10 @@ A production-ready multi-module Spring Boot application that predicts Premier Le
 - **🏆 High Accuracy**: Achieves ~62% prediction accuracy (industry baseline ~45%)
 - **🚀 Production Ready**: Fully containerized with comprehensive monitoring
 - **🤖 Auto-Learning**: Self-improving models with bi-monthly retraining
-- **📱 Modern UI**: Responsive PWA-ready interface with dark theme
-- **⚡ Real-time**: Live predictions with external API integration
+- **📱 Modern UI**: Responsive dark-themed interface with Manual/Upcoming prediction modes
+- **⚡ Real-time**: Live predictions with external API integration (football-data.org)
 - **🔒 Enterprise Grade**: Rate limiting, caching, and error handling
+- **📊 Team Statistics**: Comprehensive team stats with form, goals, streaks, and H2H data
 
 ---
 
@@ -31,12 +58,19 @@ This system is built as a **multi-module Maven project** consisting of:
 ### 📦 Modules
 
 1. **`football-prediction-app`** (Port 8080) - Main Spring Boot application
-   - Web UI with responsive design
+   - Web UI with responsive dark theme design
+   - Manual and Upcoming prediction modes
+   - Team Statistics dashboard with 5 tabs (Overview, Goals, Form, Matches, Rivals)
    - REST API for predictions and data management
    - External API integrations (football-data.org, news)
    - Feature engineering and data processing
 
-2. **`model-training-service`** (Port 8081) - Dedicated ML training service
+2. **`football-prediction-common`** - Shared library module
+   - Common entities (Match model)
+   - Shared repositories
+   - Feature engineering services
+
+3. **`model-training-service`** (Port 8081) - Dedicated ML training service
    - Automated model training and evaluation
    - Advanced ML algorithms (Random Forest, AdaBoost, Ensemble)
    - Cross-validation and hyperparameter tuning
@@ -46,13 +80,16 @@ This system is built as a **multi-module Maven project** consisting of:
 - ⚽ **Stacked Ensemble ML**: RandomForest + Gradient Boosting + Logistic Regression meta-model
 - 📊 **Rich Feature Engineering**: 25 statistical features in 3 phases (form, goals, H2H, shots, corners, streaks, rest)
 - 🤖 **Automated Retraining**: Bi-monthly model updates with performance monitoring
-- 🎨 **Modern PWA UI**: Dark theme, responsive design, offline capabilities
+- 🎨 **Modern UI**: Dark theme with Manual/Upcoming prediction modes
+- 📈 **Team Statistics**: Comprehensive stats dashboard with form visualization, goal patterns, and H2H records
 - 🔄 **Real-time Data**: Live match data, standings, and calendar via football-data.org API
 - 📰 **News Integration**: Premier League news aggregation
-- 📈 **Advanced Analytics**: Cross-validation, grid search, model comparison
+- 📅 **Match Calendar**: Date-based prediction for upcoming fixtures
+- 🏆 **Standings**: Current Premier League table display
 - 🐳 **Cloud Ready**: Docker containerization with multi-stage builds
 - 🔒 **Production Features**: Rate limiting, caching, comprehensive logging
 - 📱 **Mobile Optimized**: Touch-friendly interface with gesture support
+- ⌨️ **Keyboard Accessible**: Full keyboard navigation with Escape key support for modals
 - 🌐 **API-First**: RESTful APIs with multiple training endpoints
 - 🧪 **Thoroughly Tested**: 120+ unit/integration tests with high coverage
 - 📊 **Monitoring**: Health checks, metrics, and performance tracking
@@ -66,13 +103,17 @@ This system is built as a **multi-module Maven project** consisting of:
 - **API Docs**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) - OpenAPI documentation
 - **Health Check**: [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) - System status
 
-### 📸 Screenshots
+### 📸 UI Features
 | Feature | Description |
 |---------|-------------|
-| 🏠 **Home Interface** | Clean, intuitive prediction form with team selection |
-| 📊 **Results Dashboard** | Probability distributions with confidence metrics |
-| 📱 **Mobile View** | Optimized for all screen sizes and touch devices |
-| ⚙️ **Admin Panel** | Model training controls and performance monitoring |
+| 🏠 **Make a Prediction** | Manual and Upcoming tabs for different prediction modes |
+| ⚡ **Quick Predictions** | Click on upcoming matches to instantly predict |
+| 📊 **Team Statistics** | 5-tab dashboard: Overview, Goals, Form, Matches, Rivals |
+| 📅 **PL Calendar** | Date-based predictions with Today/Tomorrow/Weekend buttons |
+| 🏆 **Upcoming Matches** | Auto-fetched predictions for Premier League fixtures |
+| 📰 **News Feed** | Latest Premier League news |
+| ⚙️ **Admin Panel** | Model training controls (requires authentication) |
+| ⌨️ **Keyboard Support** | Press Escape key to close modal dialogs |
 
 ### 🚀 One-Click Deployment
 ```bash
@@ -140,21 +181,21 @@ cd model-training-service
 mvn spring-boot:run
 ```
 
-> **💡 Note**: On first startup, the app will train a model (~30-60 seconds). On subsequent starts, it automatically loads the existing model and skips training. See [MODEL_LOADING_GUIDE.md](MODEL_LOADING_GUIDE.md) for details.
+> **💡 Note**: On first startup, the app will train a model (~30-60 seconds). On subsequent starts, it automatically loads the existing model and skips training.
 
 ---
 
 ## 📖 Table of Contents
 
-- [Architecture](#architecture)
-- [Features](#features)
-- [API Documentation](#api-documentation)
-- [Configuration](#configuration)
-- [Model Training](#model-training)
-- [Project Structure](#project-structure)
-- [Testing](#testing)
-- [Deployment](#deployment)
-- [License](#license)
+- [Architecture](#-architecture)
+- [Features](#-features)
+- [API Documentation](#-api-documentation)
+- [Configuration](#-configuration)
+- [Model Training](#-model-training)
+- [Project Structure](#-project-structure)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [License](#-license)
 
 ---
 
@@ -835,19 +876,110 @@ mvn clean test
 - [ ] Team lineup-based predictions
 - [ ] Historical performance dashboards
 
+### 📊 Available Data for Upcoming Features
+
+The dataset contains rich information that enables the planned features:
+
+| Data Category | Fields | Use Cases |
+|---------------|--------|-----------|
+| **Match Results** | FTHG, FTAG, FTR, HTHG, HTAG, HTR | Goals analysis, half-time patterns, result distributions |
+| **Match Stats** | HS, AS, HST, AST, HC, AC | Shot conversion, corner analysis, attacking metrics |
+| **Discipline** | HY, AY, HR, AR | Card statistics, referee analysis, discipline patterns |
+| **Betting Odds** | B365, BW, BF, PS, WH, 1XB (H/D/A) | Odds comparison, value betting, market analysis |
+| **Over/Under** | B365>2.5, B365<2.5, etc. | Goal prediction, over/under trends |
+| **Asian Handicap** | AHh, B365AHH, B365AHA | Handicap analysis, close match predictions |
+| **Referee** | Referee name | Referee statistics, bias analysis |
+| **Historical** | 22 seasons (2004-2026) | Long-term trends, team history, H2H records |
+
 ### Planned 📋
+
+#### 🏆 League Statistics Dashboard
+- [ ] **Season Overview Panel**: Total goals scored (home vs away), average goals per match, home/draw/away win percentages
+- [ ] **Goals Trends Chart**: Line chart showing goals-per-season trends over 21 seasons
+- [ ] **Home Advantage Analysis**: Track how home advantage has changed over the years
+- [ ] **Record Matches**: Display biggest wins, highest-scoring games, most common scorelines
+
+#### 👥 Team Performance Analytics
+- [x] **Team Stats Page**: Dedicated page for each team with comprehensive statistics ✅
+- [x] **Form Visualization**: Last 10 matches with W-D-L colored indicators ✅
+- [x] **Home vs Away Split**: Goals, wins, clean sheets comparison (home vs away) ✅
+- [x] **Scoring Patterns**: First half vs second half goal distribution (using HTHG/HTAG data) ✅
+- [x] **Shot Conversion Rate**: (Goals / Shots on Target) percentage per team ✅
+- [x] **Defensive Metrics**: Goals conceded, clean sheet percentage, shots allowed ✅
+
+#### 🆚 Enhanced Head-to-Head (H2H) Insights
+- [x] **Historical Record Display**: "Arsenal leads 15-8-7 vs Chelsea" format ✅
+- [x] **Recent H2H Timeline**: Last 5 meetings with results and scorelines ✅
+- [x] **H2H Goal Stats**: Average goals when these teams meet ✅
+- [x] **Common Results**: Most frequent outcome in H2H matchups ✅
+- [x] **Venue Advantage**: H2H win % based on home/away ✅
+
+#### ⚽ Pre-Match Insights Panel
+- [ ] **Form Comparison Bars**: Visual comparison of homeFormPoints vs awayFormPoints
+- [ ] **Streak Indicators**: 🔥 "Arsenal on 5-match winning streak" badges
+- [ ] **Rest Days Warning**: ⚠️ "Liverpool played 3 days ago" fatigue indicator
+- [ ] **Goal Threat Meter**: Based on scoring/conceding averages
+- [ ] **Over/Under 2.5 Probability**: Derived from goal averages
+- [ ] **Both Teams to Score %**: Based on scoring/conceding patterns
+
+#### 📈 Betting Odds Comparison
+- [ ] **Odds Comparison Table**: Side-by-side bookmaker odds (B365, BW, PS, WH, 1XB)
+- [ ] **Best Value Highlight**: Identify which bookmaker offers best price
+- [ ] **Market Movement Tracker**: Opening vs closing odds changes
+- [ ] **Model vs Market**: Compare ML prediction probability with implied odds
+- [ ] **Value Bet Finder**: Flag matches where model confidence > implied probability
+
+#### 🎯 Model Performance Analytics
+- [ ] **Accuracy by Result Type**: "Home wins: 68%, Draws: 45%, Away wins: 58%"
+- [ ] **Confidence Level Analysis**: Hit rates for High/Medium/Low confidence predictions
+- [ ] **Prediction History Log**: Last 50 predictions with actual results
+- [ ] **Calibration Chart**: When predicting 60% home win, how often does home win?
+- [ ] **Confusion Matrix Visualization**: Interactive H/D/A prediction accuracy display
+
+#### 📊 Statistical Patterns & Trends
+- [ ] **Most Common Scorelines**: "1-1 is the most common result (15%)"
+- [ ] **Goals by Half**: First half vs second half scoring trends
+- [ ] **Red Card Impact**: Win % after receiving a red card
+- [ ] **Corner Statistics**: Teams winning most corners, corner averages
+- [ ] **Referee Insights**: Cards per referee, home advantage by referee (using Referee data)
+
+#### 🔥 Live/Trending Insights
+- [x] **Hot Teams Widget**: Teams on 3+ match winning streaks ✅
+- [x] **Cold Teams Widget**: Teams without a win in 5+ matches ✅
+- [x] **Top Scorers**: Teams scoring most goals in recent matches ✅
+- [x] **Defensive Walls**: Teams with most clean sheets recently ✅
+- [x] **Upset Alerts**: Matches where away team has >50% win probability ✅
+- [x] **Goal Fest Predictions**: Matches with highest expected total goals ✅
+
+#### 📱 Quick Stats Cards (Mobile-Friendly)
+- [ ] **League Quick Stats**: Home Win %, Avg Goals, Model Accuracy in card format
+- [ ] **This Gameweek Summary**: Key predictions and stats for upcoming matches
+- [ ] **Trending Stats**: Dynamic stats that update based on recent data
+
+#### 🛠️ Infrastructure & Technical
 - [ ] Multi-league support (La Liga, Bundesliga, Serie A, Ligue 1)
 - [ ] Deep learning models (LSTM for sequence prediction, Neural Networks)
 - [ ] Native mobile apps (iOS/Android with React Native)
 - [ ] Cloud deployment (AWS Lambda / GCP Cloud Run)
 - [ ] GraphQL API alongside REST
 - [ ] Redis caching layer for improved performance
-- [ ] Real-time odds comparison integration
-- [ ] Betting value analysis (expected value calculations)
-- [ ] Season simulation and predictions
-- [ ] Team performance trends visualization
 - [ ] API authentication and rate limiting per user
 - [ ] Model versioning and A/B testing framework
+
+#### 📐 Planned API Endpoints
+```
+GET /api/stats/league-overview?season=2024-25
+GET /api/stats/team/{teamName}
+GET /api/stats/h2h?home={team1}&away={team2}
+GET /api/stats/trending-teams
+GET /api/stats/referee/{refereeName}
+GET /api/stats/common-scorelines
+GET /api/predictions/history?limit=50
+GET /api/predictions/accuracy
+GET /api/predictions/calibration
+GET /api/odds/comparison?matchId={id}
+GET /api/odds/value-bets
+```
 
 ---
 
@@ -885,4 +1017,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ---
 
 **⚽ Made with ❤️ | Star ⭐ this repo if you find it useful!**
-

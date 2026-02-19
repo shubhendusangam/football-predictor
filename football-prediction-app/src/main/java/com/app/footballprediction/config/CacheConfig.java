@@ -21,6 +21,9 @@ public class CacheConfig {
     public static final String CACHE_MATCHES = "matches";
     public static final String CACHE_NEWS = "news";
     public static final String CACHE_PREDICTIONS = "predictions";
+    public static final String CACHE_TEAM_STATS = "teamStats";
+    public static final String CACHE_H2H_INSIGHTS = "h2hInsights";
+    public static final String CACHE_TRENDING_INSIGHTS = "trendingInsights";
 
     @Bean
     public CacheManager cacheManager() {
@@ -29,7 +32,10 @@ public class CacheConfig {
                 new ConcurrentMapCache(CACHE_STANDINGS),
                 new ConcurrentMapCache(CACHE_MATCHES),
                 new ConcurrentMapCache(CACHE_NEWS),
-                new ConcurrentMapCache(CACHE_PREDICTIONS)
+                new ConcurrentMapCache(CACHE_PREDICTIONS),
+                new ConcurrentMapCache(CACHE_TEAM_STATS),
+                new ConcurrentMapCache(CACHE_H2H_INSIGHTS),
+                new ConcurrentMapCache(CACHE_TRENDING_INSIGHTS)
         ));
         return cacheManager;
     }

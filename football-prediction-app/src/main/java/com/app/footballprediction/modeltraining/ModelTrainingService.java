@@ -27,6 +27,7 @@ import com.app.common.service.FeatureEngineeringService;
 import com.app.common.model.Match;
 import com.app.common.model.MatchFeatures;
 import com.app.common.repository.MatchRepository;
+import com.app.common.util.PredictionUtils;
 
 @Service
 @Slf4j
@@ -886,40 +887,40 @@ public class ModelTrainingService {
 
    /**
     * Converts a single MatchFeatures into a Weka Instance.
-    * Uses safe() to guard against NaN/Infinity from edge cases.
+    * Uses PredictionUtils.safe() to guard against NaN/Infinity from edge cases.
     */
    private Instance toWekaInstance(MatchFeatures f, Instances dataset) {
       Instance inst = new DenseInstance(26); // 25 features + 1 label
       inst.setDataset(dataset);
 
       // Phase 1 & 2 features
-      inst.setValue(IDX_HOME_FORM,        safe(f.getHomeFormPoints()));
-      inst.setValue(IDX_AWAY_FORM,        safe(f.getAwayFormPoints()));
-      inst.setValue(IDX_HOME_GOALS_SCR,   safe(f.getHomeGoalsScoredAvg()));
-      inst.setValue(IDX_HOME_GOALS_CON,   safe(f.getHomeGoalsConcededAvg()));
-      inst.setValue(IDX_AWAY_GOALS_SCR,   safe(f.getAwayGoalsScoredAvg()));
-      inst.setValue(IDX_AWAY_GOALS_CON,   safe(f.getAwayGoalsConcededAvg()));
-      inst.setValue(IDX_HOME_TOTAL_GOALS, safe(f.getHomeTotalGoalsAvg()));
-      inst.setValue(IDX_AWAY_TOTAL_GOALS, safe(f.getAwayTotalGoalsAvg()));
-      inst.setValue(IDX_H2H_HOME_WIN,     safe(f.getH2hHomeWinRate()));
-      inst.setValue(IDX_H2H_DRAW,         safe(f.getH2hDrawRate()));
-      inst.setValue(IDX_H2H_AWAY_WIN,     safe(f.getH2hAwayWinRate()));
-      inst.setValue(IDX_HOME_SHOTS,       safe(f.getHomeShotsOnTargetAvg()));
-      inst.setValue(IDX_AWAY_SHOTS,       safe(f.getAwayShotsOnTargetAvg()));
-      inst.setValue(IDX_HOME_CORNERS,     safe(f.getHomeCornersAvg()));
-      inst.setValue(IDX_AWAY_CORNERS,     safe(f.getAwayCornersAvg()));
+      inst.setValue(IDX_HOME_FORM,        PredictionUtils.safe(f.getHomeFormPoints()));
+      inst.setValue(IDX_AWAY_FORM,        PredictionUtils.safe(f.getAwayFormPoints()));
+      inst.setValue(IDX_HOME_GOALS_SCR,   PredictionUtils.safe(f.getHomeGoalsScoredAvg()));
+      inst.setValue(IDX_HOME_GOALS_CON,   PredictionUtils.safe(f.getHomeGoalsConcededAvg()));
+      inst.setValue(IDX_AWAY_GOALS_SCR,   PredictionUtils.safe(f.getAwayGoalsScoredAvg()));
+      inst.setValue(IDX_AWAY_GOALS_CON,   PredictionUtils.safe(f.getAwayGoalsConcededAvg()));
+      inst.setValue(IDX_HOME_TOTAL_GOALS, PredictionUtils.safe(f.getHomeTotalGoalsAvg()));
+      inst.setValue(IDX_AWAY_TOTAL_GOALS, PredictionUtils.safe(f.getAwayTotalGoalsAvg()));
+      inst.setValue(IDX_H2H_HOME_WIN,     PredictionUtils.safe(f.getH2hHomeWinRate()));
+      inst.setValue(IDX_H2H_DRAW,         PredictionUtils.safe(f.getH2hDrawRate()));
+      inst.setValue(IDX_H2H_AWAY_WIN,     PredictionUtils.safe(f.getH2hAwayWinRate()));
+      inst.setValue(IDX_HOME_SHOTS,       PredictionUtils.safe(f.getHomeShotsOnTargetAvg()));
+      inst.setValue(IDX_AWAY_SHOTS,       PredictionUtils.safe(f.getAwayShotsOnTargetAvg()));
+      inst.setValue(IDX_HOME_CORNERS,     PredictionUtils.safe(f.getHomeCornersAvg()));
+      inst.setValue(IDX_AWAY_CORNERS,     PredictionUtils.safe(f.getAwayCornersAvg()));
 
       // Phase 3 features
-      inst.setValue(IDX_HOME_GOAL_DIFF,    safe(f.getHomeGoalDifference()));
-      inst.setValue(IDX_AWAY_GOAL_DIFF,    safe(f.getAwayGoalDifference()));
-      inst.setValue(IDX_HOME_OVERALL_FORM, safe(f.getHomeOverallFormPoints()));
-      inst.setValue(IDX_AWAY_OVERALL_FORM, safe(f.getAwayOverallFormPoints()));
-      inst.setValue(IDX_HOME_WIN_STREAK,   safe(f.getHomeWinStreak()));
-      inst.setValue(IDX_AWAY_WIN_STREAK,   safe(f.getAwayWinStreak()));
-      inst.setValue(IDX_HOME_UNBEATEN,     safe(f.getHomeUnbeatenStreak()));
-      inst.setValue(IDX_AWAY_UNBEATEN,     safe(f.getAwayUnbeatenStreak()));
-      inst.setValue(IDX_HOME_DAYS_REST,    safe(f.getHomeDaysSinceLastMatch()));
-      inst.setValue(IDX_AWAY_DAYS_REST,    safe(f.getAwayDaysSinceLastMatch()));
+      inst.setValue(IDX_HOME_GOAL_DIFF,    PredictionUtils.safe(f.getHomeGoalDifference()));
+      inst.setValue(IDX_AWAY_GOAL_DIFF,    PredictionUtils.safe(f.getAwayGoalDifference()));
+      inst.setValue(IDX_HOME_OVERALL_FORM, PredictionUtils.safe(f.getHomeOverallFormPoints()));
+      inst.setValue(IDX_AWAY_OVERALL_FORM, PredictionUtils.safe(f.getAwayOverallFormPoints()));
+      inst.setValue(IDX_HOME_WIN_STREAK,   PredictionUtils.safe(f.getHomeWinStreak()));
+      inst.setValue(IDX_AWAY_WIN_STREAK,   PredictionUtils.safe(f.getAwayWinStreak()));
+      inst.setValue(IDX_HOME_UNBEATEN,     PredictionUtils.safe(f.getHomeUnbeatenStreak()));
+      inst.setValue(IDX_AWAY_UNBEATEN,     PredictionUtils.safe(f.getAwayUnbeatenStreak()));
+      inst.setValue(IDX_HOME_DAYS_REST,    PredictionUtils.safe(f.getHomeDaysSinceLastMatch()));
+      inst.setValue(IDX_AWAY_DAYS_REST,    PredictionUtils.safe(f.getAwayDaysSinceLastMatch()));
 
       // Label only set during training — null at prediction time
       if (f.getActualResult() != null) {
@@ -979,11 +980,5 @@ public class ModelTrainingService {
             "\n  Confusion Matrix:\n" +
             eval.toMatrixString("  ") +
             "══════════════════════════════════════════\n";
-   }
-
-   // ── Utility ───────────────────────────────────────────────────────────
-
-   private double safe(double val) {
-      return Double.isNaN(val) || Double.isInfinite(val) ? 0.0 : val;
    }
 }

@@ -52,13 +52,15 @@ public class Match {
    private Integer awayRedCards;        // AR
 
    public int getPointsForTeam(String teamName) {
-      if (homeTeam.equalsIgnoreCase(teamName)) {
+      if (teamName == null) return 0;
+      String normalizedName = teamName.trim();
+      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) {
          return switch (fullTimeResult) {
             case "H" -> 3;
             case "D" -> 1;
             default  -> 0;
          };
-      } else if (awayTeam.equalsIgnoreCase(teamName)) {
+      } else if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) {
          return switch (fullTimeResult) {
             case "A" -> 3;
             case "D" -> 1;
@@ -69,14 +71,18 @@ public class Match {
    }
 
    public int getGoalsScoredByTeam(String teamName) {
-      if (homeTeam.equalsIgnoreCase(teamName)) return fullTimeHomeGoals;
-      if (awayTeam.equalsIgnoreCase(teamName)) return fullTimeAwayGoals;
+      if (teamName == null) return 0;
+      String normalizedName = teamName.trim();
+      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeHomeGoals;
+      if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeAwayGoals;
       return 0;
    }
 
    public int getGoalsConcededByTeam(String teamName) {
-      if (homeTeam.equalsIgnoreCase(teamName)) return fullTimeAwayGoals;
-      if (awayTeam.equalsIgnoreCase(teamName)) return fullTimeHomeGoals;
+      if (teamName == null) return 0;
+      String normalizedName = teamName.trim();
+      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeAwayGoals;
+      if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeHomeGoals;
       return 0;
    }
 }

@@ -7,6 +7,7 @@ import com.app.footballprediction.dto.external.FootballApiResponse;
 import com.app.footballprediction.dto.external.StandingsResponse;
 import com.app.common.service.FeatureEngineeringService;
 import com.app.common.model.MatchFeatures;
+import com.app.common.util.PredictionUtils;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.service.FootballDataApiService;
 import lombok.RequiredArgsConstructor;
@@ -273,12 +274,12 @@ public class ExternalApiController {
                     .awayTeam(awayTeam)
                     .homeTeamCrest(match.getHomeTeam().getCrest())
                     .awayTeamCrest(match.getAwayTeam().getCrest())
-                    .prediction(labelToText(label))
+                    .prediction(PredictionUtils.labelToText(label))
                     .predictionCode(label)
-                    .probHomeWin(round(probs[0]))
-                    .probDraw(round(probs[1]))
-                    .probAwayWin(round(probs[2]))
-                    .confidence(getConfidence(probs))
+                    .probHomeWin(PredictionUtils.round(probs[0]))
+                    .probDraw(PredictionUtils.round(probs[1]))
+                    .probAwayWin(PredictionUtils.round(probs[2]))
+                    .confidence(PredictionUtils.getConfidence(probs))
                     .homeTeamForm(homeForm)
                     .awayTeamForm(awayForm)
                     .build();
@@ -344,30 +345,8 @@ public class ExternalApiController {
                 .lost(entry.getLost())
                 .goalsFor(entry.getGoalsFor())
                 .goalsAgainst(entry.getGoalsAgainst())
-                .pointsPerGame(round(ppg))
+                .pointsPerGame(PredictionUtils.round(ppg))
                 .build();
-    }
-
-    // ── Helper methods ───────────────────────────────────────────────────
-
-    private String labelToText(String label) {
-        return switch (label) {
-            case "H" -> "HOME_WIN";
-            case "D" -> "DRAW";
-            case "A" -> "AWAY_WIN";
-            default -> "UNKNOWN";
-        };
-    }
-
-    private String getConfidence(double[] probs) {
-        double max = Math.max(probs[0], Math.max(probs[1], probs[2]));
-        if (max >= 0.55) return "HIGH";
-        if (max >= 0.45) return "MEDIUM";
-        return "LOW";
-    }
-
-    private double round(double val) {
-        return Math.round(val * 100.0) / 100.0;
     }
 }
 

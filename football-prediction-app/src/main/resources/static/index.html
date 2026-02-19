@@ -25,18 +25,31 @@
     <meta property="twitter:url" content="https://football-predictor.com/">
     <meta property="twitter:title" content="⚽ AI Football Match Predictor">
     <meta property="twitter:description" content="Predict Premier League match outcomes with 62% accuracy using advanced ML algorithms">
-    <meta property="twitter:image" content="/assets/twitter-image.png">
+    <!-- <meta property="twitter:image" content="/assets/twitter-image.png"> -->
 
-    <!-- PWA Manifest -->
+    <!-- PWA Manifest (disabled - assets not available)
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/favicon-16x16.png">
+    -->
 
     <title>⚽ AI Football Match Predictor | 62% Accuracy ML Predictions</title>
 
-    <!-- Stylesheets -->
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+
+    <!-- Modern SaaS Design System (Stripe/Linear/Vercel inspired) -->
+    <link rel="stylesheet" href="css/modern-design-system.css">
+    <link rel="stylesheet" href="css/modern-components.css">
+    <link rel="stylesheet" href="css/modern-layout.css">
+    <link rel="stylesheet" href="css/modern-tables.css">
+
+    <!-- Legacy Stylesheets (for backward compatibility) -->
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/dashboard.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -58,418 +71,1218 @@
     }
     </script>
 </head>
-<body>
+<body class="bg-dark" data-bs-theme="dark">
     <!-- Skip to main content for accessibility -->
     <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <div class="app-container">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-content">
-                <div class="header-main">
-                    <h1 class="header-title">
-                        <span class="title-icon">⚽</span>
-                        <span class="title-text">AI Football Predictor</span>
-                        <span class="accuracy-badge">62% Accuracy</span>
-                    </h1>
-                    <p class="subtitle">Advanced machine learning predictions for Premier League matches</p>
-                    <div class="header-stats">
-                        <div class="stat-item">
-                            <span class="stat-value" id="totalPredictions">1,247</span>
-                            <span class="stat-label">Predictions Made</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">30+</span>
-                            <span class="stat-label">ML Features</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">Real-time</span>
-                            <span class="stat-label">Data Updates</span>
+        <!-- Header with Bootstrap Navbar -->
+        <header class="header py-6 border-bottom border-secondary" role="banner">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-lg-8 col-md-7 text-center text-md-start">
+                        <h1 class="header-title mb-3">
+                            <span class="title-icon" aria-hidden="true">⚽</span>
+                            <span class="title-text">AI Football Predictor</span>
+                            <span class="accuracy-badge">
+                                <i class="bi bi-bullseye" aria-hidden="true"></i>
+                                <span>62% Accuracy</span>
+                            </span>
+                        </h1>
+                        <p class="subtitle mb-0">
+                            <i class="bi bi-cpu me-2" aria-hidden="true"></i>
+                            Advanced machine learning predictions for Premier League matches
+                        </p>
+                    </div>
+                    <div class="col-lg-4 col-md-5 text-center text-md-end mt-4 mt-md-0">
+                        <div class="d-flex align-items-center justify-content-center justify-content-md-end gap-2">
+                            <!-- Theme Toggle -->
+                            <button class="btn btn-outline-secondary btn-icon" id="themeToggle"
+                                    aria-label="Toggle dark/light theme"
+                                    title="Toggle theme">
+                                <i class="bi bi-moon-fill" aria-hidden="true"></i>
+                            </button>
+                            <!-- Admin Panel -->
+                            <button class="btn btn-outline-secondary" id="adminToggleBtn"
+                                    aria-label="Open Admin Panel"
+                                    title="Admin Panel">
+                                <i class="bi bi-gear-fill" aria-hidden="true"></i>
+                                <span class="btn-text ms-2 d-none d-sm-inline">Admin</span>
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="model-status" id="modelStatus">
-                <span class="status-indicator" id="statusIndicator"></span>
-                <span class="status-text" id="statusText">Checking model...</span>
-                <span class="last-updated" id="lastUpdated">Last updated: --</span>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="model-status" id="modelStatus" role="status" aria-live="polite">
+                            <span class="status-indicator heartbeat" id="statusIndicator" aria-hidden="true"></span>
+                            <span class="status-text" id="statusText">Checking model...</span>
+                            <span class="vr mx-2" aria-hidden="true"></span>
+                            <span class="last-updated text-muted" id="lastUpdated">
+                                <i class="bi bi-clock me-1" aria-hidden="true"></i>
+                                Last updated: <time datetime="">--</time>
+                            </span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </header>
 
         <!-- Main Content -->
-        <main class="main-content" id="main-content">
-            <!-- Prediction Card -->
-            <section class="card prediction-card">
-                <div class="card-header">
-                    <h2 class="card-title">🎯 Make a Prediction</h2>
-                    <div class="prediction-mode-toggle">
-                        <button type="button" class="mode-btn active" data-mode="manual">Manual</button>
-                        <button type="button" class="mode-btn" data-mode="upcoming">Upcoming</button>
-                    </div>
-                </div>
+        <main class="main-content dashboard-main container-fluid py-4" id="main-content">
 
-                <!-- Quick Match Suggestions -->
-                <div class="quick-matches" id="quickMatches">
-                    <h3 class="quick-matches-title">⚡ Quick Predictions</h3>
-                    <div class="quick-matches-grid" id="quickMatchesGrid">
-                        <!-- Dynamically populated -->
-                    </div>
-                </div>
-
-                <form id="predictionForm" class="prediction-form">
-                    <div class="form-section">
-                        <div class="team-selection">
-                            <div class="team-input">
-                                <label for="homeTeam">
-                                    <span class="label-icon">🏠</span>
-                                    Home Team
-                                </label>
-                                <select id="homeTeam" required>
-                                    <option value="">Select Home Team</option>
-                                </select>
-                                <div class="team-form-indicator" id="homeForm"></div>
+            <!-- Row 1: Quick Stats Cards using Bootstrap Grid -->
+            <section class="mb-6" aria-label="Statistics Overview">
+                <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 row-cols-xl-5 g-4">
+                    <div class="col">
+                        <div class="stat-card h-100" data-bs-toggle="tooltip" data-bs-placement="top" title="Total historical matches in database">
+                            <div class="d-flex align-items-center gap-4">
+                                <div class="stat-card-icon primary">
+                                    <i class="bi bi-bar-chart-fill" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-card-value" id="totalMatches" aria-live="polite">--</div>
+                                    <div class="stat-card-label">Matches Analyzed</div>
+                                </div>
                             </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stat-card h-100" data-bs-toggle="tooltip" data-bs-placement="top" title="Premier League teams tracked">
+                            <div class="d-flex align-items-center gap-4">
+                                <div class="stat-card-icon success">
+                                    <i class="bi bi-people-fill" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-card-value" id="totalTeams" aria-live="polite">--</div>
+                                    <div class="stat-card-label">Teams Tracked</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stat-card h-100" data-bs-toggle="tooltip" data-bs-placement="top" title="Machine learning feature count">
+                            <div class="d-flex align-items-center gap-4">
+                                <div class="stat-card-icon accent">
+                                    <i class="bi bi-cpu-fill" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-card-value" id="totalFeatures">22</div>
+                                    <div class="stat-card-label">ML Features</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stat-card h-100" data-bs-toggle="tooltip" data-bs-placement="top" title="Current model prediction accuracy">
+                            <div class="d-flex align-items-center gap-4">
+                                <div class="stat-card-icon warning">
+                                    <i class="bi bi-bullseye" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-card-value" style="color: var(--color-success);">62%</div>
+                                    <div class="stat-card-label">Model Accuracy</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="stat-card h-100" data-bs-toggle="tooltip" data-bs-placement="top" title="Total predictions generated">
+                            <div class="d-flex align-items-center gap-4">
+                                <div class="stat-card-icon info">
+                                    <i class="bi bi-magic" aria-hidden="true"></i>
+                                </div>
+                                <div>
+                                    <div class="stat-card-value" id="totalPredictions" aria-live="polite">--</div>
+                                    <div class="stat-card-label">Predictions Made</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-                            <div class="match-info">
-                                <div class="vs-badge">VS</div>
-                                <div class="match-date-selection">
-                                    <label for="matchDateInput" class="sr-only">Match Date</label>
-                                    <input type="date" id="matchDateInput" min="2024-01-01" class="date-input">
+            <!-- Row 2: Prediction + Results using Bootstrap Grid -->
+            <div class="row g-4 mb-4">
+                <!-- Prediction Card -->
+                <div class="col-lg-6">
+                    <div class="card h-100 card-hover" id="predictionCard">
+                        <div class="card-header card-header-gradient py-4">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="fs-3" aria-hidden="true">🎯</span>
+                                    <div>
+                                        <h2 class="card-title h5 mb-1">Match Prediction</h2>
+                                        <p class="card-subtitle mb-0">AI-powered outcome analysis</p>
+                                    </div>
+                                </div>
+                                <div class="btn-group" role="group" aria-label="Prediction mode selection">
+                                    <input type="radio" class="btn-check" name="predMode" id="modeManual" autocomplete="off" checked>
+                                    <label class="btn btn-outline-primary btn-sm" for="modeManual">
+                                        <i class="bi bi-hand-index me-1" aria-hidden="true"></i>Manual
+                                    </label>
+                                    <input type="radio" class="btn-check" name="predMode" id="modeUpcoming" autocomplete="off">
+                                    <label class="btn btn-outline-primary btn-sm" for="modeUpcoming">
+                                        <i class="bi bi-calendar me-1" aria-hidden="true"></i>Upcoming
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-5">
+                            <!-- Quick Match Suggestions -->
+                            <div class="quick-matches mb-5" id="quickMatches">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <span class="fw-semibold">
+                                        <i class="bi bi-lightning-charge text-warning me-2" aria-hidden="true"></i>Quick Picks
+                                    </span>
+                                    <span class="badge badge-secondary">Click to predict</span>
+                                </div>
+                                <div class="quick-matches-grid" id="quickMatchesGrid" role="list">
+                                    <!-- Dynamically populated -->
                                 </div>
                             </div>
 
-                            <div class="team-input">
-                                <label for="awayTeam">
-                                    <span class="label-icon">✈️</span>
-                                    Away Team
-                                </label>
-                                <select id="awayTeam" required>
-                                    <option value="">Select Away Team</option>
-                                </select>
-                                <div class="team-form-indicator" id="awayForm"></div>
-                            </div>
-                        </div>
+                            <form id="predictionForm" class="prediction-form" novalidate>
+                                <div class="row g-4 align-items-end mb-5">
+                                    <div class="col-md-5">
+                                        <label for="homeTeam" class="form-label required">
+                                            <i class="bi bi-house-fill text-primary me-2" aria-hidden="true"></i>Home Team
+                                        </label>
+                                        <select id="homeTeam" class="form-select form-select-lg" required aria-describedby="homeTeamHelp">
+                                            <option value="">Select Home Team</option>
+                                        </select>
+                                        <div class="team-form-indicator mt-2" id="homeForm" aria-label="Recent form"></div>
+                                        <div class="invalid-feedback">Please select a home team</div>
+                                    </div>
+                                    <div class="col-md-2 text-center">
+                                        <div class="vs-divider" aria-hidden="true">VS</div>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <label for="awayTeam" class="form-label required">
+                                            <i class="bi bi-airplane-fill text-success me-2" aria-hidden="true"></i>Away Team
+                                        </label>
+                                        <select id="awayTeam" class="form-select form-select-lg" required aria-describedby="awayTeamHelp">
+                                            <option value="">Select Away Team</option>
+                                        </select>
+                                        <div class="team-form-indicator mt-2" id="awayForm" aria-label="Recent form"></div>
+                                        <div class="invalid-feedback">Please select an away team</div>
+                                    </div>
+                                </div>
 
-                        <!-- Advanced Options -->
-                        <div class="advanced-options" id="advancedOptions">
-                            <div class="options-toggle">
-                                <button type="button" class="toggle-btn" id="toggleAdvanced">
-                                    ⚙️ Advanced Options
-                                    <span class="toggle-icon">▼</span>
+                                <!-- Advanced Options with Bootstrap Accordion -->
+                                <div class="accordion mb-5" id="advancedAccordion">
+                                    <div class="accordion-item">
+                                        <h3 class="accordion-header">
+                                            <button class="accordion-button collapsed" type="button"
+                                                    data-bs-toggle="collapse" data-bs-target="#advancedOptions"
+                                                    aria-expanded="false" aria-controls="advancedOptions"
+                                                    id="toggleAdvanced">
+                                                <i class="bi bi-sliders me-2" aria-hidden="true"></i>Advanced Options
+                                            </button>
+                                        </h3>
+                                        <div id="advancedOptions" class="accordion-collapse collapse" data-bs-parent="#advancedAccordion">
+                                            <div class="accordion-body">
+                                                <div class="row g-4">
+                                                    <div class="col-md-4">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="includeWeather" role="switch">
+                                                            <label class="form-check-label" for="includeWeather">
+                                                                <i class="bi bi-cloud-sun me-1" aria-hidden="true"></i>Weather Data
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="includeInjuries" role="switch">
+                                                            <label class="form-check-label" for="includeInjuries">
+                                                                <i class="bi bi-bandaid me-1" aria-hidden="true"></i>Injuries
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="form-check form-switch">
+                                                            <input class="form-check-input" type="checkbox" id="includeRecent" checked role="switch">
+                                                            <label class="form-check-label" for="includeRecent">
+                                                                <i class="bi bi-graph-up me-1" aria-hidden="true"></i>Recent Form
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary btn-lg w-100" id="predictBtn">
+                                    <i class="bi bi-bullseye" aria-hidden="true"></i>
+                                    <span class="btn-text">Predict Match Outcome</span>
+                                    <span class="spinner-border spinner-border-sm ms-2" style="display: none;" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </span>
                                 </button>
-                            </div>
-                            <div class="options-content" style="display: none;">
-                                <div class="option-group">
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="includeWeather" checked>
-                                        <span class="checkmark"></span>
-                                        Include weather conditions
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="includeInjuries" checked>
-                                        <span class="checkmark"></span>
-                                        Consider injury reports
-                                    </label>
-                                    <label class="checkbox-label">
-                                        <input type="checkbox" id="includeRecent" checked>
-                                        <span class="checkmark"></span>
-                                        Recent form (last 5 games)
-                                    </label>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="form-actions">
-                        <button type="submit" class="btn btn-primary" id="predictBtn">
-                            <span class="btn-icon">🎯</span>
-                            <span class="btn-text">Predict Match Outcome</span>
-                            <span class="btn-loader" style="display: none;">
-                                <span class="spinner"></span>
-                            </span>
-                        </button>
-                        <div class="prediction-confidence" id="predictionConfidence" style="display: none;">
-                            <span class="confidence-text">Model Confidence: </span>
-                            <span class="confidence-value" id="confidenceValue">--</span>
-                        </div>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Results Section -->
-            <section class="card results-card" id="resultsCard" style="display: none;">
-                <h2 class="card-title">📊 Prediction Results</h2>
-                <div class="results-content">
-                    <!-- Match Header -->
-                    <div class="match-header" id="matchHeader">
-                        <span class="team-name" id="resultHomeTeam">Arsenal</span>
-                        <span class="vs-text">vs</span>
-                        <span class="team-name" id="resultAwayTeam">Chelsea</span>
-                    </div>
-
-                    <!-- Prediction Badge -->
-                    <div class="prediction-badge" id="predictionBadge">
-                        <span class="prediction-label">Predicted Outcome</span>
-                        <span class="prediction-value" id="predictionValue">HOME_WIN</span>
-                        <span class="confidence-badge" id="confidenceBadge">HIGH</span>
-                    </div>
-
-                    <!-- Probability Bars -->
-                    <div class="probability-section">
-                        <h3>Win Probabilities</h3>
-                        <div class="probability-bars">
-                            <div class="prob-item">
-                                <div class="prob-label">
-                                    <span>Home Win</span>
-                                    <span class="prob-value" id="probHomeValue">55%</span>
-                                </div>
-                                <div class="prob-bar">
-                                    <div class="prob-fill home-win" id="probHomeFill" style="width: 55%"></div>
-                                </div>
-                            </div>
-                            <div class="prob-item">
-                                <div class="prob-label">
-                                    <span>Draw</span>
-                                    <span class="prob-value" id="probDrawValue">25%</span>
-                                </div>
-                                <div class="prob-bar">
-                                    <div class="prob-fill draw" id="probDrawFill" style="width: 25%"></div>
-                                </div>
-                            </div>
-                            <div class="prob-item">
-                                <div class="prob-label">
-                                    <span>Away Win</span>
-                                    <span class="prob-value" id="probAwayValue">20%</span>
-                                </div>
-                                <div class="prob-bar">
-                                    <div class="prob-fill away-win" id="probAwayFill" style="width: 20%"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Features Summary -->
-                    <div class="features-section">
-                        <h3>📈 Analysis Features</h3>
-                        <div class="features-grid" id="featuresGrid">
-                            <div class="feature-item">
-                                <span class="feature-label">Home Form</span>
-                                <span class="feature-value" id="homeFormPoints">2.4</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-label">Away Form</span>
-                                <span class="feature-value" id="awayFormPoints">1.8</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-label">Home Goals Avg</span>
-                                <span class="feature-value" id="homeGoalsAvg">2.1</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-label">Away Goals Avg</span>
-                                <span class="feature-value" id="awayGoalsAvg">1.3</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-label">H2H Home Win</span>
-                                <span class="feature-value" id="h2hHomeWin">45%</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-label">H2H Draw</span>
-                                <span class="feature-value" id="h2hDraw">30%</span>
-                            </div>
-                            <div class="feature-item">
-                                <span class="feature-label">H2H Away Win</span>
-                                <span class="feature-value" id="h2hAwayWin">25%</span>
-                            </div>
+                            </form>
                         </div>
                     </div>
                 </div>
-            </section>
 
-            <!-- Error Message -->
-            <section class="card error-card" id="errorCard" style="display: none;">
-                <div class="error-content">
-                    <span class="error-icon">⚠️</span>
-                    <p class="error-message" id="errorMessage">An error occurred</p>
-                    <p class="error-hint" id="errorHint"></p>
-                </div>
-            </section>
+                <!-- Results Column -->
+                <div class="col-lg-6">
+                    <div class="card bg-dark border-secondary shadow-sm" id="resultsCard" style="display: none;">
+                    <div class="card-header bg-primary text-white border-0">
+                        <div class="d-flex align-items-center">
+                            <span class="card-header-icon me-2">📊</span>
+                            <div>
+                                <h5 class="card-title mb-0">Prediction Results</h5>
+                                <small class="text-light" id="resultMatchup">--</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="result-display text-center">
+                            <div class="result-teams mb-3">
+                                <span class="badge bg-primary me-2" id="resultHomeTeam">Home</span>
+                                <span class="vs-text fw-bold">vs</span>
+                                <span class="badge bg-success ms-2" id="resultAwayTeam">Away</span>
+                            </div>
+                            <div class="result-prediction mb-3">
+                                <h3 class="text-primary" id="predictionValue">HOME WIN</h3>
+                            </div>
+                            <div class="result-confidence">
+                                <span class="badge bg-warning text-dark" id="confidenceBadge">HIGH CONFIDENCE</span>
+                            </div>
+                        </div>
 
-            <!-- Admin Section -->
-            <section class="card admin-card" id="adminCard">
-                <div class="admin-header">
-                    <h2 class="card-title">⚙️ Model Management</h2>
-                    <div class="admin-auth-status" id="adminAuthStatus">
-                        <span class="auth-badge locked" id="authBadge">🔒 Admin Only</span>
-                        <button class="btn btn-secondary btn-sm" id="adminLogoutBtn" style="display: none;">
-                            <span class="btn-text">🚪 Logout</span>
-                        </button>
+                        <!-- Probability Bars Section -->
+                        <div class="probability-bars-section mt-4">
+                            <h6 class="text-muted mb-3">📊 Win Probabilities</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="prob-bar-item">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="prob-bar-label text-primary">🏠 Home Win</span>
+                                            <span class="badge bg-primary" id="probHomeValue">55%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-primary" id="probHomeFill" role="progressbar" style="width: 55%" aria-valuenow="55" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="prob-bar-item">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="prob-bar-label text-warning">⚖️ Draw</span>
+                                            <span class="badge bg-warning text-dark" id="probDrawValue">25%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-warning" id="probDrawFill" role="progressbar" style="width: 25%" aria-valuenow="25" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="prob-bar-item">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <span class="prob-bar-label text-success">✈️ Away Win</span>
+                                            <span class="badge bg-success" id="probAwayValue">20%</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar bg-success" id="probAwayFill" role="progressbar" style="width: 20%" aria-valuenow="20" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Feature Stats Section -->
+                        <div class="feature-stats-section mt-4">
+                            <h6 class="text-muted mb-3">📈 Key Features</h6>
+                            <div class="row g-3 mb-3">
+                                <div class="col-6 col-md-3">
+                                    <div class="card text-center border-primary">
+                                        <div class="card-body p-2">
+                                            <div class="feature-label small text-primary">🏠 Home Form</div>
+                                            <div class="feature-value fw-bold text-primary" id="homeFormPoints">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="card text-center border-success">
+                                        <div class="card-body p-2">
+                                            <div class="feature-label small text-success">✈️ Away Form</div>
+                                            <div class="feature-value fw-bold text-success" id="awayFormPoints">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="card text-center border-info">
+                                        <div class="card-body p-2">
+                                            <div class="feature-label small text-info">⚽ Home Goals Avg</div>
+                                            <div class="feature-value fw-bold text-info" id="homeGoalsAvg">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="card text-center border-warning">
+                                        <div class="card-body p-2">
+                                            <div class="feature-label small text-warning">⚽ Away Goals Avg</div>
+                                            <div class="feature-value fw-bold text-warning" id="awayGoalsAvg">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- H2H Rates -->
+                            <div class="row g-3">
+                                <div class="col-4">
+                                    <div class="card text-center border-primary">
+                                        <div class="card-body p-2">
+                                            <div class="h2h-rate-label small text-primary">H2H Home Win</div>
+                                            <div class="h2h-rate-value fw-bold text-primary" id="h2hHomeWin">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="card text-center border-warning">
+                                        <div class="card-body p-2">
+                                            <div class="h2h-rate-label small text-warning">H2H Draw</div>
+                                            <div class="h2h-rate-value fw-bold text-warning" id="h2hDraw">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="card text-center border-success">
+                                        <div class="card-body p-2">
+                                            <div class="h2h-rate-label small text-success">H2H Away Win</div>
+                                            <div class="h2h-rate-value fw-bold text-success" id="h2hAwayWin">-</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- H2H Insights Section -->
+                        <div class="h2h-insights-section" id="h2hInsightsSection" style="display: none;">
+                            <div class="h2h-insights-title">🤝 Head-to-Head Insights</div>
+                            <div class="h2h-record-summary" id="h2hRecordSummary">No H2H history</div>
+
+                            <!-- H2H Stats Table -->
+                            <div class="h2h-table-wrapper">
+                                <table class="h2h-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Total Meetings</th>
+                                            <th id="h2hHomeLabel">Home Wins</th>
+                                            <th>Draws</th>
+                                            <th id="h2hAwayLabel">Away Wins</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="h2h-stat-value" id="h2hTotalMeetings">0</span></td>
+                                            <td><span class="h2h-stat-value home-color" id="h2hHomeWins">0</span></td>
+                                            <td><span class="h2h-stat-value draw-color" id="h2hDraws">0</span></td>
+                                            <td><span class="h2h-stat-value away-color" id="h2hAwayWins">0</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- H2H Timeline (Recent Matches) -->
+                            <div class="h2h-timeline-section">
+                                <div class="h2h-section-title">📅 Recent Meetings</div>
+                                <div class="h2h-timeline" id="h2hTimelineList"></div>
+                            </div>
+
+                            <!-- H2H Goal Stats Table -->
+                            <div class="h2h-table-wrapper">
+                                <div class="h2h-section-title">⚽ Goal Statistics</div>
+                                <table class="h2h-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Avg Goals/Match</th>
+                                            <th>BTTS %</th>
+                                            <th id="h2hHomeGoalsLabel">Home Avg</th>
+                                            <th id="h2hAwayGoalsLabel">Away Avg</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="goal-stat-value" id="h2hAvgGoals">0</span></td>
+                                            <td><span class="goal-stat-value" id="h2hBtts">0%</span></td>
+                                            <td><span class="goal-stat-value home-color" id="h2hHomeAvgGoals">0</span></td>
+                                            <td><span class="goal-stat-value away-color" id="h2hAwayAvgGoals">0</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Common Results Table -->
+                            <div class="h2h-table-wrapper">
+                                <div class="h2h-section-title">📊 Common Results</div>
+                                <table class="h2h-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Most Common Score</th>
+                                            <th>Most Common Outcome</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="common-result-value" id="h2hMostCommonScore">N/A</span></td>
+                                            <td><span class="common-result-value" id="h2hMostCommonOutcome">N/A</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Venue Advantage Table -->
+                            <div class="h2h-table-wrapper">
+                                <div class="h2h-section-title">🏟️ Venue Advantage</div>
+                                <table class="h2h-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Team</th>
+                                            <th>Win % at Home</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td><span class="venue-team" id="h2hHomeVenueTeam">Home</span></td>
+                                            <td><span class="venue-pct home-color" id="h2hHomeVenuePct">0%</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td><span class="venue-team" id="h2hAwayVenueTeam">Away</span></td>
+                                            <td><span class="venue-pct away-color" id="h2hAwayVenuePct">0%</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="h2h-venue-note" id="h2hVenueNote">No venue data available</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Admin Login Overlay -->
-                <div class="admin-login-overlay" id="adminLoginOverlay">
-                    <div class="login-content">
-                        <div class="login-icon">🔐</div>
-                        <h3>Admin Authentication Required</h3>
-                        <p class="login-hint">Enter your admin credentials to access model management features</p>
-                        <form id="adminLoginForm" class="admin-login-form">
-                            <div class="login-field">
-                                <label for="adminUsername">Username</label>
-                                <input type="text" id="adminUsername" name="username" placeholder="Enter username" required autocomplete="username">
+                <!-- Error Card using Bootstrap Alert -->
+                <div class="alert alert-danger alert-dismissible" id="errorCard" role="alert" style="display: none;">
+                    <div class="d-flex align-items-start gap-3">
+                        <i class="bi bi-exclamation-triangle-fill fs-4" aria-hidden="true"></i>
+                        <div class="flex-grow-1">
+                            <h4 class="alert-title h6 mb-2">Prediction Error</h4>
+                            <p class="alert-message mb-1" id="errorMessage">An error occurred</p>
+                            <small class="text-muted" id="errorHint">Please try again or check your inputs</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" aria-label="Close error message" onclick="document.getElementById('errorCard').style.display='none'"></button>
+                </div>
+
+                <!-- Placeholder when no results using Bootstrap Card -->
+                <div class="card bg-dark border-secondary h-100" id="resultsPlaceholder">
+                    <div class="card-header bg-gradient border-bottom border-secondary py-3">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi bi-bar-chart-fill fs-4 text-primary"></i>
+                            <div>
+                                <h5 class="card-title mb-0 text-white">Prediction Results</h5>
+                                <small class="text-muted">Make a prediction to see results</small>
                             </div>
-                            <div class="login-field">
-                                <label for="adminPassword">Password</label>
-                                <input type="password" id="adminPassword" name="password" placeholder="Enter password" required autocomplete="current-password">
+                        </div>
+                    </div>
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center text-center py-5">
+                        <i class="bi bi-bullseye display-1 text-muted mb-3"></i>
+                        <p class="text-muted mb-0">Select teams and click "Predict" to see AI-powered match outcome predictions</p>
+                    </div>
+                </div>
+                </div><!-- End col-lg-6 -->
+            </div><!-- End row g-4 mb-4 -->
+
+            <!-- Row 3: Live Insights using Bootstrap Card -->
+            <section class="mb-6" aria-label="Live Insights">
+                <div class="card" id="trendingCard">
+                    <div class="card-header card-header-gradient py-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-graph-up-arrow fs-3 text-success" aria-hidden="true"></i>
+                                <div>
+                                    <h2 class="card-title h5 mb-1">Live Insights</h2>
+                                    <p class="card-subtitle mb-0">Real-time team performance analysis</p>
+                                </div>
                             </div>
-                            <div class="login-error" id="loginError" style="display: none;">
-                                <span class="error-icon">⚠️</span>
-                                <span class="error-text" id="loginErrorText">Invalid credentials</span>
-                            </div>
-                            <button type="submit" class="btn btn-primary login-btn" id="adminLoginBtn">
-                                <span class="btn-text">🔓 Login as Admin</span>
-                                <span class="btn-loader" style="display: none;">
-                                    <span class="spinner"></span>
+                            <button class="btn btn-outline-secondary" id="refreshTrendingBtn" aria-label="Refresh insights">
+                                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                                <span class="btn-text ms-2 d-none d-sm-inline">Refresh</span>
+                                <span class="spinner-border spinner-border-sm ms-2" style="display: none;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
                                 </span>
                             </button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Admin Controls (hidden until authenticated) -->
-                <div class="admin-controls" id="adminControls" style="display: none;">
-                    <!-- Basic Training Options -->
-                    <div class="admin-section-group">
-                        <h3 class="admin-subtitle">📊 Basic Training</h3>
-                        <div class="admin-buttons">
-                            <button class="btn btn-secondary" id="trainModelBtn">
-                                <span class="btn-text">🧠 Train Model</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-secondary" id="reloadDataBtn">
-                                <span class="btn-text">📁 Reload Data</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-primary" id="updateDataBtn">
-                                <span class="btn-text">🔄 Update & Retrain</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-secondary" id="checkStatusBtn">
-                                <span class="btn-text">🔍 Check Status</span>
-                            </button>
                         </div>
                     </div>
-
-                    <!-- Advanced Training Options -->
-                    <div class="admin-section-group">
-                        <h3 class="admin-subtitle">🚀 Advanced Training</h3>
-                        <div class="admin-buttons">
-                            <button class="btn btn-accent" id="trainAdvancedBtn">
-                                <span class="btn-text">⚡ Advanced Train</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-secondary" id="trainCVBtn">
-                                <span class="btn-text">📈 Cross-Validation</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-secondary" id="trainBoostingBtn">
-                                <span class="btn-text">📊 Gradient Boosting</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-secondary" id="trainEnsembleBtn">
-                                <span class="btn-text">🤝 Ensemble Model</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
+                    <div class="card-body p-5">
+                        <!-- Loading State -->
+                        <div class="text-center py-8" id="trendingLoading">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading insights...</span>
+                            </div>
+                            <p class="text-muted mb-0">Loading insights...</p>
                         </div>
-                    </div>
 
-                    <!-- Model Analysis Options -->
-                    <div class="admin-section-group">
-                        <h3 class="admin-subtitle">🔬 Model Analysis</h3>
-                        <div class="admin-buttons">
-                            <button class="btn btn-secondary" id="gridSearchBtn">
-                                <span class="btn-text">🔍 Grid Search</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
-                            <button class="btn btn-secondary" id="compareModelsBtn">
-                                <span class="btn-text">📋 Compare Models</span>
-                                <span class="btn-loader" style="display: none;">⏳</span>
-                            </button>
+                        <!-- Insights Grid - Bootstrap Row -->
+                        <div class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4" id="trendingGrid" style="display: none;">
+                            <!-- 🔥 Hot Teams -->
+                            <div class="col">
+                                <div class="insight-card h-100">
+                                    <div class="insight-card-header hot">
+                                        <span class="insight-card-icon" aria-hidden="true">🔥</span>
+                                        <div>
+                                            <h3 class="h6 mb-0" style="color: var(--color-success);">Hot Teams</h3>
+                                            <small class="text-muted">On winning streaks</small>
+                                        </div>
+                                    </div>
+                                    <div class="insight-card-body" id="hotTeamsList" role="list"></div>
+                                </div>
+                            </div>
+
+                            <!-- ❄️ Cold Teams -->
+                            <div class="col">
+                                <div class="insight-card h-100">
+                                    <div class="insight-card-header cold">
+                                        <span class="insight-card-icon" aria-hidden="true">❄️</span>
+                                        <div>
+                                            <h3 class="h6 mb-0" style="color: var(--color-info);">Cold Teams</h3>
+                                            <small class="text-muted">Struggling for wins</small>
+                                        </div>
+                                    </div>
+                                    <div class="insight-card-body" id="coldTeamsList" role="list"></div>
+                                </div>
+                            </div>
+
+                            <!-- ⚽ Top Scorers -->
+                            <div class="col">
+                                <div class="insight-card h-100">
+                                    <div class="insight-card-header scoring">
+                                        <span class="insight-card-icon" aria-hidden="true">⚽</span>
+                                        <div>
+                                            <h3 class="h6 mb-0" style="color: var(--color-warning);">Top Scorers</h3>
+                                            <small class="text-muted">Most goals recently</small>
+                                        </div>
+                                    </div>
+                                    <div class="insight-card-body" id="topScorersList" role="list"></div>
+                                </div>
+                            </div>
+
+                            <!-- 🛡️ Defensive Walls -->
+                            <div class="col">
+                                <div class="insight-card h-100">
+                                    <div class="insight-card-header defensive">
+                                        <span class="insight-card-icon" aria-hidden="true">🛡️</span>
+                                        <div>
+                                            <h3 class="h6 mb-0" style="color: var(--color-accent);">Defensive Walls</h3>
+                                            <small class="text-muted">Most clean sheets</small>
+                                        </div>
+                                    </div>
+                                    <div class="insight-card-body" id="defensiveWallsList" role="list"></div>
+                                </div>
+                            </div>
+
+                            <!-- ⚠️ Upset Alerts -->
+                            <div class="col">
+                                <div class="insight-card h-100">
+                                    <div class="insight-card-header upset">
+                                        <span class="insight-card-icon" aria-hidden="true">⚠️</span>
+                                        <div>
+                                            <h3 class="h6 mb-0" style="color: var(--color-error);">Upset Alerts</h3>
+                                            <small class="text-muted">Away team favorites</small>
+                                        </div>
+                                    </div>
+                                    <div class="insight-card-body" id="upsetAlertsList" role="list"></div>
+                                </div>
+                            </div>
+
+                            <!-- 🎯 Goal Fest -->
+                            <div class="col">
+                                <div class="insight-card h-100">
+                                    <div class="insight-card-header goals">
+                                        <span class="insight-card-icon" aria-hidden="true">🎯</span>
+                                        <div>
+                                            <h3 class="h6 mb-0" style="color: var(--color-primary-light);">Goal Fest</h3>
+                                            <small class="text-muted">High-scoring potential</small>
+                                        </div>
+                                    </div>
+                                    <div class="insight-card-body" id="goalFestList" role="list"></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <p class="admin-hint">💡 <strong>Advanced Train</strong> performs grid search + cross-validation + ensemble for best accuracy</p>
-                    <p class="admin-hint">💡 <strong>Grid Search</strong> finds optimal hyperparameters for Random Forest and AdaBoost</p>
-                    <div class="admin-output" id="adminOutput" style="display: none;">
-                        <pre id="adminOutputText"></pre>
+                        <!-- Metadata -->
+                        <div class="d-flex justify-content-center gap-4 mt-4 text-muted" id="trendingMeta" style="display: none;" aria-live="polite">
+                            <span>
+                                <i class="bi bi-clock me-1" aria-hidden="true"></i>
+                                Last updated: <time id="trendingUpdatedAt">-</time>
+                            </span>
+                            <span>
+                                <i class="bi bi-people me-1" aria-hidden="true"></i>
+                                Teams analyzed: <span id="trendingTeamsCount">0</span>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Football News Section -->
-            <section class="card news-card">
-                <div class="news-header">
-                    <h2 class="card-title">📰 Football News</h2>
-                    <button class="btn btn-secondary btn-sm" id="refreshNewsBtn">
-                        <span class="btn-text">🔄 Refresh</span>
-                        <span class="btn-loader" style="display: none;">⏳</span>
-                    </button>
-                </div>
-                <div class="news-list" id="newsList">
-                    <div class="news-loading" id="newsLoading">
-                        <span>Loading news...</span>
+            <!-- Row 4: News Card using Bootstrap -->
+            <section class="mb-6" aria-label="Football News">
+                <div class="card">
+                    <div class="card-header card-header-gradient py-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-newspaper fs-3 text-info" aria-hidden="true"></i>
+                                <div>
+                                    <h2 class="card-title h5 mb-1">Football News</h2>
+                                    <p class="card-subtitle mb-0">Latest updates</p>
+                                </div>
+                            </div>
+                            <button class="btn btn-outline-secondary" id="refreshNewsBtn" aria-label="Refresh news">
+                                <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+                                <span class="btn-text ms-2 d-none d-sm-inline">Refresh</span>
+                                <span class="spinner-border spinner-border-sm ms-2" style="display: none;" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </span>
+                            </button>
+                        </div>
                     </div>
-                    <!-- News articles will be populated here -->
-                </div>
-                <div class="news-empty" id="newsEmpty" style="display: none;">
-                    <span class="news-empty-icon">📰</span>
-                    <p>No news available at the moment</p>
-                    <p class="news-hint">News is fetched from BBC Sport, Sky Sports & The Guardian RSS feeds</p>
+                    <div class="card-body p-5">
+                        <div class="news-list" id="newsList" role="feed" aria-label="News articles">
+                            <div class="text-center py-8" id="newsLoading">
+                                <div class="spinner-border text-info mb-3" role="status">
+                                    <span class="visually-hidden">Loading news...</span>
+                                </div>
+                                <p class="text-muted mb-0">Loading news...</p>
+                            </div>
+                        </div>
+                        <div class="news-empty" id="newsEmpty" style="display: none;">
+                            <i class="bi bi-newspaper display-3 text-muted mb-3" aria-hidden="true"></i>
+                            <p class="text-muted mb-0">No news available at the moment</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <!-- PL Calendar Section -->
-            <section class="card calendar-card">
-                <div class="calendar-header">
-                    <h2 class="card-title">📆 Premier League Calendar</h2>
-                    <span class="competition-badge">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
-                </div>
-                <div class="calendar-controls">
-                    <div class="date-picker-wrapper">
-                        <label for="calendarDateInput">Select Date:</label>
-                        <input type="date" id="calendarDateInput" class="date-input">
+            <!-- Team Stats Section -->
+            <section class="mb-6" aria-label="Team Statistics">
+                <div class="card" id="teamStatsCard">
+                    <div class="card-header card-header-info py-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="fs-3" aria-hidden="true">📊</span>
+                                <div>
+                                    <h2 class="card-title h5 mb-1">Team Statistics</h2>
+                                    <p class="card-subtitle mb-0 text-white-50">Comprehensive Analytics</p>
+                                </div>
+                            </div>
+                            <span class="badge badge-outline-success">
+                                <i class="bi bi-bar-chart me-1" aria-hidden="true"></i>
+                                Detailed Stats
+                            </span>
+                        </div>
                     </div>
-                    <button class="btn btn-primary" id="fetchByDateBtn">
-                        <span class="btn-text">🔍 Find Matches</span>
-                        <span class="btn-loader" style="display: none;">⏳</span>
-                    </button>
-                    <div class="quick-dates">
-                        <button class="btn btn-secondary btn-sm" id="todayBtn">Today</button>
-                        <button class="btn btn-secondary btn-sm" id="tomorrowBtn">Tomorrow</button>
-                        <button class="btn btn-secondary btn-sm" id="weekendBtn">Weekend</button>
-                    </div>
-                </div>
+                    <div class="card-body p-5">
+                        <div class="team-stats-controls mb-6">
+                            <div class="row align-items-end g-4">
+                                <div class="col-md-8">
+                                    <label for="teamStatsSelect" class="form-label">
+                                        <i class="bi bi-shield me-2" aria-hidden="true"></i>Select Team
+                                    </label>
+                                    <select id="teamStatsSelect" class="form-select form-select-lg" aria-describedby="teamStatsHelp">
+                                        <option value="">Choose a team...</option>
+                                    </select>
+                                    <div id="teamStatsHelp" class="form-text">Select a team to view detailed statistics</div>
+                                </div>
+                                <div class="col-md-4">
+                                    <button class="btn btn-primary btn-lg w-100" id="fetchTeamStatsBtn">
+                                        <i class="bi bi-bar-chart" aria-hidden="true"></i>
+                                        <span class="btn-text ms-2">View Stats</span>
+                                        <span class="spinner-border spinner-border-sm ms-2" style="display: none;" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                <!-- Calendar Results -->
-                <div class="calendar-results" id="calendarResults" style="display: none;">
-                    <div class="calendar-date-header" id="calendarDateHeader">
-                        <span class="selected-date" id="selectedDateDisplay">Monday, 17 Feb 2026</span>
-                        <span class="match-count" id="matchCount">3 matches</span>
-                    </div>
-                    <div class="calendar-matches-list" id="calendarMatchesList">
-                        <!-- Dynamically populated -->
+                    <!-- Team Stats Results -->
+                    <div class="team-stats-results" id="teamStatsResults" style="display: none;">
+                        <!-- Team Header -->
+                        <div class="team-stats-team-header mb-4" id="teamStatsHeader">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="team-name text-primary mb-0" id="statsTeamName">Arsenal</h4>
+                                <div class="current-form" id="statsCurrentForm"></div>
+                            </div>
+                        </div>
+
+                        <!-- Stats Tabs -->
+                        <ul class="nav nav-pills nav-fill mb-4" id="statsTabNav" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="overview-tab" data-bs-toggle="pill" data-bs-target="#tab-overview" type="button" role="tab" aria-controls="tab-overview" aria-selected="true">
+                                    📊 Overview
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="goals-tab" data-bs-toggle="pill" data-bs-target="#tab-goals" type="button" role="tab" aria-controls="tab-goals" aria-selected="false">
+                                    ⚽ Goals
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="form-tab" data-bs-toggle="pill" data-bs-target="#tab-form" type="button" role="tab" aria-controls="tab-form" aria-selected="false">
+                                    📈 Form
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="matches-tab" data-bs-toggle="pill" data-bs-target="#tab-matches" type="button" role="tab" aria-controls="tab-matches" aria-selected="false">
+                                    📅 Matches
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="rivals-tab" data-bs-toggle="pill" data-bs-target="#tab-rivals" type="button" role="tab" aria-controls="tab-rivals" aria-selected="false">
+                                    ⚔️ Rivals
+                                </button>
+                            </li>
+                        </ul>
+
+                        <!-- Tab Content -->
+                        <div class="tab-content" id="statsTabContent">
+
+                            <!-- Overview Tab -->
+                            <div class="tab-pane fade show active" id="tab-overview" role="tabpanel" aria-labelledby="overview-tab">
+                                <div class="row g-4">
+                                    <!-- Overall Stats Card -->
+                                    <div class="col-lg-6">
+                                        <div class="card border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0">📊 Overall Record</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row g-2">
+                                                    <div class="col-6">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">Matches</span>
+                                                            <span class="fw-bold" id="statsTotalMatches">0</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">W-D-L</span>
+                                                            <span class="fw-bold" id="statsWDL">0-0-0</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">Win %</span>
+                                                            <span class="fw-bold text-success" id="statsWinPct">0%</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">Points/Game</span>
+                                                            <span class="fw-bold text-primary" id="statsPPG">0.0</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-12">
+                                                        <div class="d-flex justify-content-between">
+                                                            <span class="text-muted">Goal Diff</span>
+                                                            <span class="fw-bold" id="statsGD">0</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Home vs Away Comparison -->
+                                    <div class="col-lg-6">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0">🏠 Home vs ✈️ Away</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    <div class="col-6">
+                                                        <div class="text-center mb-2">
+                                                            <span class="badge bg-primary">🏠 Home</span>
+                                                        </div>
+                                                        <div class="small">
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <span>Win %</span>
+                                                                <span class="fw-bold" id="statsHomeWinPct">0%</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <span>Goals/Game</span>
+                                                                <span class="fw-bold" id="statsHomeGoals">0.0</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>Clean Sheets</span>
+                                                                <span class="fw-bold" id="statsHomeCS">0</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6">
+                                                        <div class="text-center mb-2">
+                                                            <span class="badge bg-success">✈️ Away</span>
+                                                        </div>
+                                                        <div class="small">
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <span>Win %</span>
+                                                                <span class="fw-bold" id="statsAwayWinPct">0%</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between mb-1">
+                                                                <span>Goals/Game</span>
+                                                                <span class="fw-bold" id="statsAwayGoals">0.0</span>
+                                                            </div>
+                                                            <div class="d-flex justify-content-between">
+                                                                <span>Clean Sheets</span>
+                                                                <span class="fw-bold" id="statsAwayCS">0</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Current Season Stats -->
+                                    <div class="col-12">
+                                        <div class="card border-warning">
+                                            <div class="card-header bg-warning text-dark">
+                                                <h6 class="mb-0">🏆 Current Season (<span id="statsSeason">2025/26</span>)</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row text-center g-3">
+                                                    <div class="col-6 col-md-2">
+                                                        <div class="season-stat-card">
+                                                            <div class="fs-4 fw-bold text-primary" id="statsSeasonPlayed">0</div>
+                                                            <div class="small text-muted">Played</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6 col-md-2">
+                                                        <div class="season-stat-card">
+                                                            <div class="fs-4 fw-bold text-success" id="statsSeasonWins">0</div>
+                                                            <div class="small text-muted">Wins</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6 col-md-2">
+                                                        <div class="season-stat-card">
+                                                            <div class="fs-4 fw-bold text-warning" id="statsSeasonDraws">0</div>
+                                                            <div class="small text-muted">Draws</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6 col-md-2">
+                                                        <div class="season-stat-card">
+                                                            <div class="fs-4 fw-bold text-danger" id="statsSeasonLosses">0</div>
+                                                            <div class="small text-muted">Losses</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6 col-md-2">
+                                                        <div class="season-stat-card">
+                                                            <div class="fs-4 fw-bold text-primary" id="statsSeasonPoints">0</div>
+                                                            <div class="small text-muted">Points</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-6 col-md-2">
+                                                        <div class="season-stat-card">
+                                                            <div class="fs-4 fw-bold text-info" id="statsSeasonGD">0</div>
+                                                            <div class="small text-muted">GD</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Goals Tab -->
+                            <div class="tab-pane fade" id="tab-goals" role="tabpanel" aria-labelledby="goals-tab">
+                                <div class="row g-4">
+                                    <!-- Scoring Stats -->
+                                    <div class="col-md-6">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0">⚽ Scoring</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Goals Scored</span>
+                                                    <span class="fw-bold" id="statsGoalsScored">0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Avg/Game</span>
+                                                    <span class="fw-bold" id="statsAvgScored">0.0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="text-muted">Failed to Score</span>
+                                                    <span class="fw-bold text-danger" id="statsFailedToScore">0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Defending Stats -->
+                                    <div class="col-md-6">
+                                        <div class="card border-danger">
+                                            <div class="card-header bg-danger text-white">
+                                                <h6 class="mb-0">🛡️ Defending</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Goals Conceded</span>
+                                                    <span class="fw-bold" id="statsGoalsConceded">0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Avg/Game</span>
+                                                    <span class="fw-bold" id="statsAvgConceded">0.0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="text-muted">Clean Sheet %</span>
+                                                    <span class="fw-bold text-success" id="statsCleanSheetPct">0%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Goal Timing -->
+                                    <div class="col-12">
+                                        <div class="card border-info">
+                                            <div class="card-header bg-info text-white">
+                                                <h6 class="mb-0">⏱️ Goal Timing</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <span class="text-muted">1st Half Scored</span>
+                                                            <span class="badge bg-primary" id="stats1HGoals">0 (50%)</span>
+                                                        </div>
+                                                        <div class="progress" style="height: 8px;">
+                                                            <div class="progress-bar bg-primary" id="stats1HGoalsBar" role="progressbar" style="width: 50%" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <span class="text-muted">2nd Half Scored</span>
+                                                            <span class="badge bg-success" id="stats2HGoals">0 (50%)</span>
+                                                        </div>
+                                                        <div class="progress" style="height: 8px;">
+                                                            <div class="progress-bar bg-success" id="stats2HGoalsBar" role="progressbar" style="width: 50%" aria-valuenow="50" aria-valuemin="0" aria-valuemax="100"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Tab -->
+                            <div class="tab-pane fade" id="tab-form" role="tabpanel" aria-labelledby="form-tab">
+                                <div class="row g-4">
+                                    <!-- Recent Form -->
+                                    <div class="col-md-6">
+                                        <div class="card border-warning">
+                                            <div class="card-header bg-warning text-dark">
+                                                <h6 class="mb-0">📈 Recent Form</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="form-display">
+                                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                                        <span class="text-muted">Last 5:</span>
+                                                        <div class="form-badges" id="statsLast5Form"></div>
+                                                        <span class="badge bg-primary" id="statsLast5Pts">0.0 ppg</span>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <span class="text-muted">Last 10:</span>
+                                                        <div class="form-badges" id="statsLast10Form"></div>
+                                                        <span class="badge bg-info" id="statsLast10Pts">0.0 ppg</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Streaks -->
+                                    <div class="col-md-6">
+                                        <div class="card border-success">
+                                            <div class="card-header bg-success text-white">
+                                                <h6 class="mb-0">🔥 Streaks</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Current Win Streak</span>
+                                                    <span class="fw-bold text-success" id="statsWinStreak">0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Current Unbeaten</span>
+                                                    <span class="fw-bold text-info" id="statsUnbeatenStreak">0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <span class="text-muted">Longest Win Streak</span>
+                                                    <span class="fw-bold" id="statsLongestWin">0</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="text-muted">Longest Unbeaten</span>
+                                                    <span class="fw-bold" id="statsLongestUnbeaten">0</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Shot Stats -->
+                                    <div class="col-12">
+                                        <div class="card border-primary">
+                                            <div class="card-header bg-primary text-white">
+                                                <h6 class="mb-0">🎯 Shooting Stats (Last 10 Games)</h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row text-center g-3">
+                                                    <div class="col-md-4">
+                                                        <div class="shot-stat-card">
+                                                            <div class="fs-4 fw-bold text-primary" id="statsAvgSOT">0.0</div>
+                                                            <div class="small text-muted">Shots on Target/Game</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="shot-stat-card">
+                                                            <div class="fs-4 fw-bold text-info" id="statsAvgCorners">0.0</div>
+                                                            <div class="small text-muted">Corners/Game</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <div class="shot-stat-card">
+                                                            <div class="fs-4 fw-bold text-success" id="statsConversion">0%</div>
+                                                            <div class="small text-muted">Shot Conversion</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Recent Matches Tab -->
+                            <div class="tab-pane fade" id="tab-matches" role="tabpanel" aria-labelledby="matches-tab">
+                                <div class="card border-info">
+                                    <div class="card-header bg-info text-white">
+                                        <h6 class="mb-0">📅 Recent Matches</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="recent-matches-list" id="statsRecentMatches">
+                                            <div class="text-center text-muted">
+                                                <div class="spinner-border" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Loading recent matches...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Rivals Tab -->
+                            <div class="tab-pane fade" id="tab-rivals" role="tabpanel" aria-labelledby="rivals-tab">
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0">⚔️ Head-to-Head Records</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="rivals-list" id="statsRivals">
+                                            <div class="text-center text-muted">
+                                                <div class="spinner-border" role="status">
+                                                    <span class="visually-hidden">Loading...</span>
+                                                </div>
+                                                <p class="mt-2">Loading rival statistics...</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+            </section>
 
-                <!-- No Matches Message -->
-                <div class="no-matches-message" id="noMatchesMessage" style="display: none;">
-                    <span class="no-matches-icon">⚽</span>
-                    <p>No Premier League matches scheduled for this date</p>
-                    <p class="no-matches-hint">Try selecting another date or check upcoming matches</p>
+            <!-- PL Calendar Section using Bootstrap -->
+            <section class="mb-6" aria-label="Premier League Calendar">
+                <div class="card">
+                    <div class="card-header card-header-gradient py-4">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                            <div class="d-flex align-items-center gap-3">
+                                <i class="bi bi-calendar3 fs-3 text-warning" aria-hidden="true"></i>
+                                <div>
+                                    <h2 class="card-title h5 mb-1">Premier League Calendar</h2>
+                                    <p class="card-subtitle mb-0">Match schedule</p>
+                                </div>
+                            </div>
+                            <span class="badge badge-secondary">
+                                <span aria-hidden="true">🏴󠁧󠁢󠁥󠁮󠁧󠁿</span> Premier League
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body p-5">
+                        <div class="calendar-controls">
+                            <div class="row g-4 align-items-end w-100">
+                                <div class="col-md-4">
+                                    <label for="calendarDateInput" class="form-label">
+                                        <i class="bi bi-calendar-event me-2" aria-hidden="true"></i>Select Date
+                                    </label>
+                                    <input type="date" id="calendarDateInput" class="form-control form-control-lg" aria-describedby="calendarDateHelp">
+                                </div>
+                                <div class="col-md-3">
+                                    <button class="btn btn-primary btn-lg w-100" id="fetchByDateBtn">
+                                        <i class="bi bi-search" aria-hidden="true"></i>
+                                        <span class="btn-text ms-2">Find Matches</span>
+                                        <span class="spinner-border spinner-border-sm ms-2" style="display: none;" role="status">
+                                            <span class="visually-hidden">Searching...</span>
+                                        </span>
+                                    </button>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="btn-group w-100" role="group" aria-label="Quick date selection">
+                                        <button class="btn btn-outline-secondary" id="todayBtn">
+                                            <i class="bi bi-calendar-day d-none d-sm-inline me-1" aria-hidden="true"></i>Today
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="tomorrowBtn">
+                                            <i class="bi bi-calendar-plus d-none d-sm-inline me-1" aria-hidden="true"></i>Tomorrow
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="weekendBtn">
+                                            <i class="bi bi-calendar-week d-none d-sm-inline me-1" aria-hidden="true"></i>Weekend
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Calendar Results -->
+                        <div id="calendarResults" style="display: none;" class="mt-6">
+                            <div class="calendar-date-header" id="calendarDateHeader">
+                                <span class="fw-bold" id="selectedDateDisplay">
+                                    <i class="bi bi-calendar3 me-2" aria-hidden="true"></i>
+                                    Monday, 17 Feb 2026
+                                </span>
+                                <span class="badge badge-primary" id="matchCount">3 matches</span>
+                            </div>
+                            <div class="calendar-matches-list" id="calendarMatchesList" role="list">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- No Matches Message -->
+                        <div class="text-center py-10" id="noMatchesMessage" style="display: none;">
+                            <i class="bi bi-calendar-x display-3 text-muted mb-4" aria-hidden="true"></i>
+                            <p class="h5 mb-2">No Premier League matches scheduled</p>
+                            <p class="text-muted mb-0">Try selecting another date or check upcoming matches</p>
+                        </div>
+                    </div>
                 </div>
             </section>
 
             <!-- Upcoming Matches Section -->
-            <section class="card upcoming-card">
+            <div class="dashboard-card mb-lg" id="upcomingCard" style="display: none;">
                 <div class="upcoming-header">
                     <h2 class="card-title">📅 Upcoming Premier League Predictions</h2>
                     <span class="competition-badge">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</span>
@@ -479,37 +1292,37 @@
                         <span class="btn-text">🔮 Predict Upcoming Matches</span>
                         <span class="btn-loader" style="display: none;">⏳</span>
                     </button>
-                    <span class="api-note">⚡ Uses football-data.org API (10 req/min limit)</span>
+                    <small class="text-muted"><i class="bi bi-lightning-charge me-1"></i>Uses football-data.org API (10 req/min limit)</small>
                 </div>
 
                 <!-- Upcoming Matches Results -->
-                <div class="upcoming-results" id="upcomingResults" style="display: none;">
-                    <div class="upcoming-info" id="upcomingInfo">
-                        <span class="competition-name" id="competitionName">Premier League</span>
-                        <span class="matchday-info" id="matchdayInfo">Matchday 25</span>
+                <div id="upcomingResults" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center p-3 bg-secondary bg-opacity-25 rounded-3 mb-3" id="upcomingInfo">
+                        <span class="fw-bold text-white" id="competitionName">Premier League</span>
+                        <span class="badge bg-info" id="matchdayInfo">Matchday 25</span>
                     </div>
                     <div class="matches-list" id="matchesList">
                         <!-- Dynamically populated -->
                     </div>
                 </div>
 
-                <!-- Standings Section -->
-                <div class="standings-section" id="standingsSection" style="display: none;">
-                    <h3>📊 Current Standings</h3>
-                    <div class="standings-table-wrapper">
-                        <table class="standings-table" id="standingsTable">
-                            <thead>
+                <!-- Standings Section using Bootstrap Table -->
+                <div id="standingsSection" style="display: none;" class="mt-4 pt-4 border-top border-secondary">
+                    <h5 class="mb-3"><i class="bi bi-trophy me-2"></i>Current Standings</h5>
+                    <div class="table-responsive">
+                        <table class="table table-dark table-striped table-hover" id="standingsTable">
+                            <thead class="table-primary">
                                 <tr>
-                                    <th>#</th>
-                                    <th>Team</th>
-                                    <th>P</th>
-                                    <th>W</th>
-                                    <th>D</th>
-                                    <th>L</th>
-                                    <th>GF</th>
-                                    <th>GA</th>
-                                    <th>Pts</th>
-                                    <th>Form</th>
+                                    <th scope="col">#</th>
+                                    <th scope="col">Team</th>
+                                    <th scope="col">P</th>
+                                    <th scope="col">W</th>
+                                    <th scope="col">D</th>
+                                    <th scope="col">L</th>
+                                    <th scope="col">GF</th>
+                                    <th scope="col">GA</th>
+                                    <th scope="col">Pts</th>
+                                    <th scope="col">Form</th>
                                 </tr>
                             </thead>
                             <tbody id="standingsBody">
@@ -518,19 +1331,220 @@
                         </table>
                     </div>
                 </div>
-            </section>
+            </div>
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <p>Football Match Predictor | Built with Spring Boot & Machine Learning</p>
+        <!-- Footer using Bootstrap -->
+        <footer class="footer" role="contentinfo">
+            <div class="container-fluid">
+                <div class="footer-content">
+                    <span aria-hidden="true">⚽</span>
+                    <span>Football Match Predictor</span>
+                    <span class="vr mx-2" aria-hidden="true"></span>
+                    <span>Built with</span>
+                    <i class="bi bi-bootstrap-fill text-primary" aria-hidden="true"></i>
+                    <span>Bootstrap, Spring Boot & Machine Learning</span>
+                </div>
+            </div>
         </footer>
     </div>
 
-    <!-- Toast Notifications -->
-    <div class="toast-container" id="toastContainer"></div>
+    <!-- Admin Panel Modal using Bootstrap Modal -->
+    <div class="modal fade" id="adminModalOverlay" tabindex="-1" aria-labelledby="adminModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content bg-dark border-secondary">
+                <div class="modal-header border-secondary">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-gear-fill fs-4 text-primary"></i>
+                        <div>
+                            <h5 class="modal-title mb-0" id="adminModalLabel">Model Management</h5>
+                            <small class="text-muted">Admin Controls</small>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" id="adminModalClose"></button>
+                </div>
 
+                <div class="modal-body">
+                    <!-- Login Section (shown when not authenticated) -->
+                    <div id="adminLoginSection" class="text-center py-4">
+                        <i class="bi bi-shield-lock display-4 text-primary mb-3"></i>
+                        <h5 class="mb-2">Admin Authentication Required</h5>
+                        <p class="text-muted mb-4">Enter your admin credentials to access model management features</p>
+                        <form id="adminLoginForm" class="mx-auto" style="max-width: 320px;">
+                            <div class="mb-3">
+                                <label for="adminUsername" class="form-label">Username</label>
+                                <input type="text" class="form-control bg-dark border-secondary text-white" id="adminUsername" name="username" placeholder="Enter username" required autocomplete="username">
+                            </div>
+                            <div class="mb-3">
+                                <label for="adminPassword" class="form-label">Password</label>
+                                <input type="password" class="form-control bg-dark border-secondary text-white" id="adminPassword" name="password" placeholder="Enter password" required autocomplete="current-password">
+                            </div>
+                            <div class="alert alert-danger d-flex align-items-center py-2" id="loginError" role="alert" style="display: none;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <span id="loginErrorText">Invalid credentials</span>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100" id="adminLoginBtn">
+                                <i class="bi bi-unlock me-1"></i>
+                                <span class="btn-text">Login as Admin</span>
+                                <span class="spinner-border spinner-border-sm ms-1" style="display: none;" role="status"></span>
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Admin Controls (shown when authenticated) -->
+                    <div id="adminControlsSection" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
+                            <span class="badge bg-success d-flex align-items-center gap-1" id="authBadge">
+                                <i class="bi bi-unlock-fill"></i> Authenticated
+                            </span>
+                            <button class="btn btn-outline-secondary btn-sm" id="adminLogoutBtn">
+                                <i class="bi bi-box-arrow-right me-1"></i>Logout
+                            </button>
+                        </div>
+
+                        <!-- Tabs for Admin Functions using Bootstrap Nav Tabs -->
+                        <ul class="nav nav-tabs mb-4" id="adminTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="training-tab" data-bs-toggle="tab" data-bs-target="#admin-tab-training" type="button" role="tab">
+                                    <i class="bi bi-cpu me-1"></i>Training
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="data-tab" data-bs-toggle="tab" data-bs-target="#admin-tab-data" type="button" role="tab">
+                                    <i class="bi bi-database me-1"></i>Data
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="analysis-tab" data-bs-toggle="tab" data-bs-target="#admin-tab-analysis" type="button" role="tab">
+                                    <i class="bi bi-bar-chart-line me-1"></i>Analysis
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content" id="adminTabContent">
+                            <!-- Training Tab -->
+                            <div class="tab-pane fade show active" id="admin-tab-training" role="tabpanel">
+                                <h6 class="mb-3"><i class="bi bi-lightning me-1"></i>Basic Training</h6>
+                                <div class="row g-2 mb-4">
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-primary w-100" id="trainModelBtn">
+                                            <i class="bi bi-cpu me-1"></i>Train Model
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-primary w-100" id="updateDataBtn">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Update & Retrain
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                                <h6 class="mb-3"><i class="bi bi-rocket me-1"></i>Advanced Training</h6>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-warning w-100" id="trainAdvancedBtn">
+                                            <i class="bi bi-lightning-charge me-1"></i>Advanced
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" id="trainCVBtn">
+                                            <i class="bi bi-graph-up me-1"></i>Cross-Val
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" id="trainBoostingBtn">
+                                            <i class="bi bi-speedometer2 me-1"></i>Boosting
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" id="trainEnsembleBtn">
+                                            <i class="bi bi-layers me-1"></i>Ensemble
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Data Tab -->
+                            <div class="tab-pane fade" id="admin-tab-data" role="tabpanel">
+                                <h6 class="mb-3"><i class="bi bi-database me-1"></i>Data Management</h6>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" id="reloadDataBtn">
+                                            <i class="bi bi-arrow-clockwise me-1"></i>Reload CSV
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-info w-100" id="checkStatusBtn">
+                                            <i class="bi bi-info-circle me-1"></i>Check Status
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Analysis Tab -->
+                            <div class="tab-pane fade" id="admin-tab-analysis" role="tabpanel">
+                                <h6 class="mb-3"><i class="bi bi-bar-chart-line me-1"></i>Model Analysis</h6>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" id="gridSearchBtn">
+                                            <i class="bi bi-grid-3x3 me-1"></i>Grid Search
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button class="btn btn-outline-secondary w-100" id="compareModelsBtn">
+                                            <i class="bi bi-list-check me-1"></i>Compare
+                                            <span class="spinner-border spinner-border-sm ms-1" style="display: none;"></span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Output Section -->
+                        <div class="mt-4 p-3 bg-secondary bg-opacity-25 rounded" id="adminOutput" style="display: none;">
+                            <h6 class="mb-2"><i class="bi bi-terminal me-1"></i>Output</h6>
+                            <pre class="bg-dark p-3 rounded small mb-0 text-white-50" id="adminOutputText" style="max-height: 200px; overflow-y: auto;"></pre>
+                        </div>
+
+                        <div class="alert alert-info d-flex align-items-start mt-4 py-2" role="alert">
+                            <i class="bi bi-lightbulb me-2 mt-1"></i>
+                            <div class="small">
+                                <p class="mb-1"><strong>Advanced Train</strong> performs grid search + cross-validation + ensemble for best accuracy</p>
+                                <p class="mb-0"><strong>Grid Search</strong> finds optimal hyperparameters for Random Forest and AdaBoost</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container for Bootstrap Toasts -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" id="toastContainer"></div>
+
+    <!-- Theme Toggle (load early to prevent flash) -->
+    <script src="js/theme-toggle.js"></script>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <script src="js/app.js"></script>
+
+    <!-- Initialize Bootstrap Tooltips -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize all tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
 </body>
 </html>
 

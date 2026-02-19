@@ -14,6 +14,7 @@ const API_BASE = '/api';
 const ENDPOINTS = {
     predict: `${API_BASE}/predict`,
     teams: `${API_BASE}/teams`,
+    teamStats: `${API_BASE}/teams`, // Base for team stats: /api/teams/{name}/stats
     modelStatus: `${API_BASE}/model/status`,
     trainModel: `${API_BASE}/model/train`,
     trainAdvanced: `${API_BASE}/model/train/advanced`,
@@ -33,6 +34,8 @@ const ENDPOINTS = {
     newsPL: `${API_BASE}/news/premier-league`,
     newsFootball: `${API_BASE}/news/football`,
     newsTeam: `${API_BASE}/news/team`,
+    // Trending insights endpoint
+    trendingInsights: `${API_BASE}/insights/trending`,
     // Admin endpoints
     adminVerify: `${API_BASE}/admin/verify`,
     adminLogout: `${API_BASE}/admin/logout`
@@ -81,10 +84,10 @@ const RESPONSIVE = {
 const elements = {
     // Form elements
     predictionForm: document.getElementById('predictionForm'),
+    predictionCard: document.getElementById('predictionCard'),
     homeTeamSelect: document.getElementById('homeTeam'),
     awayTeamSelect: document.getElementById('awayTeam'),
     predictBtn: document.getElementById('predictBtn'),
-    matchDateInput: document.getElementById('matchDateInput'),
 
     // Mode toggle elements
     modeBtns: document.querySelectorAll('.mode-btn'),
@@ -115,11 +118,9 @@ const elements = {
     resultsCard: document.getElementById('resultsCard'),
     resultHomeTeam: document.getElementById('resultHomeTeam'),
     resultAwayTeam: document.getElementById('resultAwayTeam'),
-    predictionBadge: document.getElementById('predictionBadge'),
+    resultMatchup: document.getElementById('resultMatchup'),
     predictionValue: document.getElementById('predictionValue'),
     confidenceBadge: document.getElementById('confidenceBadge'),
-    predictionConfidence: document.getElementById('predictionConfidence'),
-    confidenceValue: document.getElementById('confidenceValue'),
 
     // Probability elements
     probHomeValue: document.getElementById('probHomeValue'),
@@ -143,10 +144,13 @@ const elements = {
     errorMessage: document.getElementById('errorMessage'),
     errorHint: document.getElementById('errorHint'),
 
-    // Admin elements
-    adminCard: document.getElementById('adminCard'),
-    adminLoginOverlay: document.getElementById('adminLoginOverlay'),
-    adminControls: document.getElementById('adminControls'),
+    // Admin Modal elements
+    adminToggleBtn: document.getElementById('adminToggleBtn'),
+    adminModalOverlay: document.getElementById('adminModalOverlay'),
+    adminModal: document.getElementById('adminModal'),
+    adminModalClose: document.getElementById('adminModalClose'),
+    adminLoginSection: document.getElementById('adminLoginSection'),
+    adminControlsSection: document.getElementById('adminControlsSection'),
     adminLoginForm: document.getElementById('adminLoginForm'),
     adminUsername: document.getElementById('adminUsername'),
     adminPassword: document.getElementById('adminPassword'),
@@ -170,6 +174,7 @@ const elements = {
 
     // External API elements
     fetchUpcomingBtn: document.getElementById('fetchUpcomingBtn'),
+    upcomingCard: document.getElementById('upcomingCard'),
     upcomingResults: document.getElementById('upcomingResults'),
     competitionName: document.getElementById('competitionName'),
     matchdayInfo: document.getElementById('matchdayInfo'),
@@ -195,6 +200,45 @@ const elements = {
     newsLoading: document.getElementById('newsLoading'),
     newsEmpty: document.getElementById('newsEmpty'),
 
+    // H2H Insights elements
+    h2hInsightsSection: document.getElementById('h2hInsightsSection'),
+    h2hRecordSummary: document.getElementById('h2hRecordSummary'),
+    h2hTotalMeetings: document.getElementById('h2hTotalMeetings'),
+    h2hHomeWins: document.getElementById('h2hHomeWins'),
+    h2hHomeLabel: document.getElementById('h2hHomeLabel'),
+    h2hDraws: document.getElementById('h2hDraws'),
+    h2hAwayWins: document.getElementById('h2hAwayWins'),
+    h2hAwayLabel: document.getElementById('h2hAwayLabel'),
+    h2hTimelineList: document.getElementById('h2hTimelineList'),
+    h2hAvgGoals: document.getElementById('h2hAvgGoals'),
+    h2hBtts: document.getElementById('h2hBtts'),
+    h2hHomeGoalsLabel: document.getElementById('h2hHomeGoalsLabel'),
+    h2hHomeAvgGoals: document.getElementById('h2hHomeAvgGoals'),
+    h2hAwayGoalsLabel: document.getElementById('h2hAwayGoalsLabel'),
+    h2hAwayAvgGoals: document.getElementById('h2hAwayAvgGoals'),
+    h2hMostCommonScore: document.getElementById('h2hMostCommonScore'),
+    h2hMostCommonOutcome: document.getElementById('h2hMostCommonOutcome'),
+    h2hHomeVenueTeam: document.getElementById('h2hHomeVenueTeam'),
+    h2hHomeVenuePct: document.getElementById('h2hHomeVenuePct'),
+    h2hAwayVenueTeam: document.getElementById('h2hAwayVenueTeam'),
+    h2hAwayVenuePct: document.getElementById('h2hAwayVenuePct'),
+    h2hVenueNote: document.getElementById('h2hVenueNote'),
+
+    // Trending Insights elements
+    trendingCard: document.getElementById('trendingCard'),
+    refreshTrendingBtn: document.getElementById('refreshTrendingBtn'),
+    trendingLoading: document.getElementById('trendingLoading'),
+    trendingGrid: document.getElementById('trendingGrid'),
+    trendingMeta: document.getElementById('trendingMeta'),
+    trendingUpdatedAt: document.getElementById('trendingUpdatedAt'),
+    trendingTeamsCount: document.getElementById('trendingTeamsCount'),
+    hotTeamsList: document.getElementById('hotTeamsList'),
+    coldTeamsList: document.getElementById('coldTeamsList'),
+    topScorersList: document.getElementById('topScorersList'),
+    defensiveWallsList: document.getElementById('defensiveWallsList'),
+    upsetAlertsList: document.getElementById('upsetAlertsList'),
+    goalFestList: document.getElementById('goalFestList'),
+
     // Toast container
     toastContainer: document.getElementById('toastContainer')
 };
@@ -202,6 +246,16 @@ const elements = {
 // ═══════════════════════════════════════════════════════════════════════════
 // Utility Functions
 // ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Escape HTML special characters to prevent XSS and attribute parsing issues
+ */
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 /**
  * Make an API request with error handling
@@ -231,36 +285,23 @@ async function apiRequest(url, options = {}) {
     }
 }
 
-/**
- * Show a toast notification
- */
-function showToast(message, type = 'info') {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.textContent = message;
-
-    elements.toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.animation = 'slideIn 0.3s ease reverse';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
-}
 
 /**
  * Set button loading state
  */
 function setButtonLoading(button, isLoading) {
+    if (!button) return;
+
     const btnText = button.querySelector('.btn-text');
-    const btnLoader = button.querySelector('.btn-loader');
+    const btnLoader = button.querySelector('.btn-loader') || button.querySelector('.spinner-border');
 
     if (isLoading) {
-        btnText.style.display = 'none';
-        btnLoader.style.display = 'inline';
+        if (btnText) btnText.style.display = 'none';
+        if (btnLoader) btnLoader.style.display = 'inline-block';
         button.disabled = true;
     } else {
-        btnText.style.display = 'inline';
-        btnLoader.style.display = 'none';
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoader) btnLoader.style.display = 'none';
         button.disabled = false;
     }
 }
@@ -269,7 +310,7 @@ function setButtonLoading(button, isLoading) {
  * Format percentage
  */
 function formatPercent(value) {
-    return `${Math.round(value * 100)}%`;
+    return `${Math.round(Number(value) * 100)}%`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -400,42 +441,87 @@ function handleAdminLogout() {
 }
 
 /**
+ * Handle Escape key press to close modal
+ */
+function handleModalKeyDown(event) {
+    if (event.key === 'Escape') {
+        hideAdminModal();
+    }
+}
+
+// Bootstrap modal instance
+let adminModalInstance = null;
+
+/**
+ * Show admin modal using Bootstrap
+ */
+function showAdminModal() {
+    if (elements.adminModalOverlay) {
+        if (!adminModalInstance) {
+            adminModalInstance = new bootstrap.Modal(elements.adminModalOverlay);
+        }
+        adminModalInstance.show();
+    }
+}
+
+/**
+ * Hide admin modal using Bootstrap
+ */
+function hideAdminModal() {
+    if (adminModalInstance) {
+        adminModalInstance.hide();
+    }
+}
+
+/**
  * Show admin controls (after successful login)
  */
 function showAdminControls() {
-    elements.adminLoginOverlay.style.display = 'none';
-    elements.adminControls.style.display = 'block';
-    elements.authBadge.textContent = '🔓 Admin';
-    elements.authBadge.classList.remove('locked');
-    elements.authBadge.classList.add('unlocked');
-    elements.adminLogoutBtn.style.display = 'inline-flex';
+    if (elements.adminLoginSection) {
+        elements.adminLoginSection.style.display = 'none';
+    }
+    if (elements.adminControlsSection) {
+        elements.adminControlsSection.style.display = 'flex';
+    }
+    if (elements.authBadge) {
+        elements.authBadge.textContent = '🔓 Authenticated';
+        elements.authBadge.classList.remove('locked');
+        elements.authBadge.classList.add('unlocked');
+    }
 }
 
 /**
  * Hide admin controls (show login overlay)
  */
 function hideAdminControls() {
-    elements.adminLoginOverlay.style.display = 'block';
-    elements.adminControls.style.display = 'none';
-    elements.authBadge.textContent = '🔒 Admin Only';
-    elements.authBadge.classList.remove('unlocked');
-    elements.authBadge.classList.add('locked');
-    elements.adminLogoutBtn.style.display = 'none';
+    if (elements.adminLoginSection) {
+        elements.adminLoginSection.style.display = 'flex';
+    }
+    if (elements.adminControlsSection) {
+        elements.adminControlsSection.style.display = 'none';
+    }
+    if (elements.authBadge) {
+        elements.authBadge.textContent = '🔒 Admin Only';
+        elements.authBadge.classList.remove('unlocked');
+        elements.authBadge.classList.add('locked');
+    }
 }
 
 /**
  * Show login error message
  */
 function showLoginError(message) {
-    elements.loginErrorText.textContent = message;
-    elements.loginError.style.display = 'flex';
+    if (elements.loginErrorText) elements.loginErrorText.textContent = message;
+    if (elements.loginError) elements.loginError.style.display = 'flex';
 }
 
 /**
  * Hide login error message
  */
 function hideLoginError() {
-    elements.loginError.style.display = 'none';
+    if (elements.loginError) {
+        elements.loginError.style.display = 'none';
+    }
 }
 
 /**
@@ -480,12 +566,44 @@ async function checkModelStatus() {
     try {
         const data = await apiRequest(ENDPOINTS.modelStatus);
         updateModelStatus(data.modelLoaded, data.lastUpdated);
+        updateHeaderStats(data);
         return data;
     } catch (error) {
         console.error('Failed to check model status:', error);
         updateModelStatus(false, null);
         return { modelLoaded: false };
     }
+}
+
+/**
+ * Update header statistics from model status data
+ */
+function updateHeaderStats(data) {
+    // Update total matches
+    const totalMatchesEl = document.getElementById('totalMatches');
+    if (totalMatchesEl && data.totalMatches !== undefined) {
+        totalMatchesEl.textContent = formatNumber(data.totalMatches);
+    }
+
+    // Update total teams
+    const totalTeamsEl = document.getElementById('totalTeams');
+    if (totalTeamsEl && data.totalTeams !== undefined) {
+        totalTeamsEl.textContent = data.totalTeams;
+    }
+
+    // Update total features
+    const totalFeaturesEl = document.getElementById('totalFeatures');
+    if (totalFeaturesEl && data.totalFeatures !== undefined) {
+        totalFeaturesEl.textContent = data.totalFeatures;
+    }
+}
+
+/**
+ * Format number with commas for thousands
+ */
+function formatNumber(num) {
+    if (num === null || num === undefined) return '--';
+    return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 }
 
 /**
@@ -541,6 +659,30 @@ async function loadTeams() {
         console.error('Failed to load teams:', error);
         showToast('Failed to load teams. Make sure data is loaded.', 'error');
     }
+}
+
+/**
+ * Initialize results card state
+ */
+function initializeResultsCard() {
+    console.log('Initializing results card state...');
+
+    // Ensure results card is properly hidden initially
+    if (elements.resultsCard) {
+        elements.resultsCard.style.display = 'none';
+        elements.resultsCard.style.visibility = 'hidden';
+        elements.resultsCard.style.opacity = '0';
+        elements.resultsCard.classList.remove('fade-in');
+    }
+
+    // Ensure placeholder is visible initially
+    const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+    if (resultsPlaceholder) {
+        resultsPlaceholder.style.display = 'block';
+        resultsPlaceholder.style.visibility = 'visible';
+    }
+
+    console.log('Results card initialization complete');
 }
 
 /**
@@ -802,45 +944,107 @@ async function compareModels() {
  * Display prediction results
  */
 function displayResults(data) {
+    console.log('Displaying prediction results:', data);
+
     // Update match header
-    elements.resultHomeTeam.textContent = data.homeTeam;
-    elements.resultAwayTeam.textContent = data.awayTeam;
+    if (elements.resultHomeTeam) elements.resultHomeTeam.textContent = data.homeTeam;
+    if (elements.resultAwayTeam) elements.resultAwayTeam.textContent = data.awayTeam;
+    if (elements.resultMatchup) elements.resultMatchup.textContent = `${data.homeTeam} vs ${data.awayTeam}`;
 
     // Update prediction
-    elements.predictionValue.textContent = data.prediction;
-    elements.predictionValue.className = 'prediction-value ' + getPredictionClass(data.predictionCode);
-
-    // Update confidence
-    elements.confidenceBadge.textContent = data.confidence;
-    elements.confidenceBadge.className = 'confidence-badge ' + data.confidence.toLowerCase();
-
-    // Update probabilities
-    const probHome = data.probHomeWin;
-    const probDraw = data.probDraw;
-    const probAway = data.probAwayWin;
-
-    elements.probHomeValue.textContent = formatPercent(probHome);
-    elements.probDrawValue.textContent = formatPercent(probDraw);
-    elements.probAwayValue.textContent = formatPercent(probAway);
-
-    elements.probHomeFill.style.width = `${probHome * 100}%`;
-    elements.probDrawFill.style.width = `${probDraw * 100}%`;
-    elements.probAwayFill.style.width = `${probAway * 100}%`;
-
-    // Update features
-    if (data.features) {
-        elements.homeFormPoints.textContent = data.features.homeFormPoints?.toFixed(2) || '-';
-        elements.awayFormPoints.textContent = data.features.awayFormPoints?.toFixed(2) || '-';
-        elements.homeGoalsAvg.textContent = data.features.homeGoalsScoredAvg?.toFixed(2) || '-';
-        elements.awayGoalsAvg.textContent = data.features.awayGoalsScoredAvg?.toFixed(2) || '-';
-        elements.h2hHomeWin.textContent = formatPercent(data.features.h2hHomeWinRate || 0);
-        elements.h2hDraw.textContent = formatPercent(data.features.h2hDrawRate || 0);
-        elements.h2hAwayWin.textContent = formatPercent(data.features.h2hAwayWinRate || 0);
+    if (elements.predictionValue) {
+        elements.predictionValue.textContent = data.prediction;
+        // Remove any existing prediction classes and add the appropriate color
+        elements.predictionValue.className = 'text-primary';
+        if (data.predictionCode === 'H') elements.predictionValue.className = 'text-primary';
+        else if (data.predictionCode === 'D') elements.predictionValue.className = 'text-warning';
+        else if (data.predictionCode === 'A') elements.predictionValue.className = 'text-success';
     }
 
-    // Show results card
-    elements.resultsCard.style.display = 'block';
-    elements.resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Update confidence with Bootstrap badge styling
+    if (elements.confidenceBadge) {
+        elements.confidenceBadge.textContent = data.confidence;
+        elements.confidenceBadge.className = 'badge ';
+        if (data.confidence === 'HIGH') elements.confidenceBadge.className += 'bg-success';
+        else if (data.confidence === 'MEDIUM') elements.confidenceBadge.className += 'bg-warning text-dark';
+        else elements.confidenceBadge.className += 'bg-secondary';
+    }
+
+    // Update probabilities
+    const probHome = Math.round(Number(data.probHomeWin) * 100);
+    const probDraw = Math.round(Number(data.probDraw) * 100);
+    const probAway = Math.round(Number(data.probAwayWin) * 100);
+
+    if (elements.probHomeValue) elements.probHomeValue.textContent = `${probHome}%`;
+    if (elements.probDrawValue) elements.probDrawValue.textContent = `${probDraw}%`;
+    if (elements.probAwayValue) elements.probAwayValue.textContent = `${probAway}%`;
+
+    // Update Bootstrap progress bars
+    if (elements.probHomeFill) {
+        elements.probHomeFill.style.width = `${probHome}%`;
+        elements.probHomeFill.setAttribute('aria-valuenow', probHome);
+    }
+    if (elements.probDrawFill) {
+        elements.probDrawFill.style.width = `${probDraw}%`;
+        elements.probDrawFill.setAttribute('aria-valuenow', probDraw);
+    }
+    if (elements.probAwayFill) {
+        elements.probAwayFill.style.width = `${probAway}%`;
+        elements.probAwayFill.setAttribute('aria-valuenow', probAway);
+    }
+
+    // Update features (with null checks)
+    if (data.features) {
+        if (elements.homeFormPoints) elements.homeFormPoints.textContent = data.features.homeFormPoints != null ? Number(data.features.homeFormPoints).toFixed(2) : '-';
+        if (elements.awayFormPoints) elements.awayFormPoints.textContent = data.features.awayFormPoints != null ? Number(data.features.awayFormPoints).toFixed(2) : '-';
+        if (elements.homeGoalsAvg) elements.homeGoalsAvg.textContent = data.features.homeGoalsScoredAvg != null ? Number(data.features.homeGoalsScoredAvg).toFixed(2) : '-';
+        if (elements.awayGoalsAvg) elements.awayGoalsAvg.textContent = data.features.awayGoalsScoredAvg != null ? Number(data.features.awayGoalsScoredAvg).toFixed(2) : '-';
+        if (elements.h2hHomeWin) elements.h2hHomeWin.textContent = formatPercent(data.features.h2hHomeWinRate || 0);
+        if (elements.h2hDraw) elements.h2hDraw.textContent = formatPercent(data.features.h2hDrawRate || 0);
+        if (elements.h2hAwayWin) elements.h2hAwayWin.textContent = formatPercent(data.features.h2hAwayWinRate || 0);
+    }
+
+    // Update H2H Insights
+    if (data.h2hInsights && data.h2hInsights.totalMeetings > 0) {
+        console.log('H2H insights data available, displaying...');
+        displayH2HInsights(data.h2hInsights, data.homeTeam, data.awayTeam);
+        if (elements.h2hInsightsSection) {
+            elements.h2hInsightsSection.style.display = 'block';
+        }
+    } else {
+        console.log('No H2H insights data available');
+        if (elements.h2hInsightsSection) {
+            elements.h2hInsightsSection.style.display = 'none';
+        }
+    }
+
+    // Show results card with Bootstrap classes, hide placeholder
+    if (elements.resultsCard) {
+        // Remove any existing animation classes first
+        elements.resultsCard.classList.remove('fade-in');
+
+        // Force display and ensure visibility
+        elements.resultsCard.style.display = 'block';
+        elements.resultsCard.style.visibility = 'visible';
+        elements.resultsCard.style.opacity = '1';
+
+        // Add smooth scroll with Bootstrap utility with a small delay
+        setTimeout(() => {
+            elements.resultsCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+
+        // Add fade-in animation after a small delay
+        setTimeout(() => {
+            elements.resultsCard.classList.add('fade-in');
+        }, 50);
+    }
+
+    // Hide placeholder with force
+    const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+    if (resultsPlaceholder) {
+        resultsPlaceholder.style.display = 'none';
+        resultsPlaceholder.style.visibility = 'hidden';
+    }
 }
 
 /**
@@ -856,34 +1060,179 @@ function getPredictionClass(code) {
 }
 
 /**
+ * Display enhanced H2H insights
+ */
+function displayH2HInsights(h2h, homeTeam, awayTeam) {
+    console.log('Displaying H2H insights:', h2h);
+
+    // Historical Record
+    if (elements.h2hRecordSummary) {
+        elements.h2hRecordSummary.textContent = h2h.historicalRecord || `${homeTeam} vs ${awayTeam} - No previous meetings`;
+    }
+    if (elements.h2hTotalMeetings) elements.h2hTotalMeetings.textContent = h2h.totalMeetings || 0;
+    if (elements.h2hHomeWins) elements.h2hHomeWins.textContent = h2h.homeTeamWins || 0;
+    if (elements.h2hHomeLabel) elements.h2hHomeLabel.textContent = `${homeTeam} Wins`;
+    if (elements.h2hDraws) elements.h2hDraws.textContent = h2h.draws || 0;
+    if (elements.h2hAwayWins) elements.h2hAwayWins.textContent = h2h.awayTeamWins || 0;
+    if (elements.h2hAwayLabel) elements.h2hAwayLabel.textContent = `${awayTeam} Wins`;
+
+    // Recent H2H Timeline with better error handling
+    if (elements.h2hTimelineList) {
+        if (h2h.recentMeetings && Array.isArray(h2h.recentMeetings) && h2h.recentMeetings.length > 0) {
+            elements.h2hTimelineList.innerHTML = h2h.recentMeetings.map(match => {
+                const scoreClass = getScoreClass(match.winner, match.homeTeamInMatch, match.awayTeamInMatch, homeTeam, awayTeam);
+                const formattedDate = formatH2HDate(match.date);
+                const homeTeamName = escapeHtml(match.homeTeamInMatch || 'Unknown');
+                const awayTeamName = escapeHtml(match.awayTeamInMatch || 'Unknown');
+                const score = escapeHtml(match.score || 'N/A');
+
+                return `
+                    <div class="h2h-timeline-item">
+                        <span class="h2h-timeline-date">${formattedDate}</span>
+                        <span class="h2h-timeline-home">${homeTeamName}</span>
+                        <span class="h2h-timeline-score ${scoreClass}">${score}</span>
+                        <span class="h2h-timeline-away">${awayTeamName}</span>
+                    </div>
+                `;
+            }).join('');
+        } else {
+            elements.h2hTimelineList.innerHTML = '<div class="h2h-no-data">No recent meetings found</div>';
+        }
+    }
+
+    // Goal Stats with proper number formatting
+    if (elements.h2hAvgGoals) {
+        const avgGoals = h2h.avgGoalsPerMatch;
+        elements.h2hAvgGoals.textContent = avgGoals != null ? Number(avgGoals).toFixed(1) : '0.0';
+    }
+    if (elements.h2hBtts) {
+        const bttsPercentage = h2h.bttsPercentage;
+        elements.h2hBtts.textContent = bttsPercentage != null ? `${Number(bttsPercentage).toFixed(0)}%` : '0%';
+    }
+    if (elements.h2hHomeGoalsLabel) elements.h2hHomeGoalsLabel.textContent = `${homeTeam} Avg`;
+    if (elements.h2hHomeAvgGoals) {
+        const homeAvgGoals = h2h.avgHomeTeamGoals;
+        elements.h2hHomeAvgGoals.textContent = homeAvgGoals != null ? Number(homeAvgGoals).toFixed(1) : '0.0';
+    }
+    if (elements.h2hAwayGoalsLabel) elements.h2hAwayGoalsLabel.textContent = `${awayTeam} Avg`;
+    if (elements.h2hAwayAvgGoals) {
+        const awayAvgGoals = h2h.avgAwayTeamGoals;
+        elements.h2hAwayAvgGoals.textContent = awayAvgGoals != null ? Number(awayAvgGoals).toFixed(1) : '0.0';
+    }
+
+    // Common Results
+    if (elements.h2hMostCommonScore) {
+        elements.h2hMostCommonScore.textContent = h2h.mostCommonScore || 'N/A';
+    }
+    if (elements.h2hMostCommonOutcome) {
+        elements.h2hMostCommonOutcome.textContent = formatOutcome(h2h.mostCommonOutcome);
+    }
+
+    // Venue Advantage
+    if (elements.h2hHomeVenueTeam) elements.h2hHomeVenueTeam.textContent = homeTeam;
+    if (elements.h2hHomeVenuePct) {
+        const homeVenuePct = h2h.homeTeamHomeWinPct;
+        elements.h2hHomeVenuePct.textContent = homeVenuePct != null ? `${Number(homeVenuePct).toFixed(0)}%` : '0%';
+    }
+    if (elements.h2hAwayVenueTeam) elements.h2hAwayVenueTeam.textContent = awayTeam;
+    if (elements.h2hAwayVenuePct) {
+        const awayVenuePct = h2h.awayTeamHomeWinPct;
+        elements.h2hAwayVenuePct.textContent = awayVenuePct != null ? `${Number(awayVenuePct).toFixed(0)}%` : '0%';
+    }
+    if (elements.h2hVenueNote) {
+        elements.h2hVenueNote.textContent = h2h.venueAdvantageNote || 'Historical venue advantage data not available';
+    }
+
+    console.log('H2H insights displayed successfully');
+}
+
+/**
+ * Get CSS class for H2H score based on winner
+ */
+function getScoreClass(winner, homeTeamInMatch, awayTeamInMatch, queryHomeTeam, queryAwayTeam) {
+    if (winner === 'Draw') return 'draw';
+    if (winner === homeTeamInMatch) {
+        // Home team in that match won
+        return winner.toLowerCase() === queryHomeTeam.toLowerCase() ? 'home-win' : 'away-win';
+    } else {
+        // Away team in that match won
+        return winner.toLowerCase() === queryHomeTeam.toLowerCase() ? 'home-win' : 'away-win';
+    }
+}
+
+/**
+ * Format H2H date for display
+ */
+function formatH2HDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' });
+}
+
+/**
+ * Format outcome text
+ */
+function formatOutcome(outcome) {
+    switch (outcome) {
+        case 'HOME_WIN': return '🏠 Home Win';
+        case 'AWAY_WIN': return '✈️ Away Win';
+        case 'DRAW': return '🤝 Draw';
+        default: return outcome || 'N/A';
+    }
+}
+
+/**
  * Hide results card
  */
 function hideResults() {
-    elements.resultsCard.style.display = 'none';
+    if (elements.resultsCard) {
+        elements.resultsCard.style.display = 'none';
+        elements.resultsCard.style.visibility = 'hidden';
+        elements.resultsCard.style.opacity = '0';
+        elements.resultsCard.classList.remove('fade-in');
+    }
+    // Show placeholder again
+    const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+    if (resultsPlaceholder) {
+        resultsPlaceholder.style.display = 'block';
+        resultsPlaceholder.style.visibility = 'visible';
+    }
 }
 
 /**
  * Display error message
  */
 function displayError(message, hint = '') {
-    elements.errorMessage.textContent = message;
-    elements.errorHint.textContent = hint || '';
-    elements.errorCard.style.display = 'block';
+    // Use toast notification instead of error card if card doesn't exist
+    if (elements.errorCard) {
+        if (elements.errorMessage) elements.errorMessage.textContent = message;
+        if (elements.errorHint) elements.errorHint.textContent = hint || '';
+        elements.errorCard.style.display = 'block';
+    } else {
+        // Fallback to toast notification
+        showToast(message, 'error');
+    }
 }
 
 /**
  * Hide error card
  */
 function hideError() {
-    elements.errorCard.style.display = 'none';
+    if (elements.errorCard) {
+        elements.errorCard.style.display = 'none';
+    }
 }
 
 /**
  * Show admin output
  */
 function showAdminOutput(text) {
-    elements.adminOutput.style.display = 'block';
-    elements.adminOutputText.textContent = text;
+    if (elements.adminOutput) {
+        elements.adminOutput.style.display = 'block';
+    }
+    if (elements.adminOutputText) {
+        elements.adminOutputText.textContent = text;
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -1057,7 +1406,7 @@ function buildTeamFormHtml(teamForm) {
         parts.push(`<span class="form-points">${teamForm.points} pts</span>`);
     }
     if (teamForm.pointsPerGame) {
-        parts.push(`<span class="form-ppg">(${teamForm.pointsPerGame.toFixed(2)} ppg)</span>`);
+        parts.push(`<span class="form-ppg">(${Number(teamForm.pointsPerGame).toFixed(2)} ppg)</span>`);
     }
 
     // Win/Draw/Loss record
@@ -1604,47 +1953,55 @@ async function init() {
     console.log('⚽ Football Match Predictor initialized');
 
     // Attach event listeners
-    elements.predictionForm.addEventListener('submit', handlePredictionSubmit);
-    elements.trainModelBtn.addEventListener('click', trainModel);
-    elements.reloadDataBtn.addEventListener('click', reloadData);
-    elements.updateDataBtn.addEventListener('click', updateData);
-    elements.checkStatusBtn.addEventListener('click', handleCheckStatus);
+    if (elements.predictionForm) elements.predictionForm.addEventListener('submit', handlePredictionSubmit);
+    if (elements.trainModelBtn) elements.trainModelBtn.addEventListener('click', trainModel);
+    if (elements.reloadDataBtn) elements.reloadDataBtn.addEventListener('click', reloadData);
+    if (elements.updateDataBtn) elements.updateDataBtn.addEventListener('click', updateData);
+    if (elements.checkStatusBtn) elements.checkStatusBtn.addEventListener('click', handleCheckStatus);
+
+    // Admin Modal event listeners - Bootstrap handles the modal behavior
+    if (elements.adminToggleBtn) {
+        elements.adminToggleBtn.addEventListener('click', showAdminModal);
+    }
+    // Bootstrap modal close is handled automatically via data-bs-dismiss attribute
 
     // Admin authentication event listeners
-    elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
-    elements.adminLogoutBtn.addEventListener('click', handleAdminLogout);
+    if (elements.adminLoginForm) elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
+    if (elements.adminLogoutBtn) elements.adminLogoutBtn.addEventListener('click', handleAdminLogout);
+
+    // Admin tabs are handled by Bootstrap via data-bs-toggle="tab"
 
     // Advanced training event listeners
-    elements.trainAdvancedBtn.addEventListener('click', trainAdvanced);
-    elements.trainCVBtn.addEventListener('click', trainWithCrossValidation);
-    elements.trainBoostingBtn.addEventListener('click', trainGradientBoosting);
-    elements.trainEnsembleBtn.addEventListener('click', trainEnsemble);
-    elements.gridSearchBtn.addEventListener('click', performGridSearch);
-    elements.compareModelsBtn.addEventListener('click', compareModels);
+    if (elements.trainAdvancedBtn) elements.trainAdvancedBtn.addEventListener('click', trainAdvanced);
+    if (elements.trainCVBtn) elements.trainCVBtn.addEventListener('click', trainWithCrossValidation);
+    if (elements.trainBoostingBtn) elements.trainBoostingBtn.addEventListener('click', trainGradientBoosting);
+    if (elements.trainEnsembleBtn) elements.trainEnsembleBtn.addEventListener('click', trainEnsemble);
+    if (elements.gridSearchBtn) elements.gridSearchBtn.addEventListener('click', performGridSearch);
+    if (elements.compareModelsBtn) elements.compareModelsBtn.addEventListener('click', compareModels);
 
     // External API event listeners
-    elements.fetchUpcomingBtn.addEventListener('click', fetchUpcomingPredictions);
+    if (elements.fetchUpcomingBtn) elements.fetchUpcomingBtn.addEventListener('click', fetchUpcomingPredictions);
 
     // Calendar event listeners
-    elements.fetchByDateBtn.addEventListener('click', fetchMatchesByDate);
-    elements.calendarDateInput.addEventListener('change', fetchMatchesByDate);
-    elements.todayBtn.addEventListener('click', () => {
+    if (elements.fetchByDateBtn) elements.fetchByDateBtn.addEventListener('click', fetchMatchesByDate);
+    if (elements.calendarDateInput) elements.calendarDateInput.addEventListener('change', fetchMatchesByDate);
+    if (elements.todayBtn) elements.todayBtn.addEventListener('click', () => {
         setDateInput(new Date());
         fetchMatchesByDate();
     });
-    elements.tomorrowBtn.addEventListener('click', () => {
+    if (elements.tomorrowBtn) elements.tomorrowBtn.addEventListener('click', () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         setDateInput(tomorrow);
         fetchMatchesByDate();
     });
-    elements.weekendBtn.addEventListener('click', () => {
+    if (elements.weekendBtn) elements.weekendBtn.addEventListener('click', () => {
         setDateInput(getNextWeekend());
         fetchMatchesByDate();
     });
 
     // News event listeners
-    elements.refreshNewsBtn.addEventListener('click', () => fetchNews());
+    if (elements.refreshNewsBtn) elements.refreshNewsBtn.addEventListener('click', () => fetchNews());
 
     // Initialize admin authentication
     await initAdminAuth();
@@ -1657,6 +2014,9 @@ async function init() {
 
     // Initialize responsive features
     initResponsive();
+
+    // Initialize results card state
+    initializeResultsCard();
 
     // Load initial data
     await Promise.all([
@@ -1677,7 +2037,6 @@ function initModernUI() {
     initPredictionModeToggle();
     initAdvancedOptions();
     initQuickMatches();
-    initDateInput();
     initTeamFormIndicators();
     updatePredictionCounter();
     initAccessibilityFeatures();
@@ -1686,6 +2045,27 @@ function initModernUI() {
 
 // Prediction mode toggle (Manual vs Upcoming)
 function initPredictionModeToggle() {
+    // Use Bootstrap radio buttons (btn-check)
+    const modeManual = document.getElementById('modeManual');
+    const modeUpcoming = document.getElementById('modeUpcoming');
+
+    if (modeManual) {
+        modeManual.addEventListener('change', () => {
+            if (modeManual.checked) {
+                hideUpcomingMatches();
+            }
+        });
+    }
+
+    if (modeUpcoming) {
+        modeUpcoming.addEventListener('change', () => {
+            if (modeUpcoming.checked) {
+                showUpcomingMatches();
+            }
+        });
+    }
+
+    // Fallback: Also support old mode-btn class elements
     elements.modeBtns.forEach(btn => {
         btn.addEventListener('click', () => {
             // Update active state
@@ -1753,28 +2133,34 @@ function renderQuickMatches(matches) {
     }
 
     elements.quickMatchesGrid.innerHTML = matches.map((match, index) => {
+        console.log(`Rendering quick match ${index}:`, { homeTeam: match.homeTeam, awayTeam: match.awayTeam });
+
         const predictionClass = match.predictionCode ? getPredictionClass(match.predictionCode) : '';
-        const homeFlag = match.homeTeamCrest ? `<img src="${match.homeTeamCrest}" alt="${match.homeTeam}" class="quick-match-crest">` : '';
-        const awayFlag = match.awayTeamCrest ? `<img src="${match.awayTeamCrest}" alt="${match.awayTeam}" class="quick-match-crest">` : '';
+        const homeFlag = match.homeTeamCrest ? `<img src="${match.homeTeamCrest}" alt="${escapeHtml(match.homeTeam)}" class="quick-match-crest">` : '';
+        const awayFlag = match.awayTeamCrest ? `<img src="${match.awayTeamCrest}" alt="${escapeHtml(match.awayTeam)}" class="quick-match-crest">` : '';
 
         // Build team form HTML (last 5 matches)
         const homeFormHtml = buildQuickMatchFormHtml(match.homeTeamForm);
         const awayFormHtml = buildQuickMatchFormHtml(match.awayTeamForm);
 
+        // Escape team names for safe HTML attribute usage
+        const homeTeamEscaped = escapeHtml(match.homeTeam);
+        const awayTeamEscaped = escapeHtml(match.awayTeam);
+
         return `
-        <div class="quick-match-item" data-index="${index}" data-home="${match.homeTeam}" data-away="${match.awayTeam}">
+        <div class="quick-match-item" data-index="${index}" data-home="${homeTeamEscaped}" data-away="${awayTeamEscaped}">
             <div class="quick-match-teams">
                 <div class="quick-match-team-wrapper">
                     ${homeFlag}
                     <div class="quick-match-team-info">
-                        <span class="quick-match-team">${match.homeTeam}</span>
+                        <span class="quick-match-team">${homeTeamEscaped}</span>
                         ${homeFormHtml}
                     </div>
                 </div>
                 <span class="quick-match-vs">vs</span>
                 <div class="quick-match-team-wrapper away">
                     <div class="quick-match-team-info">
-                        <span class="quick-match-team">${match.awayTeam}</span>
+                        <span class="quick-match-team">${awayTeamEscaped}</span>
                         ${awayFormHtml}
                     </div>
                     ${awayFlag}
@@ -1792,47 +2178,80 @@ function renderQuickMatches(matches) {
     // Add click event listeners to quick match items
     const quickMatchItems = elements.quickMatchesGrid.querySelectorAll('.quick-match-item');
     quickMatchItems.forEach(item => {
-        item.addEventListener('click', () => {
-            const homeTeam = item.dataset.home;
-            const awayTeam = item.dataset.away;
-            selectQuickMatch(homeTeam, awayTeam);
+        item.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent event bubbling
+
+            // Ensure we get the quick-match-item element even if a child was clicked
+            const matchItem = e.currentTarget;
+            const homeTeam = matchItem.getAttribute('data-home');
+            const awayTeam = matchItem.getAttribute('data-away');
+
+            console.log('Quick match clicked - raw attributes:', {
+                'data-home': matchItem.getAttribute('data-home'),
+                'data-away': matchItem.getAttribute('data-away'),
+                homeTeam,
+                awayTeam
+            });
+
+            if (homeTeam && awayTeam) {
+                selectQuickMatch(homeTeam, awayTeam);
+            } else {
+                console.error('Missing team data in quick match item:', matchItem);
+            }
         });
     });
 }
 
 /**
- * Build form HTML for quick match cards (simplified version)
- * Shows compact W/D/L badges or position info
+ * Build form HTML for quick match cards (detailed version)
+ * Shows position, points, ppg, W/D/L record, and form indicator
  */
 function buildQuickMatchFormHtml(teamForm) {
     if (!teamForm) return '';
 
-    // Try to get recent form string first (e.g., "W,W,D,L,W" or "WWDLW")
+    let html = '<div class="quick-form-stats">';
+
+    // First row: Position, Points, PPG
+    html += '<span class="quick-form-summary">';
+
+    if (teamForm.position) {
+        html += `<span class="quick-form-position">#${teamForm.position}</span>`;
+    }
+
+    if (teamForm.points !== undefined) {
+        html += `<span class="quick-form-points">${teamForm.points} pts</span>`;
+    }
+
+    if (teamForm.pointsPerGame !== undefined || teamForm.ppg !== undefined) {
+        const ppg = teamForm.pointsPerGame || teamForm.ppg;
+        html += `<span class="quick-form-ppg">(${Number(ppg).toFixed(2)} ppg)</span>`;
+    }
+
+    // W/D/L Record
+    if (teamForm.wins !== undefined || teamForm.draws !== undefined || teamForm.losses !== undefined) {
+        const wins = teamForm.wins || 0;
+        const draws = teamForm.draws || 0;
+        const losses = teamForm.losses || 0;
+        html += `<span class="quick-form-record"><span class="record-w">${wins}W</span> <span class="record-d">${draws}D</span> <span class="record-l">${losses}L</span></span>`;
+    }
+
+    html += '</span>';
+
+    // Form indicator (dots or W/D/L badges)
     let formString = teamForm.recentForm || teamForm.form;
-
     if (formString) {
-        return createQuickFormBadge(formString);
+        html += createQuickFormIndicator(formString);
     }
 
-    // If no form string available, show compact position and points instead
-    if (teamForm.position || teamForm.points !== undefined) {
-        let info = '';
-        if (teamForm.position) {
-            info += `<span class="quick-form-position">#${teamForm.position}</span>`;
-        }
-        if (teamForm.points !== undefined) {
-            info += `<span class="quick-form-pts">${teamForm.points}pts</span>`;
-        }
-        return `<div class="quick-form-info">${info}</div>`;
-    }
+    html += '</div>';
 
-    return '';
+    return html;
 }
 
 /**
- * Create compact form badge for quick matches
+ * Create form indicator with colored dots or badges
  */
-function createQuickFormBadge(formString) {
+function createQuickFormIndicator(formString) {
     if (!formString) return '';
 
     // Handle both comma-separated and continuous formats
@@ -1848,33 +2267,49 @@ function createQuickFormBadge(formString) {
 
     if (results.length === 0) return '';
 
+    // Calculate form quality for indicator class
+    const wins = results.filter(r => r.toUpperCase() === 'W').length;
+    let formClass = 'poor';
+    if (wins >= 4) formClass = 'excellent';
+    else if (wins >= 3) formClass = 'good';
+    else if (wins >= 2) formClass = 'average';
+    else if (wins >= 1) formClass = 'below-average';
+
     const badges = results.map(r => {
         const result = r.toUpperCase();
-        return `<span class="quick-form-item ${result}">${result}</span>`;
+        return `<span class="quick-form-char ${result}">${result}</span>`;
     }).join('');
 
-    return `<div class="quick-form-badge">${badges}</div>`;
+    return `<span class="quick-form-indicator ${formClass}">${badges}</span>`;
 }
 
 function selectQuickMatch(homeTeam, awayTeam) {
+    console.log('selectQuickMatch called with:', { homeTeam, awayTeam });
+
     // Set home team
     if (elements.homeTeamSelect) {
         // Find the matching option (case-insensitive partial match)
         const homeOption = findTeamOption(elements.homeTeamSelect, homeTeam);
+        console.log('Home team option found:', homeOption?.value);
         if (homeOption) {
             elements.homeTeamSelect.value = homeOption.value;
         } else {
             console.warn(`Home team "${homeTeam}" not found in dropdown`);
+            elements.homeTeamSelect.value = ''; // Clear selection if not found
+            showToast(`Team "${homeTeam}" not found in database`, 'warning');
         }
     }
 
     // Set away team
     if (elements.awayTeamSelect) {
         const awayOption = findTeamOption(elements.awayTeamSelect, awayTeam);
+        console.log('Away team option found:', awayOption?.value);
         if (awayOption) {
             elements.awayTeamSelect.value = awayOption.value;
         } else {
             console.warn(`Away team "${awayTeam}" not found in dropdown`);
+            elements.awayTeamSelect.value = ''; // Clear selection if not found
+            showToast(`Team "${awayTeam}" not found in database`, 'warning');
         }
     }
 
@@ -1885,15 +2320,15 @@ function selectQuickMatch(homeTeam, awayTeam) {
     // Scroll to prediction form
     elements.predictionForm?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-    // Show success feedback
-    showToast(`Selected: ${homeTeam} vs ${awayTeam}`, 'success');
+    // Show success feedback only if both teams were found
+    if (elements.homeTeamSelect?.value && elements.awayTeamSelect?.value) {
+        showToast(`Selected: ${homeTeam} vs ${awayTeam}`, 'success');
 
-    // Automatically trigger prediction after a short delay
-    setTimeout(() => {
-        if (elements.homeTeamSelect?.value && elements.awayTeamSelect?.value) {
+        // Automatically trigger prediction after a short delay
+        setTimeout(() => {
             makePrediction(elements.homeTeamSelect.value, elements.awayTeamSelect.value);
-        }
-    }, 500);
+        }, 500);
+    }
 }
 
 /**
@@ -1903,31 +2338,81 @@ function findTeamOption(selectElement, teamName) {
     if (!selectElement || !teamName) return null;
 
     const normalizedName = teamName.toLowerCase().trim();
-    const options = Array.from(selectElement.options);
+    const options = Array.from(selectElement.options).filter(opt => opt.value); // Exclude empty options
 
-    // Try exact match first
-    let match = options.find(opt => opt.value.toLowerCase() === normalizedName);
-    if (match) return match;
+    console.log(`Finding team option for: "${normalizedName}"`);
+    console.log(`Available options (${options.length}):`, options.slice(0, 10).map(o => o.value)); // Log first 10
 
-    // Try partial match (for names like "Man United" vs "Manchester United")
-    match = options.find(opt => {
-        const optValue = opt.value.toLowerCase();
-        return optValue.includes(normalizedName) || normalizedName.includes(optValue);
-    });
-    if (match) return match;
+    // Try exact match first (highest priority)
+    let match = options.find(opt => opt.value.toLowerCase().trim() === normalizedName);
+    if (match) {
+        console.log(`Exact match found: "${match.value}"`);
+        return match;
+    }
 
-    // Try matching common abbreviations
+    // Try matching with common abbreviations/expansions
     const abbreviations = {
-        'man united': 'manchester united',
-        'man city': 'manchester city',
-        'spurs': 'tottenham',
-        'wolves': 'wolverhampton'
+        'man united': ['manchester united', 'man utd', 'manchester utd'],
+        'manchester united': ['man united', 'man utd'],
+        'man city': ['manchester city'],
+        'manchester city': ['man city'],
+        'spurs': ['tottenham', 'tottenham hotspur'],
+        'tottenham': ['spurs', 'tottenham hotspur'],
+        'wolves': ['wolverhampton', 'wolverhampton wanderers'],
+        'wolverhampton': ['wolves'],
+        'leeds united': ['leeds'],
+        'leeds': ['leeds united'],
+        'leicester city': ['leicester'],
+        'leicester': ['leicester city'],
+        'west ham united': ['west ham'],
+        'west ham': ['west ham united'],
+        'newcastle united': ['newcastle'],
+        'newcastle': ['newcastle united'],
+        'nottingham forest': ["nott'm forest", 'forest'],
+        "nott'm forest": ['nottingham forest', 'forest'],
+        'brighton and hove albion': ['brighton', 'brighton & hove albion'],
+        'brighton': ['brighton and hove albion', 'brighton & hove albion'],
+        'crystal palace fc': ['crystal palace'],
+        'crystal palace': ['crystal palace fc'],
+        'afc bournemouth': ['bournemouth'],
+        'bournemouth': ['afc bournemouth'],
+        'ipswich town': ['ipswich'],
+        'ipswich': ['ipswich town']
     };
 
-    const expanded = abbreviations[normalizedName] || normalizedName;
-    match = options.find(opt => opt.value.toLowerCase().includes(expanded));
+    // Check if team name matches any known abbreviation
+    const alternates = abbreviations[normalizedName] || [];
+    for (const alt of alternates) {
+        match = options.find(opt => opt.value.toLowerCase().trim() === alt);
+        if (match) {
+            console.log(`Abbreviation match found: "${match.value}" for "${normalizedName}"`);
+            return match;
+        }
+    }
 
-    return match;
+    // Try partial match only if one string starts with the other (stricter matching)
+    match = options.find(opt => {
+        const optValue = opt.value.toLowerCase().trim();
+        // Only match if one starts with the other, or they share significant overlap
+        return optValue.startsWith(normalizedName) || normalizedName.startsWith(optValue);
+    });
+    if (match) {
+        console.log(`Partial match (starts with) found: "${match.value}"`);
+        return match;
+    }
+
+    // Last resort: check if option contains the full search term (but not vice versa to avoid false positives)
+    match = options.find(opt => {
+        const optValue = opt.value.toLowerCase().trim();
+        return optValue.includes(normalizedName) && normalizedName.length >= 4;
+    });
+    if (match) {
+        console.log(`Contains match found: "${match.value}"`);
+        return match;
+    }
+
+    console.log(`No match found for: "${normalizedName}"`);
+    return null;
 }
 
 function hideQuickMatches() {
@@ -1936,19 +2421,6 @@ function hideQuickMatches() {
     }
 }
 
-// Enhanced date input
-function initDateInput() {
-    if (elements.matchDateInput) {
-        // Set default to tomorrow
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        elements.matchDateInput.value = formatDateForInput(tomorrow);
-
-        // Set min date to today
-        const today = new Date();
-        elements.matchDateInput.min = formatDateForInput(today);
-    }
-}
 
 // Team form indicators
 function initTeamFormIndicators() {
@@ -2004,13 +2476,31 @@ async function getTeamForm(teamName) {
 // Update prediction counter
 function updatePredictionCounter() {
     if (elements.totalPredictions) {
-        // Get from localStorage or API
-        const count = localStorage.getItem('predictionCount') || 1247;
-        animateCounter(elements.totalPredictions, parseInt(count));
+        // Get from localStorage or use default
+        const storedCount = localStorage.getItem('predictionCount');
+        let count = 0;
+
+        if (storedCount !== null && storedCount !== undefined && storedCount !== '') {
+            const parsed = parseInt(storedCount, 10);
+            count = isNaN(parsed) ? 0 : parsed;
+        }
+
+        // Display the count (0 if no predictions made yet)
+        if (count === 0) {
+            elements.totalPredictions.textContent = '0';
+        } else {
+            animateCounter(elements.totalPredictions, count);
+        }
     }
 }
 
 function animateCounter(element, target) {
+    // Validate target is a valid number
+    if (isNaN(target) || target === null || target === undefined) {
+        element.textContent = '0';
+        return;
+    }
+
     const start = 0;
     const duration = 2000;
     const startTime = Date.now();
@@ -2020,7 +2510,7 @@ function animateCounter(element, target) {
         const progress = Math.min(elapsed / duration, 1);
         const current = Math.floor(start + (target - start) * easeOutCubic(progress));
 
-        element.textContent = current.toLocaleString();
+        element.textContent = isNaN(current) ? '0' : current.toLocaleString();
 
         if (progress < 1) {
             requestAnimationFrame(update);
@@ -2105,27 +2595,45 @@ function updateResponsiveFeatures() {
     document.body.className = `bp-${breakpoint} ${RESPONSIVE.isMobile() ? 'is-mobile' : 'is-desktop'} ${RESPONSIVE.isTouchDevice() ? 'is-touch' : ''}`;
 }
 
-// Enhanced toast notifications
+// Enhanced toast notifications using Bootstrap Toast
 function showToast(message, type = 'info', duration = 4000) {
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <div class="toast-content">
-            <span class="toast-icon">${getToastIcon(type)}</span>
-            <span class="toast-message">${message}</span>
-            <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    const toastContainer = getToastContainer();
+
+    // Map type to Bootstrap color class and icon
+    const typeMap = {
+        success: { bg: 'bg-success', icon: 'bi-check-circle-fill', textClass: 'text-white' },
+        error: { bg: 'bg-danger', icon: 'bi-exclamation-triangle-fill', textClass: 'text-white' },
+        warning: { bg: 'bg-warning', icon: 'bi-exclamation-circle-fill', textClass: 'text-dark' },
+        info: { bg: 'bg-info', icon: 'bi-info-circle-fill', textClass: 'text-white' }
+    };
+
+    const config = typeMap[type] || typeMap.info;
+
+    const toastEl = document.createElement('div');
+    toastEl.className = `toast align-items-center ${config.bg} ${config.textClass} border-0`;
+    toastEl.setAttribute('role', 'alert');
+    toastEl.setAttribute('aria-live', 'assertive');
+    toastEl.setAttribute('aria-atomic', 'true');
+    toastEl.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body d-flex align-items-center gap-2">
+                <i class="bi ${config.icon}"></i>
+                <span>${message}</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     `;
 
-    const container = getToastContainer();
-    container.appendChild(toast);
+    toastContainer.appendChild(toastEl);
 
-    // Auto remove
-    setTimeout(() => {
-        if (toast.parentElement) {
-            toast.remove();
-        }
-    }, duration);
+    // Initialize and show Bootstrap toast
+    const bsToast = new bootstrap.Toast(toastEl, { delay: duration });
+    bsToast.show();
+
+    // Remove from DOM after hidden
+    toastEl.addEventListener('hidden.bs.toast', () => {
+        toastEl.remove();
+    });
 
     // Announce to screen readers
     announceToScreenReader(message);
@@ -2133,19 +2641,20 @@ function showToast(message, type = 'info', duration = 4000) {
 
 function getToastIcon(type) {
     const icons = {
-        success: '✅',
-        error: '❌',
-        warning: '⚠️',
-        info: 'ℹ️'
+        success: 'bi-check-circle-fill',
+        error: 'bi-exclamation-triangle-fill',
+        warning: 'bi-exclamation-circle-fill',
+        info: 'bi-info-circle-fill'
     };
     return icons[type] || icons.info;
 }
 
 function getToastContainer() {
-    let container = document.querySelector('.toast-container');
+    let container = document.getElementById('toastContainer');
     if (!container) {
         container = document.createElement('div');
-        container.className = 'toast-container';
+        container.id = 'toastContainer';
+        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
         document.body.appendChild(container);
     }
     return container;
@@ -2169,20 +2678,26 @@ async function fetchUpcomingMatches() {
     try {
         // Use the actual API to fetch upcoming matches with predictions
         const data = await apiRequest(`${ENDPOINTS.externalPredict}?competition=PL&limit=4`);
+        console.log('fetchUpcomingMatches API response:', data);
 
         if (data.predictions && data.predictions.length > 0) {
-            return data.predictions.map(match => ({
-                homeTeam: match.homeTeam,
-                awayTeam: match.awayTeam,
-                homeTeamCrest: match.homeTeamCrest,
-                awayTeamCrest: match.awayTeamCrest,
-                homeTeamForm: match.homeTeamForm,
-                awayTeamForm: match.awayTeamForm,
-                date: match.matchDate,
-                confidence: match.confidence || 'Medium',
-                prediction: match.prediction,
-                predictionCode: match.predictionCode
-            }));
+            const mappedMatches = data.predictions.map(match => {
+                console.log('Mapping match:', { homeTeam: match.homeTeam, awayTeam: match.awayTeam });
+                return {
+                    homeTeam: match.homeTeam,
+                    awayTeam: match.awayTeam,
+                    homeTeamCrest: match.homeTeamCrest,
+                    awayTeamCrest: match.awayTeamCrest,
+                    homeTeamForm: match.homeTeamForm,
+                    awayTeamForm: match.awayTeamForm,
+                    date: match.matchDate,
+                    confidence: match.confidence || 'Medium',
+                    prediction: match.prediction,
+                    predictionCode: match.predictionCode
+                };
+            });
+            console.log('Mapped matches for quick matches:', mappedMatches);
+            return mappedMatches;
         }
 
         // Fallback to mock data if API fails
@@ -2226,15 +2741,1100 @@ function getFallbackMatches() {
 }
 
 function showUpcomingMatches() {
-    // Implementation for upcoming matches mode
-    console.log('Switching to upcoming matches mode');
+    // Hide manual prediction form content but keep card visible
+    const predictionForm = document.getElementById('predictionForm');
+    const quickMatches = document.getElementById('quickMatches');
+    const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+
+    if (predictionForm) predictionForm.style.display = 'none';
+    if (quickMatches) quickMatches.style.display = 'none';
+    if (resultsPlaceholder) resultsPlaceholder.style.display = 'none';
+    if (elements.resultsCard) elements.resultsCard.style.display = 'none';
+
+    // Show upcoming matches section inside the prediction card body
+    const upcomingCard = elements.upcomingCard || document.getElementById('upcomingCard');
+    if (upcomingCard) {
+        upcomingCard.style.display = 'block';
+
+        // Auto-fetch upcoming matches
+        const upcomingResults = elements.upcomingResults || document.getElementById('upcomingResults');
+        if (upcomingResults && (upcomingResults.style.display === 'none' || !upcomingResults.innerHTML.trim())) {
+            fetchUpcomingPredictions();
+        }
+    } else {
+        console.error('upcomingCard element not found');
+    }
+
+    console.log('Switched to upcoming matches mode');
 }
 
 function hideUpcomingMatches() {
-    // Implementation for manual mode
-    console.log('Switching to manual mode');
+    // Show manual prediction form content
+    const predictionForm = document.getElementById('predictionForm');
+    const quickMatches = document.getElementById('quickMatches');
+    const resultsPlaceholder = document.getElementById('resultsPlaceholder');
+
+    if (predictionForm) predictionForm.style.display = 'block';
+    if (quickMatches) quickMatches.style.display = 'block';
+    if (resultsPlaceholder && (!elements.resultsCard || elements.resultsCard.style.display === 'none')) {
+        resultsPlaceholder.style.display = 'block';
+    }
+
+    // Hide upcoming matches section
+    const upcomingCard = elements.upcomingCard || document.getElementById('upcomingCard');
+    if (upcomingCard) {
+        upcomingCard.style.display = 'none';
+    }
+
+    console.log('Switched to manual mode');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Team Stats Section
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize team stats functionality
+ */
+function initTeamStats() {
+    const teamStatsSelect = document.getElementById('teamStatsSelect');
+    const fetchTeamStatsBtn = document.getElementById('fetchTeamStatsBtn');
+    const statsTabs = document.querySelectorAll('.stats-tab');
+
+    // Populate team dropdown (reuse existing teams data)
+    populateTeamStatsDropdown();
+
+    // Event listeners
+    if (fetchTeamStatsBtn) {
+        fetchTeamStatsBtn.addEventListener('click', fetchTeamStats);
+    }
+
+    // Tab switching
+    statsTabs.forEach(tab => {
+        tab.addEventListener('click', () => switchStatsTab(tab.dataset.tab));
+    });
+
+    // Allow Enter key to fetch stats
+    if (teamStatsSelect) {
+        teamStatsSelect.addEventListener('change', () => {
+            if (teamStatsSelect.value) {
+                fetchTeamStats();
+            }
+        });
+    }
+}
+
+/**
+ * Populate team stats dropdown with available teams
+ */
+async function populateTeamStatsDropdown() {
+    const teamStatsSelect = document.getElementById('teamStatsSelect');
+    if (!teamStatsSelect) return;
+
+    try {
+        const response = await fetch('/api/teams');
+        if (response.ok) {
+            const data = await response.json();
+            const teams = data.teams || data;
+
+            teamStatsSelect.innerHTML = '<option value="">Choose a team...</option>';
+
+            if (Array.isArray(teams)) {
+                teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team;
+                    option.textContent = team;
+                    teamStatsSelect.appendChild(option);
+                });
+            } else if (typeof teams === 'object') {
+                // Handle Set serialized as object
+                Object.values(teams).forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team;
+                    option.textContent = team;
+                    teamStatsSelect.appendChild(option);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Failed to populate team stats dropdown:', error);
+    }
+}
+
+/**
+ * Fetch and display team statistics
+ */
+async function fetchTeamStats() {
+    const teamStatsSelect = document.getElementById('teamStatsSelect');
+    const fetchBtn = document.getElementById('fetchTeamStatsBtn');
+    const resultsSection = document.getElementById('teamStatsResults');
+
+    const teamName = teamStatsSelect?.value;
+    if (!teamName) {
+        showToast('Please select a team', 'warning');
+        return;
+    }
+
+    // Show loading state
+    const btnText = fetchBtn?.querySelector('.btn-text');
+    const btnLoader = fetchBtn?.querySelector('.btn-loader') || fetchBtn?.querySelector('.spinner-border');
+    if (btnText) btnText.style.display = 'none';
+    if (btnLoader) btnLoader.style.display = 'inline-block';
+    if (fetchBtn) fetchBtn.disabled = true;
+
+    try {
+        const response = await fetch(`/api/teams/${encodeURIComponent(teamName)}/stats`);
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to fetch team stats');
+        }
+
+        const stats = await response.json();
+        displayTeamStats(stats);
+        if (resultsSection) resultsSection.style.display = 'block';
+
+        // Scroll to results
+        if (resultsSection) resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (error) {
+        console.error('Failed to fetch team stats:', error);
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        // Reset button
+        if (btnText) btnText.style.display = 'inline';
+        if (btnLoader) btnLoader.style.display = 'none';
+        if (fetchBtn) fetchBtn.disabled = false;
+    }
+}
+
+/**
+ * Display team statistics in the UI
+ */
+function displayTeamStats(stats) {
+    // Team header
+    document.getElementById('statsTeamName').textContent = stats.teamName;
+
+    // Current form badges
+    const currentFormEl = document.getElementById('statsCurrentForm');
+    if (stats.formStats?.last5Form) {
+        currentFormEl.innerHTML = createFormBadgesHtml(stats.formStats.last5Form);
+    }
+
+    // Overview tab
+    displayOverviewStats(stats);
+
+    // Goals tab
+    displayGoalStats(stats);
+
+    // Form tab
+    displayFormStats(stats);
+
+    // Recent matches tab
+    displayRecentMatches(stats.recentMatches || []);
+
+    // Rivals tab
+    displayRivals(stats.topRivals || []);
+}
+
+/**
+ * Display overview statistics
+ */
+function displayOverviewStats(stats) {
+    const overall = stats.overall || {};
+    const home = stats.homeStats || {};
+    const away = stats.awayStats || {};
+    const season = stats.currentSeason || {};
+
+    // Overall stats
+    document.getElementById('statsTotalMatches').textContent = overall.totalMatches || 0;
+    document.getElementById('statsWDL').textContent = `${overall.wins || 0}-${overall.draws || 0}-${overall.losses || 0}`;
+    document.getElementById('statsWinPct').textContent = `${overall.winPercentage || 0}%`;
+    document.getElementById('statsPPG').textContent = Number(overall.pointsPerGame || 0).toFixed(2);
+    document.getElementById('statsGD').textContent = formatGoalDifference(overall.goalDifference || 0);
+
+    // Home stats
+    document.getElementById('statsHomeWinPct').textContent = `${home.winPercentage || 0}%`;
+    document.getElementById('statsHomeGoals').textContent = Number(home.avgGoalsScored || 0).toFixed(2);
+    document.getElementById('statsHomeCS').textContent = home.cleanSheets || 0;
+
+    // Away stats
+    document.getElementById('statsAwayWinPct').textContent = `${away.winPercentage || 0}%`;
+    document.getElementById('statsAwayGoals').textContent = Number(away.avgGoalsScored || 0).toFixed(2);
+    document.getElementById('statsAwayCS').textContent = away.cleanSheets || 0;
+
+    // Current season
+    document.getElementById('statsSeason').textContent = season.season || '2025/26';
+    document.getElementById('statsSeasonPlayed').textContent = season.matchesPlayed || 0;
+    document.getElementById('statsSeasonWins').textContent = season.wins || 0;
+    document.getElementById('statsSeasonDraws').textContent = season.draws || 0;
+    document.getElementById('statsSeasonLosses').textContent = season.losses || 0;
+    document.getElementById('statsSeasonPoints').textContent = season.points || 0;
+    document.getElementById('statsSeasonGD').textContent = formatGoalDifference(season.goalDifference || 0);
+}
+
+/**
+ * Display goal statistics
+ */
+function displayGoalStats(stats) {
+    const goals = stats.goalStats || {};
+    const overall = stats.overall || {};
+
+    // Scoring
+    document.getElementById('statsGoalsScored').textContent = overall.goalsScored || 0;
+    document.getElementById('statsAvgScored').textContent = Number(goals.avgGoalsScored || 0).toFixed(2);
+    document.getElementById('statsFailedToScore').textContent = goals.failedToScore || 0;
+
+    // Defending
+    document.getElementById('statsGoalsConceded').textContent = overall.goalsConceded || 0;
+    document.getElementById('statsAvgConceded').textContent = Number(goals.avgGoalsConceded || 0).toFixed(2);
+    document.getElementById('statsCleanSheetPct').textContent = `${goals.cleanSheetPercentage || 0}%`;
+
+    // Goal timing
+    const firstHalfPct = Number(goals.firstHalfScoringRate || 50);
+    const secondHalfPct = Number(goals.secondHalfScoringRate || 50);
+
+    document.getElementById('stats1HGoalsBar').style.width = `${firstHalfPct}%`;
+    document.getElementById('stats2HGoalsBar').style.width = `${secondHalfPct}%`;
+    document.getElementById('stats1HGoals').textContent = `${goals.firstHalfGoals || 0} (${firstHalfPct.toFixed(0)}%)`;
+    document.getElementById('stats2HGoals').textContent = `${goals.secondHalfGoals || 0} (${secondHalfPct.toFixed(0)}%)`;
+}
+
+/**
+ * Display form statistics
+ */
+function displayFormStats(stats) {
+    const form = stats.formStats || {};
+
+    // Recent form
+    document.getElementById('statsLast5Form').innerHTML = createFormBadgesHtml(form.last5Form || '');
+    document.getElementById('statsLast10Form').innerHTML = createFormBadgesHtml(form.last10Form || '');
+    document.getElementById('statsLast5Pts').textContent = `${Number(form.last5FormPoints || 0).toFixed(2)} ppg`;
+    document.getElementById('statsLast10Pts').textContent = `${Number(form.last10FormPoints || 0).toFixed(2)} ppg`;
+
+    // Streaks
+    document.getElementById('statsWinStreak').textContent = form.currentWinStreak || 0;
+    document.getElementById('statsUnbeatenStreak').textContent = form.currentUnbeatenStreak || 0;
+    document.getElementById('statsLongestWin').textContent = form.longestWinStreak || 0;
+    document.getElementById('statsLongestUnbeaten').textContent = form.longestUnbeatenStreak || 0;
+
+    // Shot stats
+    document.getElementById('statsAvgSOT').textContent = Number(form.avgShotsOnTarget || 0).toFixed(1);
+    document.getElementById('statsAvgCorners').textContent = Number(form.avgCorners || 0).toFixed(1);
+    document.getElementById('statsConversion').textContent = `${Number(form.shotConversionRate || 0).toFixed(1)}%`;
+}
+
+/**
+ * Display recent matches
+ */
+function displayRecentMatches(matches) {
+    const container = document.getElementById('statsRecentMatches');
+    if (!container) return;
+
+    if (!matches.length) {
+        container.innerHTML = '<p class="no-data">No recent matches found</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="matches-table-wrapper">
+            <table class="matches-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>H/A</th>
+                        <th>Opponent</th>
+                        <th>Score</th>
+                        <th>Result</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${matches.map(match => `
+                        <tr class="match-row ${match.result}">
+                            <td class="match-date">${formatDate(match.date)}</td>
+                            <td><span class="location-badge ${match.isHome ? 'home' : 'away'}">${match.isHome ? 'H' : 'A'}</span></td>
+                            <td class="opponent-name">${escapeHtml(match.opponent)}</td>
+                            <td class="match-score">${escapeHtml(match.score)}</td>
+                            <td><span class="result-badge ${match.result}">${match.result.toUpperCase()}</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/**
+ * Display H2H rivals
+ */
+function displayRivals(rivals) {
+    const container = document.getElementById('statsRivals');
+    if (!container) return;
+
+    if (!rivals.length) {
+        container.innerHTML = '<p class="no-data text-center text-muted py-4">No rivalry data available</p>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="rivals-table-wrapper">
+            <table class="rivals-table">
+                <thead>
+                    <tr>
+                        <th>Opponent</th>
+                        <th>P</th>
+                        <th>W</th>
+                        <th>D</th>
+                        <th>L</th>
+                        <th>Win %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rivals.map(rival => `
+                        <tr class="rival-row">
+                            <td class="rival-name">${escapeHtml(rival.opponent)}</td>
+                            <td><span class="rival-played">${rival.totalMatches}</span></td>
+                            <td><span class="rival-wins">${rival.wins}</span></td>
+                            <td><span class="rival-draws">${rival.draws}</span></td>
+                            <td><span class="rival-losses">${rival.losses}</span></td>
+                            <td><span class="rival-winpct ${getWinPctClass(rival.winPercentage)}">${rival.winPercentage}%</span></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+
+/**
+ * Get CSS class based on win percentage
+ */
+function getWinPctClass(pct) {
+    const percentage = Number(pct);
+    if (percentage >= 50) return 'high';
+    if (percentage >= 30) return 'medium';
+    return 'low';
+}
+
+/**
+ * Switch between stats tabs
+ * NOTE: Now handled by Bootstrap tabs automatically
+ */
+function switchStatsTab(tabId) {
+    // Bootstrap handles tab switching via data-bs-toggle and data-bs-target
+    // This function is kept for backward compatibility but is no longer needed
+    console.log('Tab switching now handled by Bootstrap:', tabId);
+}
+
+/**
+ * Create form badges HTML from form string (e.g., "WWDLW")
+ */
+function createFormBadgesHtml(formString) {
+    if (!formString) return '';
+
+    return formString.split('').map(result =>
+        `<span class="form-badge ${result}">${result}</span>`
+    ).join('');
+}
+
+/**
+ * Format goal difference with +/- sign
+ */
+function formatGoalDifference(gd) {
+    if (gd > 0) return `+${gd}`;
+    return gd.toString();
+}
+
+/**
+ * Format date for team stats display (compact format)
+ */
+function formatDateCompact(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Trending Insights Functions
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize trending insights section
+ */
+function initTrendingInsights() {
+    // Load trending insights on page load
+    loadTrendingInsights();
+
+    // Setup refresh button
+    if (elements.refreshTrendingBtn) {
+        elements.refreshTrendingBtn.addEventListener('click', () => {
+            loadTrendingInsights(true);
+        });
+    }
+}
+
+/**
+ * Load trending insights from API
+ */
+async function loadTrendingInsights(forceRefresh = false) {
+    try {
+        // Show loading state
+        if (elements.trendingLoading) elements.trendingLoading.style.display = 'block';
+        if (elements.trendingGrid) elements.trendingGrid.style.display = 'none';
+        if (elements.trendingMeta) elements.trendingMeta.style.display = 'none';
+
+        if (elements.refreshTrendingBtn) {
+            setButtonLoading(elements.refreshTrendingBtn, true);
+        }
+
+        const response = await fetch(ENDPOINTS.trendingInsights);
+
+        if (!response.ok) {
+            throw new Error('Failed to load trending insights');
+        }
+
+        const data = await response.json();
+        displayTrendingInsights(data);
+
+    } catch (error) {
+        console.error('Error loading trending insights:', error);
+        showTrendingError();
+    } finally {
+        if (elements.refreshTrendingBtn) {
+            setButtonLoading(elements.refreshTrendingBtn, false);
+        }
+    }
+}
+
+/**
+ * Display trending insights data
+ */
+function displayTrendingInsights(data) {
+    // Hide loading, show content
+    if (elements.trendingLoading) elements.trendingLoading.style.display = 'none';
+    if (elements.trendingGrid) elements.trendingGrid.style.display = 'flex'; // Bootstrap row uses flex
+    if (elements.trendingMeta) elements.trendingMeta.style.display = 'flex';
+
+    // Update metadata
+    if (elements.trendingUpdatedAt) {
+        elements.trendingUpdatedAt.textContent = data.generatedAt || 'Just now';
+    }
+    if (elements.trendingTeamsCount) {
+        elements.trendingTeamsCount.textContent = data.totalTeamsAnalyzed || '0';
+    }
+
+    // Display each widget
+    displayHotTeams(data.hotTeams || []);
+    displayColdTeams(data.coldTeams || []);
+    displayTopScorers(data.topScorers || []);
+    displayDefensiveWalls(data.defensiveWalls || []);
+    displayUpsetAlerts(data.upsetAlerts || []);
+    displayGoalFestMatches(data.goalFestMatches || []);
+}
+
+/**
+ * Render a form string (e.g., "DWWWW") with color-coded characters
+ */
+function renderColoredFormString(formString) {
+    if (!formString) return '';
+    return formString.split('').map(char => {
+        const upperChar = char.toUpperCase();
+        if (upperChar === 'W' || upperChar === 'D' || upperChar === 'L') {
+            return `<span class="form-char ${upperChar}">${upperChar}</span>`;
+        }
+        return char;
+    }).join('');
+}
+
+/**
+ * Display hot teams (winning streaks)
+ */
+function displayHotTeams(teams) {
+    if (!elements.hotTeamsList) return;
+
+    if (teams.length === 0) {
+        elements.hotTeamsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🔥</div><div class="empty-state-text">No teams on winning streaks</div></div>';
+        return;
+    }
+
+    elements.hotTeamsList.innerHTML = teams.map((team, index) => {
+        const form = team.recentForm ? team.recentForm.slice(-5) : '';
+        const coloredForm = renderColoredFormString(form);
+        return `
+            <div class="insight-item">
+                <span class="insight-item-rank">${index + 1}</span>
+                <span class="insight-item-name">${escapeHtml(team.teamName)}</span>
+                <span class="insight-item-value">🔥 ${team.winStreak}W</span>
+                <span class="insight-item-secondary">${coloredForm}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Display cold teams (struggling for wins)
+ */
+function displayColdTeams(teams) {
+    if (!elements.coldTeamsList) return;
+
+    if (teams.length === 0) {
+        elements.coldTeamsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">❄️</div><div class="empty-state-text">No teams on losing streaks</div></div>';
+        return;
+    }
+
+    elements.coldTeamsList.innerHTML = teams.map((team, index) => {
+        const form = team.recentForm ? team.recentForm.slice(-5) : '';
+        const coloredForm = renderColoredFormString(form);
+        return `
+            <div class="insight-item">
+                <span class="insight-item-rank">${index + 1}</span>
+                <span class="insight-item-name">${escapeHtml(team.teamName)}</span>
+                <span class="insight-item-value">❄️ ${team.matchesWithoutWin}</span>
+                <span class="insight-item-secondary">${coloredForm}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Display top scorers
+ */
+function displayTopScorers(teams) {
+    if (!elements.topScorersList) return;
+
+    if (teams.length === 0) {
+        elements.topScorersList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚽</div><div class="empty-state-text">No data available</div></div>';
+        return;
+    }
+
+    elements.topScorersList.innerHTML = teams.map((team, index) => `
+        <div class="insight-item">
+            <span class="insight-item-rank">${index + 1}</span>
+            <span class="insight-item-name">${escapeHtml(team.teamName)}</span>
+            <span class="insight-item-value">⚽ ${team.goalsScored}</span>
+            <span class="insight-item-secondary">${team.avgGoalsPerMatch}/g</span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Display defensive walls (clean sheets)
+ */
+function displayDefensiveWalls(teams) {
+    if (!elements.defensiveWallsList) return;
+
+    if (teams.length === 0) {
+        elements.defensiveWallsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛡️</div><div class="empty-state-text">No data available</div></div>';
+        return;
+    }
+
+    elements.defensiveWallsList.innerHTML = teams.map((team, index) => `
+        <div class="insight-item">
+            <span class="insight-item-rank">${index + 1}</span>
+            <span class="insight-item-name">${escapeHtml(team.teamName)}</span>
+            <span class="insight-item-value">🛡️ ${team.cleanSheets}</span>
+            <span class="insight-item-secondary">${team.cleanSheetPercentage}%</span>
+        </div>
+    `).join('');
+}
+
+/**
+ * Display upset alerts (away team favorites)
+ */
+function displayUpsetAlerts(matches) {
+    if (!elements.upsetAlertsList) return;
+
+    if (matches.length === 0) {
+        elements.upsetAlertsList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><div class="empty-state-text">No upset predictions</div></div>';
+        return;
+    }
+
+    elements.upsetAlertsList.innerHTML = matches.map(match => `
+        <div class="insight-item upset-alert-item">
+            <div class="upset-alert-header">
+                <div class="upset-alert-teams">
+                    <span class="upset-home-team">${escapeHtml(match.homeTeam)}</span>
+                    <span class="upset-vs">vs</span>
+                    <span class="upset-away-team">${escapeHtml(match.awayTeam)}</span>
+                </div>
+                <span class="insight-item-value upset-probability">${match.awayWinProbability}%</span>
+            </div>
+            ${match.reason ? `<div class="upset-alert-reason">${escapeHtml(match.reason)}</div>` : ''}
+        </div>
+    `).join('');
+}
+
+/**
+ * Display goal fest matches (high scoring potential)
+ */
+function displayGoalFestMatches(matches) {
+    if (!elements.goalFestList) return;
+
+    if (matches.length === 0) {
+        elements.goalFestList.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🎯</div><div class="empty-state-text">No high-scoring matches predicted</div></div>';
+        return;
+    }
+
+    elements.goalFestList.innerHTML = matches.map(match => `
+        <div class="insight-item goal-fest-item">
+            <div class="goal-fest-header">
+                <span class="goal-fest-teams">${escapeHtml(match.homeTeam)} vs ${escapeHtml(match.awayTeam)}</span>
+                <span class="insight-item-value">🎯 ${match.expectedTotalGoals}</span>
+            </div>
+            <div class="goal-fest-stats">
+                <span class="goal-fest-stat"><span class="stat-label">O2.5:</span> <span class="stat-value">${match.over25Probability}%</span></span>
+                <span class="goal-fest-stat"><span class="stat-label">BTTS:</span> <span class="stat-value">${match.bttsPercentage}%</span></span>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Show error state for trending insights
+ */
+function showTrendingError() {
+    if (elements.trendingLoading) elements.trendingLoading.style.display = 'none';
+    if (elements.trendingGrid) {
+        elements.trendingGrid.style.display = 'flex'; // Bootstrap row uses flex
+        // Show error in each widget
+        const widgets = ['hotTeamsList', 'coldTeamsList', 'topScorersList',
+                         'defensiveWallsList', 'upsetAlertsList', 'goalFestList'];
+        widgets.forEach(widgetId => {
+            const el = document.getElementById(widgetId);
+            if (el) {
+                el.innerHTML = '<div class="widget-empty">Failed to load data</div>';
+            }
+        });
+    }
 }
 
 // Start the application when DOM is ready
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+    init();
+    initTeamStats();
+    initTrendingInsights();
+    initDynamicUI();
+});
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Dynamic UI Enhancements
+// ═══════════════════════════════════════════════════════════════════════════
+
+/**
+ * Initialize all dynamic UI behaviors
+ */
+function initDynamicUI() {
+    // Add animated background to body
+    document.body.classList.add('animated-bg');
+
+    // Add particle background effect
+    addParticleBackground();
+
+    // Initialize scroll animations (Intersection Observer)
+    initScrollAnimations();
+
+    // Initialize counter animations
+    initCounterAnimations();
+
+    // Initialize card hover effects
+    initCardEffects();
+
+    // Initialize ripple effects on buttons
+    initRippleEffects();
+
+    // Initialize tooltips
+    initTooltips();
+
+    // Initialize smooth scrolling
+    initSmoothScroll();
+
+    // Initialize dynamic number updates
+    initDynamicNumbers();
+
+    // Apply stagger animations to grids
+    initStaggerAnimations();
+
+    // Initialize interactive stat cards
+    initInteractiveStats();
+
+    // Initialize progress bar animations
+    initProgressAnimations();
+
+    console.log('✨ Dynamic UI initialized');
+}
+
+/**
+ * Add particle background effect
+ */
+function addParticleBackground() {
+    if (document.querySelector('.particles')) return;
+
+    const particles = document.createElement('div');
+    particles.className = 'particles';
+    document.body.prepend(particles);
+}
+
+/**
+ * Initialize scroll-triggered animations using Intersection Observer
+ */
+function initScrollAnimations() {
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const element = entry.target;
+                const animationType = element.dataset.animate || 'slide-in-up';
+                element.classList.add(animationType);
+                element.style.opacity = '1';
+                observer.unobserve(element);
+            }
+        });
+    }, observerOptions);
+
+    // Observe all dashboard cards
+    document.querySelectorAll('.dashboard-card, .stat-card, .card').forEach((card, index) => {
+        card.style.opacity = '0';
+        card.dataset.animate = 'slide-in-up';
+        card.classList.add(`stagger-${Math.min(index % 6 + 1, 6)}`);
+        observer.observe(card);
+    });
+
+    // Observe stat items
+    document.querySelectorAll('.stat-item, .season-stat, .shot-stat').forEach((item, index) => {
+        item.style.opacity = '0';
+        item.dataset.animate = 'zoom-in';
+        item.classList.add(`stagger-${Math.min(index % 6 + 1, 6)}`);
+        observer.observe(item);
+    });
+}
+
+/**
+ * Initialize counter animations for numbers
+ */
+function initCounterAnimations() {
+    const counters = document.querySelectorAll('[data-count-target]');
+
+    counters.forEach(counter => {
+        const target = parseInt(counter.dataset.countTarget) || 0;
+        const duration = parseInt(counter.dataset.countDuration) || 2000;
+
+        animateCounter(counter, 0, target, duration);
+    });
+}
+
+/**
+ * Animate a counter from start to end value
+ */
+function animateCounter(element, start, end, duration) {
+    const startTime = performance.now();
+    const isDecimal = element.dataset.countDecimals !== undefined;
+    const decimals = parseInt(element.dataset.countDecimals) || 0;
+
+    function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Easing function (easeOutQuart)
+        const easeProgress = 1 - Math.pow(1 - progress, 4);
+        const currentValue = start + (end - start) * easeProgress;
+
+        if (isDecimal) {
+            element.textContent = currentValue.toFixed(decimals);
+        } else {
+            element.textContent = Math.round(currentValue);
+        }
+
+        if (progress < 1) {
+            requestAnimationFrame(updateCounter);
+        }
+    }
+
+    requestAnimationFrame(updateCounter);
+}
+
+/**
+ * Initialize card hover effects
+ */
+function initCardEffects() {
+    // Add glow effect to cards
+    document.querySelectorAll('.dashboard-card, .card, .stat-card').forEach(card => {
+        card.classList.add('card-glow', 'lift-hover');
+    });
+
+    // Add tilt effect to match cards
+    document.querySelectorAll('.match-card, .quick-match-item').forEach(card => {
+        card.classList.add('tilt-card');
+    });
+
+    // Add 3D tilt effect on mouse move
+    document.querySelectorAll('.tilt-card').forEach(card => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const rotateX = (y - centerY) / 20;
+            const rotateY = (centerX - x) / 20;
+
+            card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) translateZ(5px)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateZ(0)';
+        });
+    });
+}
+
+/**
+ * Initialize ripple effects on buttons
+ */
+function initRippleEffects() {
+    document.querySelectorAll('.btn').forEach(button => {
+        button.classList.add('ripple', 'btn-dynamic');
+
+        button.addEventListener('click', function(e) {
+            const ripple = document.createElement('span');
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            const x = e.clientX - rect.left - size / 2;
+            const y = e.clientY - rect.top - size / 2;
+
+            ripple.style.cssText = `
+                position: absolute;
+                width: ${size}px;
+                height: ${size}px;
+                left: ${x}px;
+                top: ${y}px;
+                background: rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                transform: scale(0);
+                animation: rippleEffect 0.6s ease-out;
+                pointer-events: none;
+            `;
+
+            this.appendChild(ripple);
+
+            setTimeout(() => ripple.remove(), 600);
+        });
+    });
+
+    // Add ripple animation keyframes if not exists
+    if (!document.querySelector('#ripple-style')) {
+        const style = document.createElement('style');
+        style.id = 'ripple-style';
+        style.textContent = `
+            @keyframes rippleEffect {
+                to {
+                    transform: scale(4);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
+/**
+ * Initialize tooltips
+ */
+function initTooltips() {
+    document.querySelectorAll('[data-tooltip]').forEach(element => {
+        element.classList.add('tooltip');
+    });
+}
+
+/**
+ * Initialize smooth scrolling for anchor links
+ */
+function initSmoothScroll() {
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function(e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) {
+                target.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }
+        });
+    });
+}
+
+/**
+ * Initialize dynamic number updates with animation
+ */
+function initDynamicNumbers() {
+    // Store original update functions and wrap them
+    const originalUpdateFunctions = {};
+
+    // Observer for stat value changes
+    const numberObserver = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                const target = mutation.target.parentElement || mutation.target;
+                if (target.classList.contains('stat-value') ||
+                    target.classList.contains('value') ||
+                    target.classList.contains('h2h-stat-value')) {
+                    target.classList.add('animated-number', 'updating', 'count-up');
+                    setTimeout(() => {
+                        target.classList.remove('updating');
+                    }, 300);
+                }
+            }
+        });
+    });
+
+    // Observe stat values
+    document.querySelectorAll('.stat-value, .value, .h2h-stat-value').forEach(el => {
+        numberObserver.observe(el, { characterData: true, childList: true, subtree: true });
+    });
+}
+
+/**
+ * Initialize stagger animations for grid items
+ */
+function initStaggerAnimations() {
+    document.querySelectorAll('.stats-grid, .season-grid, .shot-grid, .quick-matches-grid').forEach(grid => {
+        const items = grid.children;
+        Array.from(items).forEach((item, index) => {
+            item.style.animationDelay = `${index * 0.1}s`;
+        });
+    });
+}
+
+/**
+ * Initialize interactive stat cards
+ */
+function initInteractiveStats() {
+    document.querySelectorAll('.stat-card, .season-stat, .shot-stat').forEach(card => {
+        card.classList.add('interactive-stat', 'gradient-border');
+    });
+}
+
+/**
+ * Initialize progress bar animations
+ */
+function initProgressAnimations() {
+    const progressObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('progress-animated');
+                progressObserver.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('.timing-bar, .prob-bar').forEach(bar => {
+        progressObserver.observe(bar);
+    });
+}
+
+/**
+ * Show success animation on an element
+ */
+function showSuccessAnimation(element) {
+    element.classList.add('success-animation');
+    setTimeout(() => element.classList.remove('success-animation'), 500);
+}
+
+/**
+ * Show error animation (shake) on an element
+ */
+function showErrorAnimation(element) {
+    element.classList.add('shake');
+    setTimeout(() => element.classList.remove('shake'), 500);
+}
+
+/**
+ * Create skeleton loading placeholder
+ */
+function createSkeletonLoader(count = 3, height = '60px') {
+    return Array(count).fill(0).map(() =>
+        `<div class="skeleton" style="height: ${height}; margin-bottom: var(--spacing-md);"></div>`
+    ).join('');
+}
+
+/**
+ * Create wave loading animation
+ */
+function createWaveLoader() {
+    return `<div class="wave-loader">
+        <span>⚽</span>
+        <span>⚽</span>
+        <span>⚽</span>
+        <span>⚽</span>
+        <span>⚽</span>
+    </div>`;
+}
+
+/**
+ * Apply bounce animation to an element
+ */
+function bounceElement(element) {
+    element.classList.add('bounce-in');
+    setTimeout(() => element.classList.remove('bounce-in'), 600);
+}
+
+/**
+ * Apply pulse glow to an element
+ */
+function pulseElement(element) {
+    element.classList.add('pulse-glow');
+    setTimeout(() => element.classList.remove('pulse-glow'), 2000);
+}
+
+/**
+ * Create animated counter element
+ */
+function createAnimatedCounter(targetValue, options = {}) {
+    const {
+        duration = 1500,
+        decimals = 0,
+        prefix = '',
+        suffix = ''
+    } = options;
+
+    const span = document.createElement('span');
+    span.className = 'animated-number';
+    span.dataset.countTarget = targetValue;
+    span.dataset.countDuration = duration;
+    if (decimals > 0) span.dataset.countDecimals = decimals;
+    span.textContent = prefix + '0' + suffix;
+
+    setTimeout(() => {
+        animateCounter(span, 0, targetValue, duration);
+    }, 100);
+
+    return span;
+}
+
+/**
+ * Refresh dynamic UI after content updates
+ */
+function refreshDynamicUI() {
+    // Re-initialize observers for new content
+    initScrollAnimations();
+    initCardEffects();
+    initProgressAnimations();
+    initStaggerAnimations();
+}
+
+// Export for use in other parts of the application
+window.dynamicUI = {
+    showSuccessAnimation,
+    showErrorAnimation,
+    createSkeletonLoader,
+    createWaveLoader,
+    bounceElement,
+    pulseElement,
+    createAnimatedCounter,
+    refreshDynamicUI,
+    animateCounter
+};

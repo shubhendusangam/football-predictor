@@ -3,6 +3,9 @@ package com.app.footballprediction.dto;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -77,6 +80,102 @@ class PredictResponseTest {
         assertThat(features.getHomeFormPoints()).isEqualTo(2.4);
         assertThat(features.getAwayFormPoints()).isEqualTo(1.8);
         assertThat(features.getH2hHomeWinRate()).isEqualTo(0.45);
+    }
+
+    @Test
+    @DisplayName("H2HSummary builds correctly")
+    void h2hSummaryBuilds() {
+        PredictResponse.RecentH2HMatch recentMatch = PredictResponse.RecentH2HMatch.builder()
+                .date("2025-12-01")
+                .homeTeamInMatch("Arsenal")
+                .awayTeamInMatch("Chelsea")
+                .score("2-1")
+                .winner("Arsenal")
+                .season("2025-26")
+                .build();
+
+        PredictResponse.H2HSummary h2hSummary = PredictResponse.H2HSummary.builder()
+                .historicalRecord("Arsenal leads 15-8-7 vs Chelsea")
+                .totalMeetings(30)
+                .homeTeamWins(15)
+                .draws(8)
+                .awayTeamWins(7)
+                .dominantTeam("HOME")
+                .recentMeetings(Arrays.asList(recentMatch))
+                .avgGoalsPerMatch(2.5)
+                .avgHomeTeamGoals(1.4)
+                .avgAwayTeamGoals(1.1)
+                .bttsPercentage(65.0)
+                .mostCommonScore("1-1")
+                .mostCommonOutcome("HOME_WIN")
+                .homeTeamHomeWinPct(70.0)
+                .awayTeamHomeWinPct(45.0)
+                .venueAdvantageNote("Arsenal have strong home advantage")
+                .build();
+
+        assertThat(h2hSummary.getHistoricalRecord()).isEqualTo("Arsenal leads 15-8-7 vs Chelsea");
+        assertThat(h2hSummary.getTotalMeetings()).isEqualTo(30);
+        assertThat(h2hSummary.getHomeTeamWins()).isEqualTo(15);
+        assertThat(h2hSummary.getDraws()).isEqualTo(8);
+        assertThat(h2hSummary.getAwayTeamWins()).isEqualTo(7);
+        assertThat(h2hSummary.getDominantTeam()).isEqualTo("HOME");
+        assertThat(h2hSummary.getRecentMeetings()).hasSize(1);
+        assertThat(h2hSummary.getAvgGoalsPerMatch()).isEqualTo(2.5);
+        assertThat(h2hSummary.getBttsPercentage()).isEqualTo(65.0);
+        assertThat(h2hSummary.getMostCommonScore()).isEqualTo("1-1");
+        assertThat(h2hSummary.getHomeTeamHomeWinPct()).isEqualTo(70.0);
+    }
+
+    @Test
+    @DisplayName("RecentH2HMatch builds correctly")
+    void recentH2HMatchBuilds() {
+        PredictResponse.RecentH2HMatch match = PredictResponse.RecentH2HMatch.builder()
+                .date("2025-12-01")
+                .homeTeamInMatch("Arsenal")
+                .awayTeamInMatch("Chelsea")
+                .score("2-1")
+                .winner("Arsenal")
+                .season("2025-26")
+                .build();
+
+        assertThat(match.getDate()).isEqualTo("2025-12-01");
+        assertThat(match.getHomeTeamInMatch()).isEqualTo("Arsenal");
+        assertThat(match.getAwayTeamInMatch()).isEqualTo("Chelsea");
+        assertThat(match.getScore()).isEqualTo("2-1");
+        assertThat(match.getWinner()).isEqualTo("Arsenal");
+        assertThat(match.getSeason()).isEqualTo("2025-26");
+    }
+
+    @Test
+    @DisplayName("response with H2H insights builds correctly")
+    void responseWithH2HInsightsBuilds() {
+        PredictResponse.H2HSummary h2hSummary = PredictResponse.H2HSummary.builder()
+                .historicalRecord("Arsenal leads 15-8-7 vs Chelsea")
+                .totalMeetings(30)
+                .homeTeamWins(15)
+                .draws(8)
+                .awayTeamWins(7)
+                .dominantTeam("HOME")
+                .recentMeetings(Collections.emptyList())
+                .avgGoalsPerMatch(2.5)
+                .bttsPercentage(65.0)
+                .build();
+
+        PredictResponse response = PredictResponse.builder()
+                .homeTeam("Arsenal")
+                .awayTeam("Chelsea")
+                .prediction("HOME_WIN")
+                .predictionCode("H")
+                .probHomeWin(0.55)
+                .probDraw(0.25)
+                .probAwayWin(0.20)
+                .confidence("MEDIUM")
+                .h2hInsights(h2hSummary)
+                .build();
+
+        assertThat(response.getH2hInsights()).isNotNull();
+        assertThat(response.getH2hInsights().getHistoricalRecord()).contains("Arsenal leads");
+        assertThat(response.getH2hInsights().getTotalMeetings()).isEqualTo(30);
     }
 
     @Test

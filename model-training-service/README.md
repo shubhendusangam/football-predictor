@@ -25,15 +25,29 @@ The service implements a **Stacked Ensemble** combining:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Feature Engineering (25 Features)
-- **Phase 1**: Form points, goals scored/conceded, H2H rates, total goals
-- **Phase 2**: Shots on target averages, corners averages  
-- **Phase 3**: Goal difference, overall form, win/unbeaten streaks, rest days
+### Feature Engineering (25 Features in 3 Phases)
+
+**Phase 1 - Core Statistics:**
+- Form points (last 5 matches)
+- Goals scored/conceded averages
+- H2H win rates
+- Total goals average
+
+**Phase 2 - Match Statistics:**
+- Shots on target averages
+- Corners averages
+
+**Phase 3 - Advanced Metrics:**
+- Goal difference
+- Overall form rating
+- Win streaks
+- Unbeaten streaks
+- Rest days between matches
 
 ## Architecture
 
 - **Port**: 8081 (configurable)
-- **Database**: Shared H2 database with main application (read-only access)
+- **Database**: Shared H2 database with main application
 - **Model Storage**: `../data/match_predictor.model` (shared with main app)
 - **Framework**: Spring Boot 4.0.2, Java 21
 - **ML Library**: Weka 3.8.6
@@ -45,7 +59,7 @@ The service implements a **Stacked Ensemble** combining:
 POST http://localhost:8081/api/training/train
 ```
 
-**Description**: Trains a new Random Forest model on historical match data.
+**Description**: Trains a new Stacked Ensemble model on historical match data.
 
 **Response**:
 ```json
@@ -88,8 +102,8 @@ GET http://localhost:8081/api/training/model-info
     "modelExists": true,
     "modelPath": "../data/match_predictor.model",
     "modelSize": 1234567,
-    "lastModified": "2026-02-18T03:00:00",
-    "totalMatches": 3800
+    "lastModified": "2026-02-19T03:00:00",
+    "totalMatches": 8420
   }
 }
 ```
@@ -193,8 +207,8 @@ Logs are stored in `../logs/model-training/`:
 
 ## Performance
 
-- **Training Time**: ~10-30 seconds for full Stacked Ensemble (3800 matches)
-- **Accuracy**: ~55-62% (baseline ~45%)
+- **Training Time**: ~10-30 seconds for full Stacked Ensemble (~8,400 matches)
+- **Accuracy**: ~62% (baseline ~45%)
 - **Algorithm**: Stacked Ensemble (RF + AdaBoost + Logistic Regression)
 - **Features**: 25 in 3 phases
 - **Memory**: ~512MB-1GB recommended
@@ -232,17 +246,6 @@ grep "SCHEDULED" ../logs/model-training/training.log
 4. Update `ModelTrainingService.toWekaInstance()` to populate values
 5. Update feature indices constants
 
-### Changing ML Algorithm
-
-Currently uses Stacked Ensemble (RandomForest + AdaBoostM1 + Logistic Regression). 
-To use a different algorithm:
-
-1. Modify `ModelTrainingService.trainAndEvaluate()` method
-2. Set `model.stacked-ensemble.enabled=false` to use simple RandomForest
-3. Or implement new ensemble in `StackedEnsembleService`
-4. Update hyperparameters as needed
-5. Test and evaluate performance
-
 ### Available Training Modes
 
 - **Stacked Ensemble** (default): RF + AdaBoost + LR meta-model
@@ -251,24 +254,6 @@ To use a different algorithm:
 - **Grid Search**: Hyperparameter optimization
 - **Voting Ensemble**: RF + AdaBoost + J48 with majority voting
 
-## Roadmap
-
-### Completed ✅
-- [x] Stacked Ensemble model architecture
-- [x] 25-feature engineering in 3 phases
-- [x] Grid search hyperparameter optimization
-- [x] Cross-validation support
-- [x] Bi-monthly automated retraining
-- [x] REST API for training operations
-
-### Planned 📋
-- [ ] xG (Expected Goals) feature integration
-- [ ] Neural network models (LSTM, MLP)
-- [ ] Real-time model performance monitoring
-- [ ] A/B testing for model versions
-- [ ] Incremental learning support
-
 ## License
 
-Same as parent project.
-
+Same as parent project (MIT License).

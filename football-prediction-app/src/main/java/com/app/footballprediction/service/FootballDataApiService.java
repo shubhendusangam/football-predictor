@@ -43,7 +43,7 @@ public class FootballDataApiService {
         return getCachedOrFetch(cacheKey, () -> {
             log.info("Fetching finished matches for {} from external API", competitionCode);
             return footballApiClient.get()
-                    .uri("/competitions/{code}/matches?status=FINISHED", competitionCode)
+                    .uri("/competitions/{code}/matches?status={status}", competitionCode, "FINISHED")
                     .retrieve()
                     .bodyToMono(FootballApiResponse.class)
                     .timeout(Duration.ofSeconds(30))
@@ -62,7 +62,7 @@ public class FootballDataApiService {
         return getCachedOrFetch(cacheKey, () -> {
             log.info("Fetching scheduled matches for {} from external API", competitionCode);
             return footballApiClient.get()
-                    .uri("/competitions/{code}/matches?status=SCHEDULED,TIMED", competitionCode)
+                    .uri("/competitions/{code}/matches?status={status}", competitionCode, "SCHEDULED")
                     .retrieve()
                     .bodyToMono(FootballApiResponse.class)
                     .timeout(Duration.ofSeconds(30))

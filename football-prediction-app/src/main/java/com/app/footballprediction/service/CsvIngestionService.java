@@ -231,4 +231,11 @@ public class CsvIngestionService {
          }
       }
    }
+
+   /**
+    * Get total match count in database.
+    */
+   public long getMatchCount() {
+      return matchRepository.count();
+   }
 }
