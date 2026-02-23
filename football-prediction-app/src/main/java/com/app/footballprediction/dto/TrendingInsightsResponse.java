@@ -8,21 +8,25 @@ import java.util.List;
 /**
  * Response DTO for Live/Trending Insights.
  * Provides real-time team performance trends and match predictions.
+ *
+ * <p><b>IMPORTANT:</b> All insights are calculated strictly within the selected season.
+ * No cross-season data is included - streaks, rankings, and goal aggregates
+ * are all per-season.
  */
 @Data
 @Builder
 public class TrendingInsightsResponse {
 
-    // 🔥 Hot Teams: Teams on 3+ match winning streaks
+    // 🔥 Hot Teams: Teams on 3+ match winning streaks (within season)
     private List<HotTeam> hotTeams;
 
-    // ❄️ Cold Teams: Teams without a win in 5+ matches
+    // ❄️ Cold Teams: Teams without a win in 5+ matches (within season)
     private List<ColdTeam> coldTeams;
 
-    // ⚽ Top Scorers: Teams scoring most goals recently
+    // ⚽ Top Scorers: Teams scoring most goals recently (within season)
     private List<TopScorer> topScorers;
 
-    // 🧱 Defensive Walls: Teams with most clean sheets recently
+    // 🧱 Defensive Walls: Teams with most clean sheets recently (within season)
     private List<DefensiveWall> defensiveWalls;
 
     // 🎯 Upset Alerts: Upcoming matches where away team has >50% win probability
@@ -34,6 +38,7 @@ public class TrendingInsightsResponse {
     // Metadata
     private String generatedAt;
     private int totalTeamsAnalyzed;
+    private String season;  // The season these insights are for (e.g., "2024-25")
 
     /**
      * Team on a winning streak (3+ consecutive wins).
@@ -129,8 +134,6 @@ public class TrendingInsightsResponse {
         private double awayTeamAvgScoring;   // Away team's recent avg goals scored
         private double homeTeamAvgConceding; // Home team's recent avg goals conceded
         private double awayTeamAvgConceding; // Away team's recent avg goals conceded
-        private double over25Probability;    // Estimated probability of over 2.5 goals
-        private double bttsPercentage;       // Both teams to score probability
     }
 }
 

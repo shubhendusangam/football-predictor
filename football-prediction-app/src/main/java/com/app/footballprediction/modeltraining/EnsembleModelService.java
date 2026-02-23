@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import weka.classifiers.AbstractClassifier;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
 import weka.classifiers.meta.AdaBoostM1;
@@ -72,7 +71,7 @@ public class EnsembleModelService {
                 .classDetails(eval.toClassDetailsString("  "))
                 .build();
 
-        log.info("Cross-validation complete. Accuracy: {:.2f}%", result.getAccuracy());
+        log.info("Cross-validation complete. Accuracy: {}%", String.format("%.2f", result.getAccuracy()));
         return result;
     }
 
@@ -265,8 +264,10 @@ public class EnsembleModelService {
             }
         }
 
-        log.info("Grid Search complete. Best accuracy: {:.2f}% with params: {}",
-                bestAccuracy, bestResult.getBestParams());
+        if (bestResult != null) {
+            log.info("Grid Search (RandomForest) complete. Best accuracy: {}% with params: {}",
+                    String.format("%.2f", bestAccuracy), bestResult.getBestParams());
+        }
         return bestResult;
     }
 
@@ -322,8 +323,10 @@ public class EnsembleModelService {
             }
         }
 
-        log.info("Grid Search complete. Best accuracy: {:.2f}% with params: {}",
-                bestAccuracy, bestResult.getBestParams());
+        if (bestResult != null) {
+            log.info("Grid Search (AdaBoost) complete. Best accuracy: {}% with params: {}",
+                    String.format("%.2f", bestAccuracy), bestResult.getBestParams());
+        }
         return bestResult;
     }
 
@@ -395,7 +398,7 @@ public class EnsembleModelService {
                     .build();
 
             results.add(result);
-            log.info("{}: Accuracy={:.2f}%, Time={}ms", name, result.getAccuracy(), duration);
+            log.info("{}: Accuracy={}%, Time={}ms", name, String.format("%.2f", result.getAccuracy()), duration);
         }
 
         // Sort by accuracy descending
@@ -436,7 +439,10 @@ public class EnsembleModelService {
         this.trainingHeader = header;
 
         File file = new File(ensembleModelPath);
-        file.getParentFile().mkdirs();
+        File parentDir = file.getParentFile();
+        if (parentDir != null && !parentDir.exists() && !parentDir.mkdirs()) {
+            log.warn("Failed to create directory: {}", parentDir.getAbsolutePath());
+        }
 
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
             oos.writeObject(model);

@@ -105,7 +105,6 @@ class PredictResponseTest {
                 .avgGoalsPerMatch(2.5)
                 .avgHomeTeamGoals(1.4)
                 .avgAwayTeamGoals(1.1)
-                .bttsPercentage(65.0)
                 .mostCommonScore("1-1")
                 .mostCommonOutcome("HOME_WIN")
                 .homeTeamHomeWinPct(70.0)
@@ -121,7 +120,6 @@ class PredictResponseTest {
         assertThat(h2hSummary.getDominantTeam()).isEqualTo("HOME");
         assertThat(h2hSummary.getRecentMeetings()).hasSize(1);
         assertThat(h2hSummary.getAvgGoalsPerMatch()).isEqualTo(2.5);
-        assertThat(h2hSummary.getBttsPercentage()).isEqualTo(65.0);
         assertThat(h2hSummary.getMostCommonScore()).isEqualTo("1-1");
         assertThat(h2hSummary.getHomeTeamHomeWinPct()).isEqualTo(70.0);
     }
@@ -158,7 +156,6 @@ class PredictResponseTest {
                 .dominantTeam("HOME")
                 .recentMeetings(Collections.emptyList())
                 .avgGoalsPerMatch(2.5)
-                .bttsPercentage(65.0)
                 .build();
 
         PredictResponse response = PredictResponse.builder()
@@ -219,6 +216,138 @@ class PredictResponseTest {
         assertThat(homeWin.getPredictionCode()).isIn("H", "D", "A");
         assertThat(draw.getPredictionCode()).isIn("H", "D", "A");
         assertThat(awayWin.getPredictionCode()).isIn("H", "D", "A");
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // Pre-Match Insights Panel Tests
+    // ═══════════════════════════════════════════════════════════════════════════
+
+    @Test
+    @DisplayName("builds feature summary with Pre-Match Insights fields")
+    void buildsFeatureSummaryWithPreMatchInsights() {
+        PredictResponse.FeatureSummary features = PredictResponse.FeatureSummary.builder()
+                .homeFormPoints(2.4)
+                .awayFormPoints(1.8)
+                .homeGoalsScoredAvg(2.1)
+                .awayGoalsScoredAvg(1.5)
+                .homeGoalsConcededAvg(0.8)
+                .awayGoalsConcededAvg(1.2)
+                .h2hHomeWinRate(0.45)
+                .h2hDrawRate(0.30)
+                .h2hAwayWinRate(0.25)
+                // Pre-Match Insights fields
+                .homeWinStreak(3)
+                .awayWinStreak(0)
+                .homeUnbeatenStreak(5)
+                .awayUnbeatenStreak(2)
+                .homeDaysSinceLastMatch(7)
+                .awayDaysSinceLastMatch(3)
+                .homeGoalThreat(72.5)
+                .awayGoalThreat(48.0)
+                .build();
+
+        assertThat(features.getHomeWinStreak()).isEqualTo(3);
+        assertThat(features.getAwayWinStreak()).isEqualTo(0);
+        assertThat(features.getHomeUnbeatenStreak()).isEqualTo(5);
+        assertThat(features.getAwayUnbeatenStreak()).isEqualTo(2);
+        assertThat(features.getHomeDaysSinceLastMatch()).isEqualTo(7);
+        assertThat(features.getAwayDaysSinceLastMatch()).isEqualTo(3);
+        assertThat(features.getHomeGoalThreat()).isEqualTo(72.5);
+        assertThat(features.getAwayGoalThreat()).isEqualTo(48.0);
+    }
+
+    @Test
+    @DisplayName("win streak values are non-negative")
+    void winStreakValuesAreNonNegative() {
+        PredictResponse.FeatureSummary features = PredictResponse.FeatureSummary.builder()
+                .homeWinStreak(0)
+                .awayWinStreak(5)
+                .homeUnbeatenStreak(3)
+                .awayUnbeatenStreak(0)
+                .build();
+
+        assertThat(features.getHomeWinStreak()).isGreaterThanOrEqualTo(0);
+        assertThat(features.getAwayWinStreak()).isGreaterThanOrEqualTo(0);
+        assertThat(features.getHomeUnbeatenStreak()).isGreaterThanOrEqualTo(0);
+        assertThat(features.getAwayUnbeatenStreak()).isGreaterThanOrEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("rest days fatigue warning thresholds")
+    void restDaysFatigueWarningThresholds() {
+        // Team with fatigue risk (<=3 days rest)
+        PredictResponse.FeatureSummary fatigued = PredictResponse.FeatureSummary.builder()
+                .homeDaysSinceLastMatch(2)
+                .awayDaysSinceLastMatch(3)
+                .build();
+
+        // Team well rested (>=6 days rest)
+        PredictResponse.FeatureSummary wellRested = PredictResponse.FeatureSummary.builder()
+                .homeDaysSinceLastMatch(7)
+                .awayDaysSinceLastMatch(10)
+                .build();
+
+        assertThat(fatigued.getHomeDaysSinceLastMatch()).isLessThanOrEqualTo(3);
+        assertThat(fatigued.getAwayDaysSinceLastMatch()).isLessThanOrEqualTo(3);
+        assertThat(wellRested.getHomeDaysSinceLastMatch()).isGreaterThanOrEqualTo(6);
+        assertThat(wellRested.getAwayDaysSinceLastMatch()).isGreaterThanOrEqualTo(6);
+    }
+
+
+    @Test
+    @DisplayName("goal threat meters within valid range")
+    void goalThreatMetersWithinValidRange() {
+        PredictResponse.FeatureSummary features = PredictResponse.FeatureSummary.builder()
+                .homeGoalThreat(72.5)
+                .awayGoalThreat(48.0)
+                .build();
+
+        assertThat(features.getHomeGoalThreat()).isBetween(0.0, 100.0);
+        assertThat(features.getAwayGoalThreat()).isBetween(0.0, 100.0);
+    }
+
+    @Test
+    @DisplayName("complete Pre-Match Insights in prediction response")
+    void completePreMatchInsightsInPredictionResponse() {
+        PredictResponse.FeatureSummary features = PredictResponse.FeatureSummary.builder()
+                .homeFormPoints(2.4)
+                .awayFormPoints(1.8)
+                .homeGoalsScoredAvg(2.1)
+                .awayGoalsScoredAvg(1.5)
+                .homeGoalsConcededAvg(0.8)
+                .awayGoalsConcededAvg(1.2)
+                .h2hHomeWinRate(0.45)
+                .h2hDrawRate(0.30)
+                .h2hAwayWinRate(0.25)
+                .homeWinStreak(3)
+                .awayWinStreak(0)
+                .homeUnbeatenStreak(5)
+                .awayUnbeatenStreak(2)
+                .homeDaysSinceLastMatch(7)
+                .awayDaysSinceLastMatch(3)
+                .homeGoalThreat(72.5)
+                .awayGoalThreat(48.0)
+                .build();
+
+        PredictResponse response = PredictResponse.builder()
+                .homeTeam("Arsenal")
+                .awayTeam("Chelsea")
+                .prediction("HOME_WIN")
+                .predictionCode("H")
+                .probHomeWin(0.55)
+                .probDraw(0.25)
+                .probAwayWin(0.20)
+                .confidence("MEDIUM")
+                .features(features)
+                .build();
+
+        // Verify all Pre-Match Insights fields are accessible
+        assertThat(response.getFeatures()).isNotNull();
+        assertThat(response.getFeatures().getHomeWinStreak()).isEqualTo(3);
+        assertThat(response.getFeatures().getHomeGoalThreat()).isEqualTo(72.5);
+        assertThat(response.getFeatures().getAwayGoalThreat()).isEqualTo(48.0);
+        assertThat(response.getFeatures().getHomeDaysSinceLastMatch()).isEqualTo(7);
+        assertThat(response.getFeatures().getAwayDaysSinceLastMatch()).isEqualTo(3);
     }
 }
 

@@ -1,116 +1,491 @@
 # Model Training Service
 
-A separate Spring Boot microservice for training and testing machine learning models for football match prediction.
+## Module Overview
 
-## Overview
+### Purpose
+The `model-training-service` is a **dedicated microservice** for training, evaluating, and managing the machine learning models used in the Football Prediction Platform. It operates independently from the main application, allowing model training to run without impacting prediction service availability.
 
-This service is responsible for:
-- Training the Stacked Ensemble model (RandomForest + AdaBoostM1 + Logistic Regression)
-- Supporting multiple training modes (basic, CV, grid search, ensemble)
-- Testing and evaluating model performance with detailed metrics
-- Providing model information via REST API
-- Automatically retraining the model twice monthly (1st and 15th at 3:00 AM)
-- Storing trained models in the shared data folder
+### Scope within the System
 
-## Model Architecture
-
-The service implements a **Stacked Ensemble** combining:
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                    STACKED ENSEMBLE                         │
-├─────────────────────────────────────────────────────────────┤
-│  Base Model 1: RandomForest (100 trees, 5 features/split)   │
-│  Base Model 2: AdaBoostM1 (100 iterations, REPTree base)    │
-│  Meta Model:   Logistic Regression (combines predictions)   │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                        SYSTEM ARCHITECTURE                              │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                         │
+│  ┌───────────────────────────────┐                                      │
+│  │    Main Application (8080)    │                                      │
+│  │    • REST APIs                │                                      │
+│  │    • Web UI                   │                                      │
+│  │    • Model Consumption        │◄─────────────────┐                   │
+│  └───────────────────────────────┘                  │                   │
+│                                                      │                   │
+│  ┌───────────────────────────────┐         ┌────────┴────────┐         │
+│  │   Training Service (8081)    │  ◄──    │ Shared Storage  │         │
+│  │   • Model Training           │──────►  │ • H2 Database   │         │
+│  │   • Model Evaluation         │         │ • ML Model File │         │
+│  │   • Scheduled Retraining     │         └─────────────────┘         │
+│  │   ◄── THIS MODULE            │                                      │
+│  └───────────────────────────────┘                                      │
+│                                                                         │
+│  ┌───────────────────────────────┐                                      │
+│  │    Common Module (Shared)     │                                      │
+│  │    • Entities, Repositories   │                                      │
+│  └───────────────────────────────┘                                      │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Feature Engineering (25 Features in 3 Phases)
+---
 
-**Phase 1 - Core Statistics:**
-- Form points (last 5 matches)
-- Goals scored/conceded averages
-- H2H win rates
-- Total goals average
+## Responsibilities
 
-**Phase 2 - Match Statistics:**
-- Shots on target averages
-- Corners averages
+### 1. Model Training
+- Train RandomForest classifier on historical match data
+- Build 25-feature vectors for each training sample
+- Perform temporal train/test split (80/20)
+- Save trained model to shared storage
 
-**Phase 3 - Advanced Metrics:**
-- Goal difference
-- Overall form rating
-- Win streaks
-- Unbeaten streaks
-- Rest days between matches
+### 2. Model Evaluation
+- Evaluate model on held-out test set
+- Generate accuracy, precision, recall, F1-score metrics
+- Produce confusion matrix
+- Calculate per-class performance breakdown
+
+### 3. Model Management
+- Persist trained models to disk
+- Provide model metadata (size, last modified, path)
+- Support model info queries via REST API
+
+### 4. Scheduled Retraining
+- Automatic retraining on 1st and 15th of each month (3:00 AM)
+- Configurable via cron expression
+- No manual intervention required
+
+---
 
 ## Architecture
 
-- **Port**: 8081 (configurable)
-- **Database**: Shared H2 database with main application
-- **Model Storage**: `../data/match_predictor.model` (shared with main app)
-- **Framework**: Spring Boot 4.0.2, Java 21
-- **ML Library**: Weka 3.8.6
+### Package Structure
 
-## API Endpoints
-
-### 1. Train Model
-```bash
-POST http://localhost:8081/api/training/train
+```
+com.app.modeltraining/
+├── ModelTrainingServiceApplication.java  # Spring Boot entry point
+│
+├── controller/
+│   └── ModelTrainingController.java      # REST API (3 endpoints)
+│
+├── service/
+│   ├── ModelTrainingService.java         # Core training logic (354 lines)
+│   └── FeatureEngineeringService.java    # Feature calculation (local copy)
+│
+├── model/
+│   ├── Match.java                        # Match entity (local copy)
+│   └── MatchFeatures.java                # Feature DTO (local copy)
+│
+├── repository/
+│   └── MatchRepository.java              # Data access (local copy)
+│
+├── scheduler/
+│   └── TrainingScheduler.java            # Cron-based retraining
+│
+└── dto/
+    └── TrainingResponse.java             # API response DTOs
 ```
 
-**Description**: Trains a new Stacked Ensemble model on historical match data.
+### ML Model Architecture
 
-**Response**:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     STACKED ENSEMBLE MODEL                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│   Input: MatchFeatures (25 features)                            │
+│                                                                 │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │              BASE CLASSIFIERS (Level 1)                  │   │
+│   │                                                         │   │
+│   │   ┌─────────────────┐     ┌─────────────────┐          │   │
+│   │   │  RandomForest   │     │   AdaBoostM1    │          │   │
+│   │   │  • 100 trees    │     │  • 100 iters    │          │   │
+│   │   │  • 5 features   │     │  • REPTree base │          │   │
+│   │   │  • Seed: 42     │     │                 │          │   │
+│   │   └────────┬────────┘     └────────┬────────┘          │   │
+│   │            │                       │                    │   │
+│   │            └───────────┬───────────┘                    │   │
+│   │                        ▼                                │   │
+│   └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│   ┌─────────────────────────────────────────────────────────┐   │
+│   │              META CLASSIFIER (Level 2)                   │   │
+│   │                                                         │   │
+│   │              ┌─────────────────────┐                    │   │
+│   │              │ Logistic Regression │                    │   │
+│   │              │ (combines outputs)  │                    │   │
+│   │              └──────────┬──────────┘                    │   │
+│   │                         │                               │   │
+│   └─────────────────────────┼───────────────────────────────┘   │
+│                             ▼                                   │
+│                                                                 │
+│   Output: Probabilities [P(H), P(D), P(A)]                     │
+│   Label: "H" (Home Win) | "D" (Draw) | "A" (Away Win)          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Training Pipeline Data Flow
+
+```
+┌──────────────────────────────────────────────────────────────────────────┐
+│                         TRAINING PIPELINE                                 │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  Step 1: Data Loading                                                    │
+│  ┌────────────────────┐                                                  │
+│  │ MatchRepository    │                                                  │
+│  │ .findAllByOrder    │──► ~8,000 matches (chronological)                │
+│  │  ByMatchDateAsc()  │                                                  │
+│  └────────────────────┘                                                  │
+│            │                                                             │
+│            ▼                                                             │
+│  Step 2: Feature Engineering                                             │
+│  ┌────────────────────────────────────────┐                              │
+│  │ FeatureEngineeringService              │                              │
+│  │ .buildFeaturesForTraining(match)       │                              │
+│  │                                        │                              │
+│  │ For each match:                        │                              │
+│  │ • Use match_date as temporal cutoff    │                              │
+│  │ • Calculate 25 features from history   │                              │
+│  │ • Set actualResult as label            │                              │
+│  └────────────────────────────────────────┘                              │
+│            │                                                             │
+│            ▼                                                             │
+│  Step 3: Temporal Split                                                  │
+│  ┌──────────────────────────────────────────────────────────┐            │
+│  │                                                          │            │
+│  │   ◄─────────── 80% Train ───────────►│◄── 20% Test ──►  │            │
+│  │   [Older matches]                     │ [Recent matches] │            │
+│  │                                       │                  │            │
+│  │   No future data leakage!             │ Held-out eval    │            │
+│  │                                                          │            │
+│  └──────────────────────────────────────────────────────────┘            │
+│            │                                                             │
+│            ▼                                                             │
+│  Step 4: Model Training                                                  │
+│  ┌────────────────────────────────────────┐                              │
+│  │ RandomForest.buildClassifier(trainData)│                              │
+│  └────────────────────────────────────────┘                              │
+│            │                                                             │
+│            ▼                                                             │
+│  Step 5: Evaluation & Persistence                                        │
+│  ┌────────────────────────────────────────┐                              │
+│  │ Evaluation.evaluateModel(model, test)  │──► Metrics                   │
+│  │ ObjectOutputStream.writeObject(model)  │──► predictor.model           │
+│  └────────────────────────────────────────┘                              │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Core Business Logic
+
+### Feature Vector Construction (25 Features)
+
+Each training sample is converted to a Weka `Instance` with 25 numeric features + 1 class label:
+
+| Index | Feature | Type | Description |
+|-------|---------|------|-------------|
+| 0 | homeFormPoints | Numeric | Avg points/game (last 5 home) |
+| 1 | awayFormPoints | Numeric | Avg points/game (last 5 away) |
+| 2 | homeGoalsScoredAvg | Numeric | Avg goals scored at home |
+| 3 | homeGoalsConcededAvg | Numeric | Avg goals conceded at home |
+| 4 | awayGoalsScoredAvg | Numeric | Avg goals scored away |
+| 5 | awayGoalsConcededAvg | Numeric | Avg goals conceded away |
+| 6 | homeTotalGoalsAvg | Numeric | Avg total goals/game |
+| 7 | awayTotalGoalsAvg | Numeric | Avg total goals/game |
+| 8 | h2hHomeWinRate | Numeric | H2H home win rate |
+| 9 | h2hDrawRate | Numeric | H2H draw rate |
+| 10 | h2hAwayWinRate | Numeric | H2H away win rate |
+| 11 | homeShotsOnTargetAvg | Numeric | Avg shots on target (home) |
+| 12 | awayShotsOnTargetAvg | Numeric | Avg shots on target (away) |
+| 13 | homeCornersAvg | Numeric | Avg corners (home) |
+| 14 | awayCornersAvg | Numeric | Avg corners (away) |
+| 15 | homeGoalDifference | Numeric | Recent goal difference |
+| 16 | awayGoalDifference | Numeric | Recent goal difference |
+| 17 | homeOverallFormPoints | Numeric | Overall form (all matches) |
+| 18 | awayOverallFormPoints | Numeric | Overall form (all matches) |
+| 19 | homeWinStreak | Numeric | Consecutive wins |
+| 20 | awayWinStreak | Numeric | Consecutive wins |
+| 21 | homeUnbeatenStreak | Numeric | Consecutive non-losses |
+| 22 | awayUnbeatenStreak | Numeric | Consecutive non-losses |
+| 23 | homeDaysRest | Numeric | Days since last match |
+| 24 | awayDaysRest | Numeric | Days since last match |
+| 25 | result | Nominal | Class: {H, D, A} |
+
+### Temporal Split Strategy
+
+```java
+// Critical: Chronological split prevents future data leakage
+int splitIdx = (int) (allFeatures.size() * 0.8);  // 80% train
+
+// Train set: older matches (indices 0 to splitIdx-1)
+List<MatchFeatures> trainSet = allFeatures.subList(0, splitIdx);
+
+// Test set: recent matches (indices splitIdx to end)
+List<MatchFeatures> testSet = allFeatures.subList(splitIdx, allFeatures.size());
+```
+
+**Why temporal split?**
+- Random split would leak future information into training
+- Model would "memorize" team states that haven't occurred yet
+- Temporal split mimics real-world prediction scenario
+
+### RandomForest Configuration
+
+```java
+RandomForest rf = new RandomForest();
+rf.setNumIterations(100);  // 100 decision trees
+rf.setNumFeatures(5);       // sqrt(25) ≈ 5 features per split
+rf.setSeed(42);             // Reproducible results
+rf.buildClassifier(trainData);
+```
+
+### Model Persistence Format
+
+```java
+// Model file contains both classifier and training header
+try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(modelFile))) {
+    oos.writeObject(model);       // RandomForest classifier
+    oos.writeObject(header);      // Weka Instances header (for feature schema)
+}
+```
+
+---
+
+## Data Dependencies
+
+### Database Access
+
+| Table | Usage | Query Pattern |
+|-------|-------|---------------|
+| `matches` | Training data source | `findAllByOrderByMatchDateAsc()` |
+
+### Shared Storage
+
+| Resource | Path | Description |
+|----------|------|-------------|
+| H2 Database | `../data/footballdb.mv.db` | Shared with main app |
+| ML Model | `../data/match_predictor.model` | Trained model file |
+
+### External Services
+
+- **None**: This service has no external API dependencies
+- Training is fully offline using historical data
+
+---
+
+## Performance Design
+
+### Training Time Optimization
+
+| Optimization | Implementation | Impact |
+|--------------|----------------|--------|
+| Chronological ordering | Pre-sorted query | O(1) access |
+| Feature caching | In-memory list | Single DB round-trip |
+| Skipping invalid samples | Early continue | Reduces dataset size |
+| Parallel tree building | RandomForest internal | Multi-core utilization |
+
+### Typical Performance Metrics
+
+| Metric | Value |
+|--------|-------|
+| Training time | 5-10 seconds |
+| Dataset size | ~8,000 matches |
+| Feature vectors | ~7,000 (after filtering) |
+| Model file size | 1-2 MB |
+| Memory usage | 512 MB - 1 GB |
+
+### Avoidance of N+1
+
+```java
+// BAD: Feature engineering per match triggers N+1
+for (Match match : allMatches) {
+    MatchFeatures features = featureService.buildFeatures(match);  // Multiple queries
+}
+
+// GOOD: Feature engineering uses batch queries internally
+List<Match> homeMatches = matchRepository.findHomeMatchesByTeamBeforeDate(team, date);
+List<Match> awayMatches = matchRepository.findAwayMatchesByTeamBeforeDate(team, date);
+// All data loaded upfront, then processed in-memory
+```
+
+---
+
+## Edge Case Handling
+
+### Minimum Data Requirement
+
+```java
+if (allMatches.size() < minMatches) {  // Default: 100
+    throw new IllegalStateException(
+        "Not enough data to train. Need at least " + minMatches + 
+        " matches, found: " + allMatches.size());
+}
+```
+
+### Invalid Feature Vectors
+
+```java
+// Skip matches with insufficient history
+if (features.getHomeFormPoints() == 0.0 && features.getHomeGoalsScoredAvg() == 0.0) {
+    skipped++;
+    continue;  // New teams without history
+}
+```
+
+### Missing Model File
+
+```java
+File modelFile = new File(modelOutputPath);
+if (!modelFile.exists()) {
+    throw new IllegalStateException("Model file not found. Please train the model first.");
+}
+```
+
+### Safe Numeric Values
+
+```java
+// PredictionUtils.safe() handles null/NaN/Infinity
+inst.setValue(IDX_HOME_FORM, PredictionUtils.safe(f.getHomeFormPoints()));
+```
+
+---
+
+## API Documentation
+
+### Base URL
+```
+http://localhost:8081/api/training
+```
+
+### Endpoints
+
+#### POST `/train`
+Train a new model from all historical data.
+
+**Response:**
 ```json
 {
   "success": true,
   "message": "Model training completed successfully",
-  "report": "... detailed training report ...",
-  "trainingTimeMs": 5432
+  "report": "══════════════════════════════════════════\n   MATCH OUTCOME PREDICTOR — TRAINING   \n══════════════════════════════════════════\n  Train set : 6000 matches\n  Test set  : 1500 matches (most recent)\n  Accuracy  : 62.3%\n  Kappa     : 0.3842\n  F-Measure : 0.6152\n...",
+  "trainingTimeMs": 8432
 }
 ```
 
-### 2. Test Model
-```bash
-POST http://localhost:8081/api/training/test
-```
+#### POST `/test`
+Evaluate the current model on the test set.
 
-**Description**: Tests the trained model against the test dataset.
-
-**Response**:
+**Response:**
 ```json
 {
   "success": true,
   "message": "Model testing completed successfully",
-  "report": "... detailed test report ..."
+  "report": "══════════════════════════════════════════\n   MATCH OUTCOME PREDICTOR — TESTING   \n══════════════════════════════════════════\n  Test set  : 1500 matches\n  Accuracy  : 61.8%\n..."
 }
 ```
 
-### 3. Get Model Info
-```bash
-GET http://localhost:8081/api/training/model-info
-```
+#### GET `/model-info`
+Get metadata about the current model.
 
-**Description**: Retrieves information about the current model.
-
-**Response**:
+**Response:**
 ```json
 {
   "success": true,
   "modelInfo": {
     "modelExists": true,
     "modelPath": "../data/match_predictor.model",
-    "modelSize": 1234567,
-    "lastModified": "2026-02-19T03:00:00",
+    "modelSize": 1547832,
+    "lastModified": "2026-02-15T03:00:00",
     "totalMatches": 8420
   }
 }
 ```
 
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+| Test Class | Coverage |
+|------------|----------|
+| `ModelTrainingServiceTest` | `trainModel()`, `testModel()`, `getModelInfo()` |
+| `FeatureEngineeringServiceTest` | Feature calculation accuracy |
+| `MatchRepositoryTest` | Query correctness |
+
+### Test Scenarios
+
+```java
+// 1. Training with sufficient data
+@Test
+void trainsModelSuccessfully() {
+    String report = service.trainModel();
+    assertThat(report).contains("Accuracy");
+    assertThat(new File(modelPath)).exists();
+}
+
+// 2. Training with insufficient data
+@Test
+void throwsExceptionForInsufficientData() {
+    // Given: Database has < 100 matches
+    assertThrows(IllegalStateException.class, () -> service.trainModel());
+}
+
+// 3. Testing without trained model
+@Test
+void throwsExceptionWhenModelMissing() {
+    Files.deleteIfExists(Path.of(modelPath));
+    assertThrows(IllegalStateException.class, () -> service.testModel());
+}
+
+// 4. Temporal split validation
+@Test
+void ensuresNoFutureDataLeakage() {
+    // Train on matches before 2024-01-01
+    // Test on matches after 2024-01-01
+    // Verify no overlap
+}
+```
+
+### Integration Tests
+
+```java
+@SpringBootTest
+class ModelTrainingIntegrationTest {
+    
+    @Test
+    void fullTrainingPipeline() {
+        // Train
+        String trainReport = service.trainModel();
+        assertThat(trainReport).contains("Accuracy");
+        
+        // Test
+        String testReport = service.testModel();
+        assertThat(testReport).contains("Accuracy");
+        
+        // Model info
+        Map<String, Object> info = service.getModelInfo();
+        assertThat(info.get("modelExists")).isEqualTo(true);
+    }
+}
+```
+
+---
+
 ## Configuration
 
-All configuration is in `application.properties`:
+### Application Properties
 
 ```properties
 # Server
@@ -119,10 +494,10 @@ server.port=8081
 # Database (shared with main app)
 spring.datasource.url=jdbc:h2:file:../data/footballdb
 
-# Model Storage
+# Model Output
 model.output.path=../data/match_predictor.model
 
-# Training Parameters
+# Training Configuration
 model.training.min-matches=100
 model.training.train-split=0.8
 
@@ -130,130 +505,68 @@ model.training.train-split=0.8
 model.crossvalidation.enabled=true
 model.crossvalidation.folds=10
 
-# Scheduled Training (1st and 15th at 3 AM)
+# Scheduled Retraining (1st & 15th @ 3 AM)
 training.schedule.enabled=true
 training.schedule.cron=0 0 3 1,15 * *
 ```
 
-## Scheduled Training
+### Environment Variables
 
-The service automatically trains the model **twice monthly**:
-- **Schedule**: 1st and 15th of each month at 3:00 AM
-- **Configurable**: Set `training.schedule.enabled=false` to disable
-- **Custom Cron**: Change `training.schedule.cron` property
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `MODEL_OUTPUT_PATH` | `../data/match_predictor.model` | Model file location |
+| `SPRING_PROFILES_ACTIVE` | `default` | Active Spring profile |
 
-## Building and Running
+---
 
-### Local Development
+## Scheduled Retraining
 
-```bash
-# Build
-cd model-training-service
-mvn clean install
+### Cron Configuration
 
-# Run
-mvn spring-boot:run
+```java
+@Scheduled(cron = "${training.schedule.cron:0 0 3 1,15 * *}")
+public void scheduledRetraining() {
+    if (enabled) {
+        log.info("Starting scheduled model retraining...");
+        String report = modelTrainingService.trainModel();
+        log.info("Scheduled retraining complete: {}", report);
+    }
+}
 ```
 
-### Production Build
+### Schedule Explanation
 
-```bash
-mvn clean package
-java -jar target/model-training-service-1.0.0.jar
+```
+0 0 3 1,15 * *
+│ │ │  │   │ │
+│ │ │  │   │ └── Day of week (any)
+│ │ │  │   └──── Month (any)
+│ │ │  └──────── Day of month (1st and 15th)
+│ │ └─────────── Hour (3 AM)
+│ └───────────── Minute (0)
+└─────────────── Second (0)
 ```
 
-### Docker
+---
 
-```bash
-# Build image
-docker build -t model-training-service:1.0.0 .
+## Future Enhancements
 
-# Run container
-docker run -p 8081:8081 \
-  -v $(pwd)/data:/app/data \
-  model-training-service:1.0.0
-```
+| Enhancement | Description | Priority |
+|-------------|-------------|----------|
+| Hyperparameter Tuning | Grid search for optimal RF parameters | High |
+| Deep Learning | LSTM models for sequence prediction | Medium |
+| Model Versioning | Keep history of trained models | Medium |
+| A/B Testing | Compare model versions in production | Low |
+| Distributed Training | Spark MLlib for larger datasets | Low |
 
-## Integration with Main Application
+---
 
-The main football prediction application (port 8080) uses the model trained by this service:
+## Metrics
 
-1. **Shared Database**: Both services read from the same H2 database
-2. **Shared Model File**: Model is stored in `../data/match_predictor.model`
-3. **On-Demand Training**: Main app can trigger training via HTTP calls
-4. **Automatic Updates**: Scheduled training keeps the model fresh
-
-## Logs
-
-Logs are stored in `../logs/model-training/`:
-- `training.log` - All training activities
-- `api.log` - API request/response logs
-- `error.log` - Error logs only
-
-## Model Training Process
-
-1. **Data Loading**: Fetches all matches from database ordered by date
-2. **Feature Engineering**: Builds 25 features per match across 3 phases
-3. **Data Split**: 
-   - Training: 64% for base model training
-   - Validation: 16% for meta-model training
-   - Test: 20% for final evaluation (chronological)
-4. **Base Model Training**: 
-   - RandomForest: 100 trees, 5 features per split
-   - AdaBoostM1: 100 boosting iterations with REPTree base learner
-5. **Meta-Model Training**: Logistic Regression on validation set predictions
-6. **Evaluation**: Tests on held-out test set
-7. **Persistence**: Saves model to shared data folder
-
-## Performance
-
-- **Training Time**: ~10-30 seconds for full Stacked Ensemble (~8,400 matches)
-- **Accuracy**: ~62% (baseline ~45%)
-- **Algorithm**: Stacked Ensemble (RF + AdaBoost + Logistic Regression)
-- **Features**: 25 in 3 phases
-- **Memory**: ~512MB-1GB recommended
-- **Disk**: Model file ~1-2MB
-
-## Troubleshooting
-
-### Model Training Fails
-
-```bash
-# Check database connection
-curl http://localhost:8081/api/training/model-info
-
-# Check logs
-tail -f ../logs/model-training/training.log
-```
-
-### Scheduled Training Not Working
-
-```bash
-# Verify scheduler is enabled
-grep "training.schedule.enabled" src/main/resources/application.properties
-
-# Check scheduler logs
-grep "SCHEDULED" ../logs/model-training/training.log
-```
-
-## Development
-
-### Adding New Features
-
-1. Update `MatchFeatures.java` with new feature fields
-2. Update `FeatureEngineeringService.java` to calculate features
-3. Update `ModelTrainingService.buildAttributes()` to add Weka attributes
-4. Update `ModelTrainingService.toWekaInstance()` to populate values
-5. Update feature indices constants
-
-### Available Training Modes
-
-- **Stacked Ensemble** (default): RF + AdaBoost + LR meta-model
-- **Simple RandomForest**: Basic RF with 100 trees
-- **Cross-Validation**: 10-fold CV for model evaluation
-- **Grid Search**: Hyperparameter optimization
-- **Voting Ensemble**: RF + AdaBoost + J48 with majority voting
-
-## License
-
-Same as parent project (MIT License).
+| Metric | Value |
+|--------|-------|
+| Lines of Code | ~800 |
+| Service Classes | 2 |
+| Controller Endpoints | 3 |
+| ML Features | 25 |
+| Target Accuracy | ~62% |

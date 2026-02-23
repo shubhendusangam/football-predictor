@@ -1,8 +1,11 @@
 package com.app.footballprediction.modeltraining;
 
-
+import com.app.common.model.Match;
+import com.app.common.model.MatchFeatures;
+import com.app.common.repository.MatchRepository;
+import com.app.common.service.FeatureEngineeringService;
+import com.app.common.util.PredictionUtils;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,11 +26,6 @@ import java.io.*;
 import java.util.*;
 import java.util.stream.Stream;
 
-import com.app.common.service.FeatureEngineeringService;
-import com.app.common.model.Match;
-import com.app.common.model.MatchFeatures;
-import com.app.common.repository.MatchRepository;
-import com.app.common.util.PredictionUtils;
 
 @Service
 @Slf4j
@@ -46,9 +44,13 @@ public class ModelTrainingService {
    @Value("${model.output.path}")
    private String modelOutputPath;
 
+   /** Reserved for future model type selection (RANDOM_FOREST, GRADIENT_BOOSTING, etc.) */
+   @SuppressWarnings("unused")
    @Value("${model.type:RANDOM_FOREST}")
    private String modelType;
 
+   /** Reserved for enabling/disabling cross-validation during training */
+   @SuppressWarnings("unused")
    @Value("${model.crossvalidation.enabled:true}")
    private boolean crossValidationEnabled;
 
@@ -116,7 +118,6 @@ public class ModelTrainingService {
     * 7. Save model to disk
     */
    public String trainAndEvaluate() throws Exception {
-      long start = System.currentTimeMillis();
       log.info("Starting model training pipeline...");
 
       List<Match> allMatches = matchRepository.findAllByOrderByMatchDateAsc();
@@ -354,7 +355,7 @@ public class ModelTrainingService {
       this.trainingHeader = trainData;
 
       long duration = System.currentTimeMillis() - start;
-      log.info("Training complete in {} ms. Accuracy: {:.1f}%", duration, eval.pctCorrect());
+      log.info("Training complete in {} ms. Accuracy: {}%", duration, String.format("%.1f", eval.pctCorrect()));
 
       return report;
    }
@@ -459,14 +460,14 @@ public class ModelTrainingService {
       report.append("\n🔍 GRID SEARCH OPTIMIZATION:\n");
 
       GridSearchResult rfGridResult = ensembleModelService.gridSearchRandomForest(fullData);
-      report.append(String.format("  Random Forest Best: %.2f%% (trees=%d, features=%d, depth=%d)%n",
+      report.append(String.format("  Random Forest Best: %.2f%% (trees=%s, features=%s, depth=%s)%n",
               rfGridResult.getAccuracy(),
               rfGridResult.getBestParams().get("numTrees"),
               rfGridResult.getBestParams().get("numFeatures"),
               rfGridResult.getBestParams().get("maxDepth")));
 
       GridSearchResult abGridResult = ensembleModelService.gridSearchAdaBoost(fullData);
-      report.append(String.format("  AdaBoost Best: %.2f%% (iterations=%d, cf=%.2f, minObj=%d)%n",
+      report.append(String.format("  AdaBoost Best: %.2f%% (iterations=%s, cf=%s, minObj=%s)%n",
               abGridResult.getAccuracy(),
               abGridResult.getBestParams().get("numIterations"),
               abGridResult.getBestParams().get("confidenceFactor"),
@@ -623,13 +624,13 @@ public class ModelTrainingService {
       report.append("\n📋 RECOMMENDATION:\n");
       if (rfResult.getAccuracy() > abResult.getAccuracy()) {
          report.append(String.format("  Use Random Forest with accuracy %.2f%%%n", rfResult.getAccuracy()));
-         report.append(String.format("  Params: trees=%d, features=%d, depth=%d%n",
+         report.append(String.format("  Params: trees=%s, features=%s, depth=%s%n",
                  rfResult.getBestParams().get("numTrees"),
                  rfResult.getBestParams().get("numFeatures"),
                  rfResult.getBestParams().get("maxDepth")));
       } else {
          report.append(String.format("  Use AdaBoost with accuracy %.2f%%%n", abResult.getAccuracy()));
-         report.append(String.format("  Params: iterations=%d, cf=%.2f, minObj=%d%n",
+         report.append(String.format("  Params: iterations=%s, cf=%s, minObj=%s%n",
                  abResult.getBestParams().get("numIterations"),
                  abResult.getBestParams().get("confidenceFactor"),
                  abResult.getBestParams().get("minNumObj")));
@@ -935,7 +936,10 @@ public class ModelTrainingService {
    private void saveModel(RandomForest model,
                           Instances header) throws IOException {
       File file = new File(modelOutputPath);
-      file.getParentFile().mkdirs();
+      File parentDir = file.getParentFile();
+      if (parentDir != null && !parentDir.exists() && !parentDir.mkdirs()) {
+         log.warn("Failed to create directory: {}", parentDir.getAbsolutePath());
+      }
 
       try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
          oos.writeObject(model);

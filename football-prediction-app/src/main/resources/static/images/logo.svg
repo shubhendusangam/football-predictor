@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ballGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#16a34a;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="shineGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Football/Soccer Ball -->
+  <circle cx="32" cy="32" r="28" fill="url(#ballGradient)" stroke="#16a34a" stroke-width="2"/>
+
+  <!-- Pentagon pattern - center -->
+  <polygon points="32,16 40,24 37,34 27,34 24,24" fill="#0f172a" stroke="#0f172a" stroke-width="0.5"/>
+
+  <!-- Pentagon pattern - surrounding hexagons approximated -->
+  <polygon points="32,4 40,12 40,24 32,28 24,24 24,12" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <polygon points="44,20 52,28 52,40 44,44 40,36 40,24" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <polygon points="44,44 48,52 40,56 32,52 32,44 40,40" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <polygon points="20,44 24,52 16,56 12,48 16,40 24,40" fill="none" stroke="#0f172a" stroke-width="2"/>
+  <polygon points="12,28 20,20 24,24 24,36 16,40 12,36" fill="none" stroke="#0f172a" stroke-width="2"/>
+
+  <!-- Shine effect -->
+  <ellipse cx="22" cy="18" rx="8" ry="6" fill="url(#shineGradient)" opacity="0.6"/>
+
+  <!-- Small prediction indicator (target/crosshair) -->
+  <circle cx="50" cy="50" r="10" fill="#3b82f6" stroke="#1e40af" stroke-width="1.5"/>
+  <circle cx="50" cy="50" r="5" fill="none" stroke="#ffffff" stroke-width="1.5"/>
+  <circle cx="50" cy="50" r="2" fill="#ffffff"/>
+  <line x1="50" y1="42" x2="50" y2="45" stroke="#ffffff" stroke-width="1.5"/>
+  <line x1="50" y1="55" x2="50" y2="58" stroke="#ffffff" stroke-width="1.5"/>
+  <line x1="42" y1="50" x2="45" y2="50" stroke="#ffffff" stroke-width="1.5"/>
+  <line x1="55" y1="50" x2="58" y2="50" stroke="#ffffff" stroke-width="1.5"/>
+</svg>
+

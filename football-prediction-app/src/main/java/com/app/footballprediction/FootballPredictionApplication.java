@@ -47,29 +47,24 @@ public class FootballPredictionApplication implements ApplicationRunner {
     */
    @Override
    public void run(@NonNull ApplicationArguments args) throws Exception {
-      printBanner();
+      printStartupBanner();
 
       // ── Step 1: Ingest CSV data ────────────────────────────────
-      log.info("► Step 1: Ingesting CSV data...");
+      log.info("📂 Loading historical match data...");
       csvIngestionService.ingestAll();
+      log.info("   ✓ Match data loaded successfully");
 
       // ── Step 2: Model loading / training ──────────────────────
-      log.info("► Step 2: Checking model...");
+      log.info("🤖 Initializing ML model...");
 
       if (!modelTrainingEnabled) {
-         log.info("  Model training disabled via configuration. Skipping model operations.");
-         log.info("  This is typical for test environments with insufficient data.");
+         log.info("   ⚠ Model training disabled (test mode)");
       } else if (modelTrainingService.isModelLoaded()) {
-         // WekaModelConfig already loaded it from disk at startup
-         log.info("  ✓ Model loaded by Spring at startup. Ready to predict!");
-
+         log.info("   ✓ Model loaded successfully");
       } else {
-         // No saved model file exists — train from scratch
-         log.info("  No saved model found. Training now...");
-         log.info("  This may take 30–60 seconds...");
-
-         String report = modelTrainingService.trainAndEvaluate();
-         log.info(report);
+         log.info("   ⏳ Training new model (30-60s)...");
+         modelTrainingService.trainAndEvaluate();
+         log.info("   ✓ Model trained");
       }
 
       printReadyBanner();
@@ -77,25 +72,23 @@ public class FootballPredictionApplication implements ApplicationRunner {
 
    // ── Private helpers ───────────────────────────────────────────
 
-   private void printBanner() {
-      log.info("═══════════════════════════════════════════════════");
-      log.info("  ⚽  Football Match Outcome Predictor             ");
-      log.info("      Java + Spring Boot + Weka Random Forest      ");
-      log.info("═══════════════════════════════════════════════════");
+   private void printStartupBanner() {
+      log.info("");
+      log.info("╔══════════════════════════════════════════════════╗");
+      log.info("║  ⚽ AI Football Match Predictor                  ║");
+      log.info("║  Version 2.0 | Spring Boot + Weka ML             ║");
+      log.info("╚══════════════════════════════════════════════════╝");
+      log.info("");
    }
 
    private void printReadyBanner() {
-      log.info("═══════════════════════════════════════════════════");
-      log.info("  ✓  Application ready                            ");
-      log.info("─────────────────────────────────────────────────  ");
-      log.info("  Endpoints:                                       ");
-      log.info("  POST /api/predict       → predict a match       ");
-      log.info("  POST /api/model/train   → retrain the model     ");
-      log.info("  GET  /api/model/status  → check model status    ");
-      log.info("  POST /api/data/reload   → re-ingest CSV files   ");
-      log.info("─────────────────────────────────────────────────  ");
-      log.info("  Tools:                                           ");
-      log.info("  http://localhost:8080/h2-console  → view DB     ");
-      log.info("═══════════════════════════════════════════════════");
+      log.info("");
+      log.info("┌──────────────────────────────────────────────────┐");
+      log.info("│  ✅ Application Ready                            │");
+      log.info("├──────────────────────────────────────────────────┤");
+      log.info("│  🌐 http://localhost:8080                        │");
+      log.info("│  📊 http://localhost:8080/h2-console             │");
+      log.info("└──────────────────────────────────────────────────┘");
+      log.info("");
    }
 }

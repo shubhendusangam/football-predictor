@@ -1,0 +1,752 @@
+/* ==========================================
+   PREDICTION VIEW STYLES
+   Football Forecaster - Match Prediction Page
+   ========================================== */
+
+/* ==========================================
+   PREDICTION FORM SECTION
+   ========================================== */
+
+.prediction-form-section {
+    margin-bottom: 2rem;
+}
+
+.prediction-form-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.form-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.prediction-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.form-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    color: var(--text-primary);
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.form-input::placeholder {
+    color: var(--text-muted);
+}
+
+.vs-divider {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-green);
+    padding: 0.5rem 1rem;
+    min-width: fit-content;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.btn-predict {
+    min-width: 160px;
+}
+
+.btn-text,
+.btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* ==========================================
+   LOADING SPINNER
+   ========================================== */
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-section {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 0;
+}
+
+.loading-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 3rem 4rem;
+    text-align: center;
+    box-shadow: var(--shadow-md);
+}
+
+.loading-spinner-large {
+    width: 60px;
+    height: 60px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--accent-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+.loading-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.loading-subtext {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.error-section {
+    display: flex;
+    justify-content: center;
+    padding: 3rem 0;
+}
+
+.error-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 0.75rem;
+    padding: 3rem 4rem;
+    text-align: center;
+    max-width: 500px;
+}
+
+.error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.error-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #f87171;
+    margin-bottom: 0.75rem;
+}
+
+.error-message {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+/* ==========================================
+   PREDICTION RESULTS
+   ========================================== */
+
+.prediction-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* Match Header Card */
+.match-header-card {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: var(--shadow-md);
+}
+
+.match-teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 120px;
+}
+
+.team-badge {
+    width: 64px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    background-color: var(--bg-primary);
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+}
+
+.team-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.match-vs {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.vs-text {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--accent-green);
+}
+
+.match-date {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    background-color: var(--bg-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+/* Confidence Badge */
+.confidence-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.5rem;
+}
+
+.confidence-badge {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.75rem;
+    background-color: var(--bg-primary);
+    border: 2px solid;
+}
+
+.confidence-badge.low {
+    border-color: #f87171;
+}
+
+.confidence-badge.medium {
+    border-color: #fbbf24;
+}
+
+.confidence-badge.high {
+    border-color: var(--accent-green);
+}
+
+.confidence-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.confidence-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+}
+
+.confidence-badge.low .confidence-value {
+    color: #f87171;
+}
+
+.confidence-badge.medium .confidence-value {
+    color: #fbbf24;
+}
+
+.confidence-badge.high .confidence-value {
+    color: var(--accent-green);
+}
+
+/* ==========================================
+   EXPECTED GOALS DISPLAY
+   ========================================== */
+
+.expected-goals-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.card-section-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1.5rem;
+    text-align: center;
+}
+
+.goals-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+}
+
+.goal-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 100px;
+}
+
+.goal-value {
+    font-size: 3.5rem;
+    font-weight: 800;
+    line-height: 1;
+    background: linear-gradient(135deg, var(--accent-green) 0%, #10b981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.goal-stat.away .goal-value {
+    background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.goal-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.goals-separator {
+    padding: 0 1rem;
+}
+
+.goals-dash {
+    font-size: 2rem;
+    color: var(--text-muted);
+}
+
+/* ==========================================
+   1X2 SEGMENTED PROBABILITY BAR
+   ========================================== */
+
+.probability-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.segmented-bar-container {
+    margin-bottom: 1rem;
+}
+
+.segmented-bar {
+    display: flex;
+    height: 56px;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.segment {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    transition: width 0.8s ease-out;
+    min-width: 60px;
+}
+
+.segment.home-win {
+    background: linear-gradient(135deg, var(--accent-green) 0%, #16a34a 100%);
+}
+
+.segment.draw {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+}
+
+.segment.away-win {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.segment-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.segment-value {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: white;
+}
+
+.result-legend {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.legend-dot.home-win {
+    background-color: var(--accent-green);
+}
+
+.legend-dot.draw {
+    background-color: #94a3b8;
+}
+
+.legend-dot.away-win {
+    background-color: #3b82f6;
+}
+
+/* ==========================================
+   ANIMATED PROBABILITY BARS
+   ========================================== */
+
+.probability-bars-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+}
+
+.probability-row {
+    margin-bottom: 1.5rem;
+}
+
+.probability-row:last-child {
+    margin-bottom: 0;
+}
+
+.probability-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.probability-name {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.probability-percent {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent-green);
+}
+
+.probability-bar-track {
+    width: 100%;
+    height: 12px;
+    background-color: var(--bg-tertiary);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.probability-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 1s ease-out;
+}
+
+
+/* ==========================================
+   EXPLAIN PREDICTION SECTION
+   ========================================== */
+
+.explain-prediction-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+}
+
+.explain-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-speed) ease;
+}
+
+.explain-toggle:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.explain-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.explain-icon {
+    font-size: 1.25rem;
+}
+
+.expand-icon {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    transition: transform var(--transition-speed) ease;
+}
+
+.expand-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.explain-content {
+    padding: 0 1.5rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.explain-placeholder {
+    padding: 1.5rem;
+    background-color: var(--bg-primary);
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+}
+
+.placeholder-text {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.placeholder-details {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+}
+
+.placeholder-list {
+    list-style: disc;
+    padding-left: 1.5rem;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.placeholder-list li {
+    margin-bottom: 0.375rem;
+}
+
+/* ==========================================
+   ACTIONS SECTION
+   ========================================== */
+
+.actions-section {
+    display: flex;
+    justify-content: center;
+    padding-top: 1rem;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+
+@media (max-width: 768px) {
+    .prediction-form-card {
+        padding: 1.5rem;
+    }
+
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .vs-divider {
+        text-align: center;
+        padding: 0.5rem;
+    }
+
+    .form-group {
+        min-width: 100%;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
+
+    .btn-predict {
+        width: 100%;
+    }
+
+    .match-teams {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .match-vs {
+        flex-direction: row;
+        gap: 1rem;
+    }
+
+    .goals-display {
+        gap: 1rem;
+    }
+
+    .goal-value {
+        font-size: 2.5rem;
+    }
+
+    .segmented-bar {
+        height: 48px;
+    }
+
+    .segment {
+        min-width: 50px;
+    }
+
+    .segment-label {
+        font-size: 0.625rem;
+    }
+
+    .segment-value {
+        font-size: 1rem;
+    }
+
+    .result-legend {
+        gap: 1rem;
+    }
+
+    .loading-card,
+    .error-card {
+        padding: 2rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .goals-display {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .goals-separator {
+        display: none;
+    }
+
+    .goal-stat {
+        flex-direction: row;
+        gap: 1rem;
+        justify-content: center;
+    }
+
+    .goal-value {
+        font-size: 2rem;
+    }
+
+    .result-legend {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+    }
+}
+

@@ -22,6 +22,15 @@ import java.util.stream.Collectors;
 /**
  * Service for calculating Live/Trending Insights.
  * Analyzes team performance trends and generates actionable predictions.
+ *
+ * <p><b>IMPORTANT:</b> All insights are calculated strictly within the selected season.
+ * This ensures:
+ * <ul>
+ *   <li>No cross-season data leakage</li>
+ *   <li>Streak logic resets at season boundaries</li>
+ *   <li>Rankings are per-season</li>
+ *   <li>Goal aggregates are per-season</li>
+ * </ul>
  */
 @Service
 @RequiredArgsConstructor
@@ -41,27 +50,75 @@ public class TrendingInsightsService {
     private static final int TOP_N_RESULTS = 5;
 
     /**
-     * Get all trending insights.
+     * Get the current season identifier.
+     * Returns the season of the most recent completed match.
+     */
+    public String getCurrentSeason() {
+        String season = matchRepository.findCurrentSeason();
+        if (season == null || season.isEmpty()) {
+            log.warn("No current season found in database");
+            return null;
+        }
+        return season;
+    }
+
+    /**
+     * Get all available seasons.
+     */
+    public List<String> getAvailableSeasons() {
+        return matchRepository.findAllSeasons();
+    }
+
+    /**
+     * Get all trending insights for the current season.
+     * Delegates to the season-specific method using the current season.
      */
     @Cacheable(value = "trendingInsights", key = "'all'")
     public TrendingInsightsResponse getTrendingInsights() {
-        log.info("Calculating trending insights...");
+        String currentSeason = getCurrentSeason();
+        if (currentSeason == null) {
+            log.warn("No current season available - returning empty insights");
+            return buildEmptyResponse();
+        }
+        return getTrendingInsightsBySeason(currentSeason);
+    }
+
+    /**
+     * Get all trending insights for a specific season.
+     * All insights are calculated strictly within the selected season:
+     * - No cross-season data leakage
+     * - Streak logic resets at season boundaries
+     * - Rankings are per-season
+     * - Goal aggregates are per-season
+     */
+    @Cacheable(value = "trendingInsights", key = "#season")
+    public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
+        log.info("Calculating trending insights for season: {}", season);
+
+        // Validate season exists
+        List<String> availableSeasons = getAvailableSeasons();
+        if (!availableSeasons.contains(season)) {
+            log.warn("Season {} not found in database. Available: {}", season, availableSeasons);
+            return buildEmptyResponse();
+        }
 
         LocalDate beforeDate = LocalDate.now().plusDays(1);
-        Set<String> allTeams = featureEngineeringService.getAllTeams();
 
-        log.debug("Analyzing {} teams for trends", allTeams.size());
+        // Get teams that played in the specified season only
+        Set<String> seasonTeams = getTeamsForSeason(season);
 
-        // Calculate all insights
-        List<HotTeam> hotTeams = calculateHotTeams(allTeams, beforeDate);
-        List<ColdTeam> coldTeams = calculateColdTeams(allTeams, beforeDate);
-        List<TopScorer> topScorers = calculateTopScorers(allTeams, beforeDate);
-        List<DefensiveWall> defensiveWalls = calculateDefensiveWalls(allTeams, beforeDate);
-        List<UpsetAlert> upsetAlerts = calculateUpsetAlerts(allTeams);
-        List<GoalFestMatch> goalFestMatches = calculateGoalFestMatches(allTeams);
+        log.debug("Analyzing {} teams for trends in season {}", seasonTeams.size(), season);
 
-        log.info("Insights calculated: {} hot teams, {} cold teams, {} top scorers, {} defensive walls, {} upset alerts, {} goal fest matches",
-                hotTeams.size(), coldTeams.size(), topScorers.size(),
+        // Calculate all insights using season-filtered data
+        List<HotTeam> hotTeams = calculateHotTeams(seasonTeams, beforeDate, season);
+        List<ColdTeam> coldTeams = calculateColdTeams(seasonTeams, beforeDate, season);
+        List<TopScorer> topScorers = calculateTopScorers(seasonTeams, beforeDate, season);
+        List<DefensiveWall> defensiveWalls = calculateDefensiveWalls(seasonTeams, beforeDate, season);
+        List<UpsetAlert> upsetAlerts = calculateUpsetAlerts(seasonTeams, season);
+        List<GoalFestMatch> goalFestMatches = calculateGoalFestMatches(seasonTeams, season);
+
+        log.info("Insights calculated for season {}: {} hot teams, {} cold teams, {} top scorers, {} defensive walls, {} upset alerts, {} goal fest matches",
+                season, hotTeams.size(), coldTeams.size(), topScorers.size(),
                 defensiveWalls.size(), upsetAlerts.size(), goalFestMatches.size());
 
         return TrendingInsightsResponse.builder()
@@ -72,22 +129,69 @@ public class TrendingInsightsService {
                 .upsetAlerts(upsetAlerts)
                 .goalFestMatches(goalFestMatches)
                 .generatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .totalTeamsAnalyzed(allTeams.size())
+                .totalTeamsAnalyzed(seasonTeams.size())
+                .season(season)
                 .build();
+    }
+
+    /**
+     * Build an empty response when no data is available.
+     */
+    private TrendingInsightsResponse buildEmptyResponse() {
+        return TrendingInsightsResponse.builder()
+                .hotTeams(Collections.emptyList())
+                .coldTeams(Collections.emptyList())
+                .topScorers(Collections.emptyList())
+                .defensiveWalls(Collections.emptyList())
+                .upsetAlerts(Collections.emptyList())
+                .goalFestMatches(Collections.emptyList())
+                .generatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .totalTeamsAnalyzed(0)
+                .season(null)
+                .build();
+    }
+
+    /**
+     * Get all teams that played in a specific season.
+     * Only includes teams with completed matches (fullTimeResult IS NOT NULL).
+     */
+    private Set<String> getTeamsForSeason(String season) {
+        List<String> teamNames = matchRepository.findAllDistinctTeamNamesBySeason(season);
+        Set<String> teams = new TreeSet<>(teamNames);
+
+        // Also add away teams
+        List<Match> seasonMatches = matchRepository.findBySeasonOrderByMatchDateDesc(season);
+        for (Match match : seasonMatches) {
+            teams.add(match.getHomeTeam());
+            teams.add(match.getAwayTeam());
+        }
+
+        return teams;
     }
 
     /**
      * 🔥 Hot Teams: Teams on 3+ match winning streaks OR teams with 4+ wins in last 5 matches.
      * Prioritizes consecutive winning streaks, but also includes hot form teams.
+     * Requires minimum of HOT_FORM_WINDOW matches to qualify.
+     *
+     * <p>All data is filtered to the specified season only - streaks do not carry over
+     * from previous seasons.
      */
-    private List<HotTeam> calculateHotTeams(Set<String> teams, LocalDate beforeDate) {
+    private List<HotTeam> calculateHotTeams(Set<String> teams, LocalDate beforeDate, String season) {
         List<HotTeam> hotTeams = new ArrayList<>();
         Set<String> teamsWithStreak = new HashSet<>();
 
+        // Cache matches to avoid N+1 queries in second pass
+        Map<String, List<Match>> matchCache = new HashMap<>();
+
         // First pass: Find teams with consecutive winning streaks
         for (String team : teams) {
-            List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
-            if (matches.isEmpty()) continue;
+            // Use season-filtered query - ensures no previous season data leaks
+            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+            matchCache.put(team, matches); // Cache for potential second pass
+
+            // Minimum match requirement to prevent false positives for new teams
+            if (matches.size() < HOT_FORM_WINDOW) continue;
 
             int winStreak = calcWinStreak(matches, team);
 
@@ -125,8 +229,9 @@ public class TrendingInsightsService {
             for (String team : teams) {
                 if (teamsWithStreak.contains(team)) continue;
 
-                List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
-                if (matches.size() < HOT_FORM_WINDOW) continue;
+                // Use cached matches instead of querying again
+                List<Match> matches = matchCache.get(team);
+                if (matches == null || matches.size() < HOT_FORM_WINDOW) continue;
 
                 List<Match> recentMatches = matches.stream().limit(HOT_FORM_WINDOW).toList();
                 int winsInWindow = (int) recentMatches.stream()
@@ -172,13 +277,20 @@ public class TrendingInsightsService {
 
     /**
      * ❄️ Cold Teams: Teams without a win in 5+ matches.
+     * Requires minimum of COLD_STREAK_THRESHOLD matches to qualify (prevents false positives for new teams).
+     *
+     * <p>All data is filtered to the specified season only - streaks do not carry over
+     * from previous seasons.
      */
-    private List<ColdTeam> calculateColdTeams(Set<String> teams, LocalDate beforeDate) {
+    private List<ColdTeam> calculateColdTeams(Set<String> teams, LocalDate beforeDate, String season) {
         List<ColdTeam> coldTeams = new ArrayList<>();
 
         for (String team : teams) {
-            List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
-            if (matches.isEmpty()) continue;
+            // Use season-filtered query - ensures no previous season data leaks
+            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+
+            // Minimum match requirement to prevent false positives for new teams
+            if (matches.size() < COLD_STREAK_THRESHOLD) continue;
 
             int winlessStreak = calcWinlessStreak(matches, team);
 
@@ -232,13 +344,16 @@ public class TrendingInsightsService {
     }
 
     /**
-     * ⚽ Top Scorers: Teams scoring most goals in recent matches.
+     * ⚽ Top Scorers: Teams scoring most goals in recent matches within the season.
+     *
+     * <p>All goal aggregates are calculated within the specified season only.
      */
-    private List<TopScorer> calculateTopScorers(Set<String> teams, LocalDate beforeDate) {
+    private List<TopScorer> calculateTopScorers(Set<String> teams, LocalDate beforeDate, String season) {
         List<TopScorer> topScorers = new ArrayList<>();
 
         for (String team : teams) {
-            List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
+            // Use season-filtered query
+            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
             if (matches.isEmpty()) continue;
 
             List<Match> recentMatches = matches.stream().limit(RECENT_MATCHES_WINDOW).toList();
@@ -280,13 +395,16 @@ public class TrendingInsightsService {
     }
 
     /**
-     * 🧱 Defensive Walls: Teams with most clean sheets recently.
+     * 🧱 Defensive Walls: Teams with most clean sheets recently within the season.
+     *
+     * <p>Clean sheet streaks are calculated within the specified season only.
      */
-    private List<DefensiveWall> calculateDefensiveWalls(Set<String> teams, LocalDate beforeDate) {
+    private List<DefensiveWall> calculateDefensiveWalls(Set<String> teams, LocalDate beforeDate, String season) {
         List<DefensiveWall> defensiveWalls = new ArrayList<>();
 
         for (String team : teams) {
-            List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
+            // Use season-filtered query
+            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
             if (matches.isEmpty()) continue;
 
             List<Match> recentMatches = matches.stream().limit(RECENT_MATCHES_WINDOW).toList();
@@ -331,11 +449,13 @@ public class TrendingInsightsService {
 
     /**
      * 🎯 Upset Alerts: Matches where away team has >50% win probability.
+     *
+     * <p>Analysis is based on teams from the specified season only.
      */
-    private List<UpsetAlert> calculateUpsetAlerts(Set<String> teams) {
+    private List<UpsetAlert> calculateUpsetAlerts(Set<String> teams, String season) {
         List<UpsetAlert> upsetAlerts = new ArrayList<>();
 
-        // We need upcoming matches - generate potential matchups from current teams
+        // We need upcoming matches - generate potential matchups from current season teams
         // In production, this would use actual scheduled fixtures
         // For now, we'll analyze all possible Premier League matchups and identify upsets
 
@@ -346,17 +466,16 @@ public class TrendingInsightsService {
                 return upsetAlerts;
             }
 
-            // Get Premier League teams (top 20 most frequent in recent data)
+            // Get teams that have played in the specified season only
             LocalDate beforeDate = LocalDate.now().plusDays(1);
             Map<String, Long> teamMatchCounts = new HashMap<>();
             for (String team : teams) {
-                List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
-                // Filter to last 2 seasons approximately
-                long recentCount = matches.stream()
-                        .filter(m -> m.getMatchDate().isAfter(LocalDate.now().minusYears(2)))
-                        .count();
-                if (recentCount >= 30) { // At least ~1 season worth
-                    teamMatchCounts.put(team, recentCount);
+                // Use season-filtered query to get match counts within this season only
+                List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+                long matchCount = matches.size();
+                // Require at least 5 matches in this season to qualify
+                if (matchCount >= 5) {
+                    teamMatchCounts.put(team, matchCount);
                 }
             }
 
@@ -410,19 +529,22 @@ public class TrendingInsightsService {
 
     /**
      * 🎉 Goal Fest Predictions: Matches with highest expected total goals.
+     *
+     * <p>Goal averages are calculated within the specified season only.
      */
-    private List<GoalFestMatch> calculateGoalFestMatches(Set<String> teams) {
+    private List<GoalFestMatch> calculateGoalFestMatches(Set<String> teams, String season) {
         List<GoalFestMatch> goalFestMatches = new ArrayList<>();
 
         try {
             LocalDate beforeDate = LocalDate.now().plusDays(1);
 
-            // Get active teams
+            // Get active teams with goal averages from this season only
             Map<String, Double> teamAvgGoals = new HashMap<>();
             Map<String, Double> teamAvgConceded = new HashMap<>();
 
             for (String team : teams) {
-                List<Match> matches = matchRepository.findByTeamBeforeDate(team, beforeDate);
+                // Use season-filtered query
+                List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
                 List<Match> recentMatches = matches.stream().limit(RECENT_MATCHES_WINDOW).toList();
 
                 if (recentMatches.size() >= 5) {
@@ -459,12 +581,6 @@ public class TrendingInsightsService {
 
                     // Only include matches expected to have 3+ goals
                     if (expectedTotalGoals >= 3.0) {
-                        // Estimate over 2.5 probability (simplified)
-                        double over25Prob = Math.min(95, expectedTotalGoals * 25);
-
-                        // BTTS probability (if both teams score regularly)
-                        double bttsPct = Math.min(90, (homeScoring + awayScoring) * 20);
-
                         goalFestMatches.add(GoalFestMatch.builder()
                                 .homeTeam(homeTeam)
                                 .awayTeam(awayTeam)
@@ -474,8 +590,6 @@ public class TrendingInsightsService {
                                 .awayTeamAvgScoring(PredictionUtils.round(awayScoring))
                                 .homeTeamAvgConceding(PredictionUtils.round(homeConceding))
                                 .awayTeamAvgConceding(PredictionUtils.round(awayConceding))
-                                .over25Probability(PredictionUtils.round(over25Prob))
-                                .bttsPercentage(PredictionUtils.round(bttsPct))
                                 .build());
                     }
                 }

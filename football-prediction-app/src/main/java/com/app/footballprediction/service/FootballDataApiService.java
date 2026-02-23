@@ -6,12 +6,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Service for fetching data from football-data.org API.
@@ -20,7 +20,8 @@ import java.util.Map;
  * Supported competitions: PL (Premier League), BL1 (Bundesliga),
  *                         SA (Serie A), PD (La Liga), FL1 (Ligue 1)
  *
- * This service implements caching to minimize API calls.
+ * This service uses Spring's Caffeine cache for efficient caching with TTL.
+ * Cache configuration is managed in CacheConfig.
  */
 @Service
 @RequiredArgsConstructor
@@ -29,83 +30,107 @@ public class FootballDataApiService {
 
     private final WebClient footballApiClient;
 
-    // Simple in-memory cache to respect rate limits (backup to Spring cache)
-    private final Map<String, CacheEntry<?>> cache = new HashMap<>();
-    private static final long CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
-
     /**
      * Fetch finished matches for current season.
      * Used to get recent results and form.
+     * Cached for 5 minutes by default.
      */
-    @Cacheable(value = "matches", key = "'finished_' + #competitionCode")
+    @Cacheable(value = "matches", key = "'finished_' + #competitionCode", unless = "#result == null")
     public FootballApiResponse getFinishedMatches(String competitionCode) {
-        String cacheKey = "finished_" + competitionCode;
-        return getCachedOrFetch(cacheKey, () -> {
-            log.info("Fetching finished matches for {} from external API", competitionCode);
-            return footballApiClient.get()
-                    .uri("/competitions/{code}/matches?status={status}", competitionCode, "FINISHED")
-                    .retrieve()
-                    .bodyToMono(FootballApiResponse.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .doOnError(e -> log.error("Error fetching finished matches: {}", e.getMessage()))
-                    .block();
-        });
+        log.info("Fetching finished matches for {} from external API", competitionCode);
+        return fetchWithRetry(() -> footballApiClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/competitions/{code}/matches")
+                        .queryParam("status", "FINISHED")
+                        .build(competitionCode))
+                .retrieve()
+                .bodyToMono(FootballApiResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .block());
     }
 
     /**
      * Fetch upcoming/scheduled matches.
      * These are the matches we want to predict.
+     * Uses TIMED and SCHEDULED statuses to get all upcoming matches.
+     * Cached for 5 minutes by default.
      */
-    @Cacheable(value = "matches", key = "'scheduled_' + #competitionCode")
+    @Cacheable(value = "matches", key = "'scheduled_' + #competitionCode", unless = "#result == null")
     public FootballApiResponse getScheduledMatches(String competitionCode) {
-        String cacheKey = "scheduled_" + competitionCode;
-        return getCachedOrFetch(cacheKey, () -> {
-            log.info("Fetching scheduled matches for {} from external API", competitionCode);
-            return footballApiClient.get()
-                    .uri("/competitions/{code}/matches?status={status}", competitionCode, "SCHEDULED")
-                    .retrieve()
-                    .bodyToMono(FootballApiResponse.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .doOnError(e -> log.error("Error fetching scheduled matches: {}", e.getMessage()))
-                    .block();
-        });
+        log.info("Fetching scheduled matches for {} from external API", competitionCode);
+        return fetchWithRetry(() -> footballApiClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/competitions/{code}/matches")
+                        .queryParam("status", "SCHEDULED,TIMED")
+                        .build(competitionCode))
+                .retrieve()
+                .bodyToMono(FootballApiResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .block());
     }
 
     /**
      * Fetch current standings with team form.
      * Provides current season statistics for each team.
+     * Cached for 5 minutes by default.
      */
-    @Cacheable(value = "standings", key = "#competitionCode")
+    @Cacheable(value = "standings", key = "#competitionCode", unless = "#result == null")
     public StandingsResponse getStandings(String competitionCode) {
-        String cacheKey = "standings_" + competitionCode;
-        return getCachedOrFetch(cacheKey, () -> {
-            log.info("Fetching standings for {} from external API", competitionCode);
-            return footballApiClient.get()
-                    .uri("/competitions/{code}/standings", competitionCode)
-                    .retrieve()
-                    .bodyToMono(StandingsResponse.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .doOnError(e -> log.error("Error fetching standings: {}", e.getMessage()))
-                    .block();
-        });
+        log.info("Fetching standings for {} from external API", competitionCode);
+        return fetchWithRetry(() -> footballApiClient.get()
+                .uri("/competitions/{code}/standings", competitionCode)
+                .retrieve()
+                .bodyToMono(StandingsResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .block());
     }
 
     /**
      * Fetch matches for a specific matchday.
+     * Cached for 5 minutes by default.
      */
-    @Cacheable(value = "matches", key = "'matchday_' + #competitionCode + '_' + #matchday")
+    @Cacheable(value = "matches", key = "'matchday_' + #competitionCode + '_' + #matchday", unless = "#result == null")
     public FootballApiResponse getMatchdayMatches(String competitionCode, int matchday) {
-        String cacheKey = "matchday_" + competitionCode + "_" + matchday;
-        return getCachedOrFetch(cacheKey, () -> {
-            log.info("Fetching matchday {} for {} from external API", matchday, competitionCode);
-            return footballApiClient.get()
-                    .uri("/competitions/{code}/matches?matchday={matchday}", competitionCode, matchday)
-                    .retrieve()
-                    .bodyToMono(FootballApiResponse.class)
-                    .timeout(Duration.ofSeconds(30))
-                    .doOnError(e -> log.error("Error fetching matchday: {}", e.getMessage()))
-                    .block();
-        });
+        log.info("Fetching matchday {} for {} from external API", matchday, competitionCode);
+        return fetchWithRetry(() -> footballApiClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/competitions/{code}/matches")
+                        .queryParam("matchday", matchday)
+                        .build(competitionCode))
+                .retrieve()
+                .bodyToMono(FootballApiResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .block());
+    }
+
+    /**
+     * Helper method to fetch with retry logic and proper error handling.
+     */
+    private <T> T fetchWithRetry(java.util.function.Supplier<T> fetcher) {
+        int maxRetries = 2;
+
+        for (int retryCount = 0; retryCount <= maxRetries; retryCount++) {
+            try {
+                return fetcher.get();
+            } catch (WebClientResponseException.TooManyRequests e) {
+                if (retryCount >= maxRetries) {
+                    log.error("Rate limit exceeded after {} retries", maxRetries);
+                    throw e;
+                }
+                log.warn("Rate limit hit, waiting before retry {} of {}", retryCount + 1, maxRetries);
+                try {
+                    Thread.sleep(6000L * (retryCount + 1)); // Exponential backoff
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Interrupted during retry wait", ie);
+                }
+            } catch (Exception e) {
+                log.error("Error fetching data: {}", e.getMessage());
+                throw e;
+            }
+        }
+
+        throw new RuntimeException("Failed to fetch after retries");
     }
 
     /**
@@ -145,34 +170,31 @@ public class FootballDataApiService {
     }
 
     /**
-     * Simple cache implementation to avoid hitting rate limits.
+     * Clear all football API related caches.
+     * Useful for forcing fresh data fetch.
      */
-    @SuppressWarnings("unchecked")
-    private <T> T getCachedOrFetch(String key, java.util.function.Supplier<T> fetcher) {
-        CacheEntry<?> entry = cache.get(key);
-        if (entry != null && !entry.isExpired()) {
-            log.debug("Cache hit for key: {}", key);
-            return (T) entry.value;
-        }
-
-        T result = fetcher.get();
-        cache.put(key, new CacheEntry<>(result, System.currentTimeMillis() + CACHE_TTL_MS));
-        return result;
+    @Caching(evict = {
+        @CacheEvict(value = "standings", allEntries = true),
+        @CacheEvict(value = "matches", allEntries = true)
+    })
+    public void clearCache() {
+        log.info("Football API caches cleared (standings and matches)");
     }
 
     /**
-     * Clear cache (useful for testing or forced refresh).
+     * Clear only standings cache for a specific competition.
      */
-    @CacheEvict(value = {"standings", "matches"}, allEntries = true)
-    public void clearCache() {
-        cache.clear();
-        log.info("External API cache cleared (both internal and Spring cache)");
+    @CacheEvict(value = "standings", key = "#competitionCode")
+    public void clearStandingsCache(String competitionCode) {
+        log.info("Standings cache cleared for competition: {}", competitionCode);
     }
 
-    private record CacheEntry<T>(T value, long expiresAt) {
-        boolean isExpired() {
-            return System.currentTimeMillis() > expiresAt;
-        }
+    /**
+     * Clear only matches cache for a specific competition.
+     */
+    @CacheEvict(value = "matches", allEntries = true)
+    public void clearMatchesCache() {
+        log.info("Matches cache cleared");
     }
 }
 

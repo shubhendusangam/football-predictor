@@ -28,6 +28,8 @@ public class Match {
    private LocalDate matchDate;
    private String homeTeam;
    private String awayTeam;
+   private String season;        // e.g., "2023-24"
+   private String referee;       // Match referee
 
    // ── Full-Time Result ───────────────────────────────────
    private Integer fullTimeHomeGoals;   // FTHG
@@ -51,6 +53,32 @@ public class Match {
    private Integer homeRedCards;        // HR
    private Integer awayRedCards;        // AR
 
+   // ── Betting Odds ───────────────────────────────────────
+   // Bet365
+   private Double b365H;    // Bet365 Home Win odds
+   private Double b365D;    // Bet365 Draw odds
+   private Double b365A;    // Bet365 Away Win odds
+
+   // Betway
+   private Double bwH;      // Betway Home Win
+   private Double bwD;      // Betway Draw
+   private Double bwA;      // Betway Away
+
+   // Interwetten
+   private Double iwH;      // Interwetten Home Win
+   private Double iwD;      // Interwetten Draw
+   private Double iwA;      // Interwetten Away
+
+   // Pinnacle Sports
+   private Double psH;      // Pinnacle Home Win
+   private Double psD;      // Pinnacle Draw
+   private Double psA;      // Pinnacle Away
+
+   // William Hill
+   private Double whH;      // William Hill Home Win
+   private Double whD;      // William Hill Draw
+   private Double whA;      // William Hill Away
+
    public int getPointsForTeam(String teamName) {
       if (teamName == null) return 0;
       String normalizedName = teamName.trim();
@@ -73,16 +101,24 @@ public class Match {
    public int getGoalsScoredByTeam(String teamName) {
       if (teamName == null) return 0;
       String normalizedName = teamName.trim();
-      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeHomeGoals;
-      if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeAwayGoals;
+      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) {
+         return fullTimeHomeGoals != null ? fullTimeHomeGoals : 0;
+      }
+      if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) {
+         return fullTimeAwayGoals != null ? fullTimeAwayGoals : 0;
+      }
       return 0;
    }
 
    public int getGoalsConcededByTeam(String teamName) {
       if (teamName == null) return 0;
       String normalizedName = teamName.trim();
-      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeAwayGoals;
-      if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) return fullTimeHomeGoals;
+      if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) {
+         return fullTimeAwayGoals != null ? fullTimeAwayGoals : 0;
+      }
+      if (awayTeam != null && awayTeam.trim().equalsIgnoreCase(normalizedName)) {
+         return fullTimeHomeGoals != null ? fullTimeHomeGoals : 0;
+      }
       return 0;
    }
 }

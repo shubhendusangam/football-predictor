@@ -1,0 +1,492 @@
+/* ==========================================
+   LEAGUE STANDINGS TABLE STYLES
+   Football Forecaster Dashboard Component
+   ========================================== */
+
+/* Container */
+.league-standings-container {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+    animation: fadeInUp 0.5s var(--ease-out-expo) forwards;
+}
+
+/* Header */
+.league-standings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.league-standings-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.league-standings-title .icon {
+    font-size: 1.25rem;
+}
+
+.league-standings-season {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Controls */
+.league-standings-controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.league-standings-select {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8125rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    min-width: 140px;
+    transition: border-color 0.2s;
+}
+
+.league-standings-select:hover,
+.league-standings-select:focus {
+    border-color: var(--accent-green);
+    outline: none;
+}
+
+.league-standings-refresh {
+    padding: 0.375rem 0.625rem;
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.league-standings-refresh:hover {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: var(--text-primary);
+}
+
+.league-standings-refresh.loading {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Table Wrapper for horizontal scroll */
+.league-standings-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Table */
+.league-standings-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 700px;
+}
+
+.league-standings-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--bg-tertiary);
+}
+
+.league-standings-table th {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    text-align: center;
+    white-space: nowrap;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.league-standings-table th:first-child,
+.league-standings-table th:nth-child(2) {
+    text-align: left;
+}
+
+.league-standings-table th.position-col {
+    width: 40px;
+}
+
+.league-standings-table th.team-col {
+    min-width: 150px;
+}
+
+.league-standings-table th.form-col {
+    min-width: 100px;
+}
+
+.league-standings-table tbody tr {
+    transition: background-color 0.2s;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.league-standings-table tbody tr:hover {
+    background: var(--bg-tertiary);
+}
+
+.league-standings-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.league-standings-table td {
+    padding: 0.625rem 0.5rem;
+    font-size: 0.875rem;
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.league-standings-table td:first-child,
+.league-standings-table td:nth-child(2) {
+    text-align: left;
+}
+
+/* Position Column */
+.position-cell {
+    font-weight: 600;
+    min-width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.position-indicator {
+    width: 4px;
+    height: 24px;
+    border-radius: 2px;
+    margin-right: 0.5rem;
+}
+
+/* Zone Colors */
+.zone-champions .position-indicator {
+    background: var(--accent-green);
+}
+
+.zone-europa .position-indicator {
+    background: #3b82f6;
+}
+
+.zone-conference .position-indicator {
+    background: #8b5cf6;
+}
+
+.zone-relegation .position-indicator {
+    background: var(--accent-red);
+}
+
+.zone-mid .position-indicator {
+    background: transparent;
+}
+
+/* Row Background Highlights */
+.zone-champions {
+    background: rgba(34, 197, 94, 0.08);
+}
+
+.zone-europa {
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.zone-conference {
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.zone-relegation {
+    background: rgba(239, 68, 68, 0.08);
+}
+
+/* Team Cell */
+.team-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 150px;
+}
+
+.team-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.team-logo-placeholder {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.team-name {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Stats Columns */
+.stat-cell {
+    font-variant-numeric: tabular-nums;
+}
+
+.stat-cell.points {
+    font-weight: 700;
+    color: var(--accent-green);
+}
+
+.stat-cell.gd-positive {
+    color: var(--accent-green);
+}
+
+.stat-cell.gd-negative {
+    color: var(--accent-red);
+}
+
+/* Form Column */
+.form-cell {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+}
+
+.form-badge {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.form-badge.win {
+    background: var(--accent-green);
+    color: white;
+}
+
+.form-badge.draw {
+    background: var(--accent-yellow);
+    color: #1e293b;
+}
+
+.form-badge.loss {
+    background: var(--accent-red);
+    color: white;
+}
+
+/* Position Change Arrows */
+.position-change {
+    font-size: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.position-change.up {
+    color: var(--accent-green);
+}
+
+.position-change.down {
+    color: var(--accent-red);
+}
+
+.position-change.same {
+    color: var(--text-muted);
+}
+
+/* Legend */
+.league-standings-legend {
+    display: flex;
+    gap: 1rem;
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-tertiary);
+    flex-wrap: wrap;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-color.champions {
+    background: var(--accent-green);
+}
+
+.legend-color.europa {
+    background: #3b82f6;
+}
+
+.legend-color.conference {
+    background: #8b5cf6;
+}
+
+.legend-color.relegation {
+    background: var(--accent-red);
+}
+
+/* Loading State */
+.league-standings-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-muted);
+}
+
+.league-standings-loading .spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-green);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 0.75rem;
+}
+
+/* Empty State */
+.league-standings-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.league-standings-empty .icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.league-standings-empty .message {
+    font-size: 0.875rem;
+}
+
+/* Error State */
+.league-standings-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--accent-red);
+    text-align: center;
+}
+
+.league-standings-error .icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+.league-standings-error .message {
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+}
+
+.league-standings-error .retry-btn {
+    padding: 0.5rem 1rem;
+    background: var(--accent-red);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.8125rem;
+    transition: background-color 0.2s;
+}
+
+.league-standings-error .retry-btn:hover {
+    background: #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .league-standings-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .league-standings-controls {
+        width: 100%;
+    }
+
+    .league-standings-select {
+        flex: 1;
+    }
+
+    .league-standings-table th,
+    .league-standings-table td {
+        padding: 0.5rem 0.375rem;
+        font-size: 0.8125rem;
+    }
+
+    .team-name {
+        max-width: 120px;
+    }
+
+    .form-badge {
+        width: 18px;
+        height: 18px;
+        font-size: 0.5625rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .league-standings-table th,
+    .league-standings-table td {
+        padding: 0.375rem 0.25rem;
+        font-size: 0.75rem;
+    }
+
+    .team-logo {
+        width: 20px;
+        height: 20px;
+    }
+
+    .team-name {
+        max-width: 100px;
+    }
+}
+

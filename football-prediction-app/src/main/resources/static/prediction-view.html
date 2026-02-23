@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match Prediction - Football Forecaster</title>
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/prediction-view.css">
+    <link rel="stylesheet" href="css/team-form.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="brand-icon">⚽</span>
+                <h1 class="brand-name">Football Forecaster</h1>
+            </div>
+            <ul class="navbar-links">
+                <li><a href="index.html" class="nav-link">Dashboard</a></li>
+                <li><a href="#predictions" class="nav-link active">Predictions</a></li>
+                <li><a href="#historical" class="nav-link">Historical</a></li>
+                <li><a href="#insights" class="nav-link">Insights</a></li>
+            </ul>
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <span class="toggle-icon">☰</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="app-container">
+        <!-- Collapsible Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="index.html" class="sidebar-link">
+                    <span class="sidebar-icon">📊</span>
+                    <span class="sidebar-label">Dashboard</span>
+                </a>
+                <a href="#predictions" class="sidebar-link active">
+                    <span class="sidebar-icon">🎯</span>
+                    <span class="sidebar-label">Predictions</span>
+                </a>
+                <a href="#historical" class="sidebar-link">
+                    <span class="sidebar-icon">📈</span>
+                    <span class="sidebar-label">Historical Data</span>
+                </a>
+                <a href="#insights" class="sidebar-link">
+                    <span class="sidebar-icon">💡</span>
+                    <span class="sidebar-label">Insights</span>
+                </a>
+                <a href="#teams" class="sidebar-link">
+                    <span class="sidebar-icon">🏆</span>
+                    <span class="sidebar-label">Teams</span>
+                </a>
+                <a href="#matches" class="sidebar-link">
+                    <span class="sidebar-icon">⚽</span>
+                    <span class="sidebar-label">Matches</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="mainContent">
+            <div class="content-header">
+                <h2 class="page-title">Match Prediction</h2>
+                <p class="page-description">Get AI-powered predictions for upcoming matches</p>
+            </div>
+
+            <!-- Prediction Input Form -->
+            <section class="prediction-form-section">
+                <div class="prediction-form-card">
+                    <h3 class="form-title">Select Match</h3>
+                    <form id="predictionForm" class="prediction-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="homeTeam" class="form-label">Home Team</label>
+                                <input type="text" id="homeTeam" name="homeTeam" class="form-input"
+                                       placeholder="Enter home team" required>
+                            </div>
+                            <div class="vs-divider">VS</div>
+                            <div class="form-group">
+                                <label for="awayTeam" class="form-label">Away Team</label>
+                                <input type="text" id="awayTeam" name="awayTeam" class="form-input"
+                                       placeholder="Enter away team" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="matchDate" class="form-label">Match Date</label>
+                                <input type="date" id="matchDate" name="matchDate" class="form-input" required>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-predict" id="predictBtn">
+                                <span class="btn-text">Get Prediction</span>
+                                <span class="btn-loading hidden">
+                                    <span class="spinner"></span>
+                                    Predicting...
+                                </span>
+                            </button>
+                            <button type="button" class="btn btn-outline" id="resetBtn">Reset</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Loading State -->
+            <section class="loading-section hidden" id="loadingSection">
+                <div class="loading-card">
+                    <div class="loading-spinner-large"></div>
+                    <p class="loading-text">Analyzing match data...</p>
+                    <p class="loading-subtext">Our AI is crunching the numbers</p>
+                </div>
+            </section>
+
+            <!-- Error State -->
+            <section class="error-section hidden" id="errorSection">
+                <div class="error-card">
+                    <div class="error-icon">⚠️</div>
+                    <h3 class="error-title">Prediction Failed</h3>
+                    <p class="error-message" id="errorMessage">An error occurred while generating the prediction.</p>
+                    <button class="btn btn-primary" id="retryBtn">Try Again</button>
+                </div>
+            </section>
+
+            <!-- Prediction Results -->
+            <section class="prediction-results hidden" id="predictionResults">
+                <!-- Match Header -->
+                <div class="match-header-card">
+                    <div class="match-teams">
+                        <div class="team home-team">
+                            <div class="team-badge">🏠</div>
+                            <span class="team-name" id="homeTeamName">Home Team</span>
+                        </div>
+                        <div class="match-vs">
+                            <span class="vs-text">VS</span>
+                            <span class="match-date" id="matchDateDisplay">Feb 21, 2026</span>
+                        </div>
+                        <div class="team away-team">
+                            <div class="team-badge">✈️</div>
+                            <span class="team-name" id="awayTeamName">Away Team</span>
+                        </div>
+                    </div>
+                    <!-- Confidence Badge -->
+                    <div class="confidence-container">
+                        <div class="confidence-badge" id="confidenceBadge">
+                            <span class="confidence-label">Confidence</span>
+                            <span class="confidence-value" id="confidenceValue">71%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expected Goals Display -->
+                <div class="expected-goals-card">
+                    <h3 class="card-section-title">Expected Goals</h3>
+                    <div class="goals-display">
+                        <div class="goal-stat home">
+                            <span class="goal-value" id="homeGoals">1.82</span>
+                            <span class="goal-label">Home</span>
+                        </div>
+                        <div class="goals-separator">
+                            <span class="goals-dash">—</span>
+                        </div>
+                        <div class="goal-stat away">
+                            <span class="goal-value" id="awayGoals">1.31</span>
+                            <span class="goal-label">Away</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 1X2 Probability Bar -->
+                <div class="probability-card">
+                    <h3 class="card-section-title">Match Result (1X2)</h3>
+                    <div class="segmented-bar-container">
+                        <div class="segmented-bar" id="resultBar">
+                            <div class="segment home-win" id="homeWinSegment" style="width: 45%;">
+                                <span class="segment-label">Home</span>
+                                <span class="segment-value" id="homeWinValue">45%</span>
+                            </div>
+                            <div class="segment draw" id="drawSegment" style="width: 28%;">
+                                <span class="segment-label">Draw</span>
+                                <span class="segment-value" id="drawValue">28%</span>
+                            </div>
+                            <div class="segment away-win" id="awayWinSegment" style="width: 27%;">
+                                <span class="segment-label">Away</span>
+                                <span class="segment-value" id="awayWinValue">27%</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="result-legend">
+                        <div class="legend-item">
+                            <span class="legend-dot home-win"></span>
+                            <span>Home Win</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot draw"></span>
+                            <span>Draw</span>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot away-win"></span>
+                            <span>Away Win</span>
+                        </div>
+                    </div>
+                </div>
+
+
+                <!-- Expandable Explain Prediction Section -->
+                <div class="explain-prediction-card">
+                    <button class="explain-toggle" id="explainToggle">
+                        <span class="explain-title">
+                            <span class="explain-icon">💡</span>
+                            Explain Prediction
+                        </span>
+                        <span class="expand-icon" id="expandIcon">▼</span>
+                    </button>
+                    <div class="explain-content hidden" id="explainContent">
+                        <div class="explain-placeholder">
+                            <p class="placeholder-text">
+                                Prediction explanation will be available here in a future update.
+                            </p>
+                            <p class="placeholder-details">
+                                This section will include:
+                            </p>
+                            <ul class="placeholder-list">
+                                <li>Head-to-head statistics</li>
+                                <li>Recent form analysis</li>
+                                <li>Key factors influencing the prediction</li>
+                                <li>Historical accuracy for similar matches</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Prediction Button -->
+                <div class="actions-section">
+                    <button class="btn btn-secondary" id="newPredictionBtn">
+                        <span>🔄</span> New Prediction
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/api.js"></script>
+    <script src="js/ui-utils.js"></script>
+    <script src="js/api-client.js"></script>
+    <script src="js/layout.js"></script>
+    <script src="js/team-form.js"></script>
+    <script src="js/prediction-view.js"></script>
+</body>
+</html>
+

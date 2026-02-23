@@ -31,7 +31,14 @@ public class CsvIngestionService {
    @Value("${csv.data.paths}")
    private String csvPaths;
 
-   private static final DateTimeFormatter FMT_SHORT = DateTimeFormatter.ofPattern("dd/MM/yy");
+   // Use a custom formatter for 2-digit years that interprets:
+   // - 00-29 as 2000-2029
+   // - 30-99 as 1930-1999
+   // This ensures historical football data (e.g., 1993-2025) is parsed correctly
+   private static final DateTimeFormatter FMT_SHORT = new java.time.format.DateTimeFormatterBuilder()
+         .appendPattern("dd/MM/")
+         .appendValueReduced(java.time.temporal.ChronoField.YEAR, 2, 2, 1930)
+         .toFormatter();
    private static final DateTimeFormatter FMT_LONG  = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
    // ── Public API ────────────────────────────────────────────────────────
@@ -64,6 +71,12 @@ public class CsvIngestionService {
       long start = System.currentTimeMillis();
       log.info("Starting ingestion: {}", classpathLocation);
 
+      // Extract season from filename
+      String season = extractSeasonFromFilename(classpathLocation);
+      if (season != null) {
+         log.info("Detected season: {}", season);
+      }
+
       List<Match> toSave = new ArrayList<>();
       int skippedCount = 0;  // Add this counter
 
@@ -90,7 +103,7 @@ public class CsvIngestionService {
             }
 
             try {
-               Match match = parseRow(row, colIndex);
+               Match match = parseRow(row, colIndex, season);
                if (match == null) {
                   skippedCount++;  // Increment when parseRow returns null
                   continue;
@@ -150,7 +163,7 @@ public class CsvIngestionService {
       }
    }
 
-   private Match parseRow(String[] row, Map<String, Integer> col) {
+   private Match parseRow(String[] row, Map<String, Integer> col, String season) {
       // Convert a CSV row into a Match object or return null if the row should be skipped.
       // Skips rows with no final result (future or postponed) or unparsable dates.
       String ftr = getString(row, col, "FTR");
@@ -174,6 +187,8 @@ public class CsvIngestionService {
             .fullTimeHomeGoals(getInt(row, col, "FTHG"))
             .fullTimeAwayGoals(getInt(row, col, "FTAG"))
             .fullTimeResult(ftr)
+            .season(season)  // Set season from filename
+            .referee(getString(row, col, "Referee"))
             // Optional Phase 1
             .halfTimeHomeGoals(getInt(row, col, "HTHG"))
             .halfTimeAwayGoals(getInt(row, col, "HTAG"))
@@ -237,5 +252,33 @@ public class CsvIngestionService {
     */
    public long getMatchCount() {
       return matchRepository.count();
+   }
+
+   /**
+    * Extract season string from CSV filename.
+    * e.g., "data/PL_23_24.csv" → "2023-24"
+    *       "data/PL_99_00.csv" → "1999-00"
+    */
+   private String extractSeasonFromFilename(String filename) {
+      // Extract just the filename without path
+      String name = filename.substring(filename.lastIndexOf('/') + 1);
+      // Remove extension
+      name = name.replace(".csv", "");
+      // Expected format: PL_YY_YY (e.g., PL_23_24)
+      String[] parts = name.split("_");
+      if (parts.length >= 3) {
+         String startYear = parts[1];
+         String endYear = parts[2];
+         // Convert 2-digit year to 4-digit for start year
+         int startYearInt = Integer.parseInt(startYear);
+         String fullStartYear;
+         if (startYearInt >= 93) {
+            fullStartYear = "19" + startYear;
+         } else {
+            fullStartYear = "20" + startYear;
+         }
+         return fullStartYear + "-" + endYear;
+      }
+      return null;
    }
 }

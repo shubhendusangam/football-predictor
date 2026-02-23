@@ -3,6 +3,7 @@ package com.app.footballprediction.service;
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.common.util.PredictionUtils;
+import com.app.common.util.TeamNameNormalizer;
 import com.app.footballprediction.dto.H2HInsightsResponse;
 import com.app.footballprediction.dto.H2HInsightsResponse.*;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class H2HInsightsService {
 
     /**
      * Get comprehensive H2H insights for two teams.
+     * Automatically normalizes team names from API format to database format.
      *
      * @param homeTeam The home team for the upcoming/hypothetical match
      * @param awayTeam The away team for the upcoming/hypothetical match
@@ -39,27 +41,67 @@ public class H2HInsightsService {
     public H2HInsightsResponse getH2HInsights(String homeTeam, String awayTeam) {
         log.info("Calculating H2H insights: {} vs {}", homeTeam, awayTeam);
 
+        // Normalize team names to match database format
+        String normalizedHome = TeamNameNormalizer.normalize(homeTeam);
+        String normalizedAway = TeamNameNormalizer.normalize(awayTeam);
+
+        if (!normalizedHome.equals(homeTeam) || !normalizedAway.equals(awayTeam)) {
+            log.info("Normalized team names: '{}' -> '{}', '{}' -> '{}'",
+                     homeTeam, normalizedHome, awayTeam, normalizedAway);
+        }
+
         LocalDate beforeDate = LocalDate.now().plusDays(1);
 
         // Fetch all H2H matches between these two teams
-        List<Match> h2hMatches = matchRepository.findH2HBeforeDate(homeTeam, awayTeam, beforeDate);
+        List<Match> h2hMatches = matchRepository.findH2HBeforeDate(normalizedHome, normalizedAway, beforeDate);
 
+        // If no matches found, try case-insensitive search
         if (h2hMatches.isEmpty()) {
-            log.info("No H2H history found between {} and {}", homeTeam, awayTeam);
-            return buildEmptyResponse(homeTeam, awayTeam);
+            h2hMatches = tryFuzzyH2HSearch(normalizedHome, normalizedAway, beforeDate);
         }
 
-        log.debug("Found {} H2H matches between {} and {}", h2hMatches.size(), homeTeam, awayTeam);
+        if (h2hMatches.isEmpty()) {
+            log.info("No H2H history found between {} and {} (searched as {} vs {})",
+                     homeTeam, awayTeam, normalizedHome, normalizedAway);
+            return buildEmptyResponse(normalizedHome, normalizedAway);
+        }
+
+        log.debug("Found {} H2H matches between {} and {}", h2hMatches.size(), normalizedHome, normalizedAway);
 
         return H2HInsightsResponse.builder()
-                .homeTeam(homeTeam)
-                .awayTeam(awayTeam)
-                .historicalRecord(calculateHistoricalRecord(h2hMatches, homeTeam, awayTeam))
-                .recentMeetings(getRecentMeetings(h2hMatches, homeTeam, awayTeam))
-                .goalStats(calculateGoalStats(h2hMatches, homeTeam, awayTeam))
-                .commonResults(calculateCommonResults(h2hMatches, homeTeam, awayTeam))
-                .venueAdvantage(calculateVenueAdvantage(h2hMatches, homeTeam, awayTeam))
+                .homeTeam(normalizedHome)
+                .awayTeam(normalizedAway)
+                .historicalRecord(calculateHistoricalRecord(h2hMatches, normalizedHome, normalizedAway))
+                .recentMeetings(getRecentMeetings(h2hMatches, normalizedHome, normalizedAway))
+                .goalStats(calculateGoalStats(h2hMatches, normalizedHome, normalizedAway))
+                .commonResults(calculateCommonResults(h2hMatches, normalizedHome, normalizedAway))
+                .venueAdvantage(calculateVenueAdvantage(h2hMatches, normalizedHome, normalizedAway))
                 .build();
+    }
+
+    /**
+     * Try fuzzy H2H search when exact match fails.
+     * Searches with case-insensitive matching.
+     */
+    private List<Match> tryFuzzyH2HSearch(String homeTeam, String awayTeam, LocalDate beforeDate) {
+        // Get all matches for home team
+        List<Match> homeTeamMatches = matchRepository.findByTeamBeforeDateIgnoreCase(homeTeam, beforeDate);
+
+        if (homeTeamMatches.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Filter for matches against away team (case-insensitive)
+        String awayLower = awayTeam.toLowerCase();
+        return homeTeamMatches.stream()
+                .filter(m -> {
+                    String opponent = m.getHomeTeam().equalsIgnoreCase(homeTeam)
+                            ? m.getAwayTeam()
+                            : m.getHomeTeam();
+                    return opponent.toLowerCase().contains(awayLower) ||
+                           awayLower.contains(opponent.toLowerCase());
+                })
+                .collect(Collectors.toList());
     }
 
     /**
@@ -90,7 +132,6 @@ public class H2HInsightsService {
                         .highestScoringMatchDetails("N/A")
                         .cleanSheetsHomeTeam(0)
                         .cleanSheetsAwayTeam(0)
-                        .bttsPercentage(0)
                         .build())
                 .commonResults(CommonResultStats.builder()
                         .mostCommonResult("N/A")
@@ -258,7 +299,6 @@ public class H2HInsightsService {
                 .highestScoringMatchDetails(highestDetails)
                 .cleanSheetsHomeTeam(cleanSheetsHome)
                 .cleanSheetsAwayTeam(cleanSheetsAway)
-                .bttsPercentage(totalMatches > 0 ? PredictionUtils.round((double) bttsCount / totalMatches * 100) : 0)
                 .build();
     }
 

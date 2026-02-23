@@ -30,7 +30,7 @@ public class SecurityConfig {
     @Value("${admin.username:admin}")
     private String adminUsername;
 
-    @Value("${admin.password:admin123}")
+    @Value("${admin.password:changeme}")
     private String adminPassword;
 
     @Bean
@@ -68,11 +68,22 @@ public class SecurityConfig {
             // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - no authentication required
-                .requestMatchers("/", "/index.html", "/css/**", "/js/**", "/assets/**", "/manifest.json").permitAll()
-                .requestMatchers("/api/predict", "/api/teams", "/api/model/status").permitAll()
+                .requestMatchers("/", "/index.html", "/components-demo.html", "/css/**", "/js/**", "/assets/**", "/images/**", "/manifest.json", "/README.md").permitAll()
+                .requestMatchers("/api/predict", "/api/teams", "/api/teams/**", "/api/model/status").permitAll()
+                .requestMatchers("/api/predictions", "/api/predictions/**").permitAll()
+                .requestMatchers("/api/matches/**").permitAll()
+                .requestMatchers("/api/dashboard/**").permitAll()
                 .requestMatchers("/api/external/**").permitAll()
                 .requestMatchers("/api/news/**").permitAll()
+                .requestMatchers("/api/betting/**").permitAll()
+                .requestMatchers("/api/analytics/**").permitAll()
+                .requestMatchers("/api/insights/**").permitAll()
+                .requestMatchers("/api/seasons/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+
+                // Cache status is public (read-only monitoring)
+                .requestMatchers("/api/cache/status", "/api/cache/warmup", "/api/cache/stats", "/api/cache/stats/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/cache/warmup").permitAll()
 
                 // Admin authentication check endpoint
                 .requestMatchers("/api/admin/verify").authenticated()
@@ -83,7 +94,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/model/compare").hasRole("ADMIN")
                 .requestMatchers("/api/data/reload").hasRole("ADMIN")
                 .requestMatchers("/api/data/update").hasRole("ADMIN")
-                .requestMatchers("/api/cache/clear").hasRole("ADMIN")
+                .requestMatchers("/api/cache/clear", "/api/cache/clear/**").hasRole("ADMIN")
+                .requestMatchers("/api/cache/invalidate/**").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/cache/warmup").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/cache").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/analytics/cache").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/*/analytics/cache").hasRole("ADMIN")
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/teams/seed-logos").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                 // All other requests require authentication

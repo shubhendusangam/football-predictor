@@ -36,6 +36,18 @@ public class PredictResponse {
       private double h2hHomeWinRate;
       private double h2hDrawRate;
       private double h2hAwayWinRate;
+
+      // Pre-Match Insights Panel fields
+      private double homeGoalsConcededAvg;
+      private double awayGoalsConcededAvg;
+      private int homeWinStreak;
+      private int awayWinStreak;
+      private int homeUnbeatenStreak;
+      private int awayUnbeatenStreak;
+      private int homeDaysSinceLastMatch;
+      private int awayDaysSinceLastMatch;
+      private double homeGoalThreat;         // Goal threat meter (0-100)
+      private double awayGoalThreat;         // Goal threat meter (0-100)
    }
 
    /**
@@ -59,7 +71,6 @@ public class PredictResponse {
       private double avgGoalsPerMatch;
       private double avgHomeTeamGoals;
       private double avgAwayTeamGoals;
-      private double bttsPercentage;   // Both Teams To Score %
 
       // Common Results
       private String mostCommonScore;

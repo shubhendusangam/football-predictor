@@ -3,6 +3,7 @@ package com.app.footballprediction.service;
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.common.util.PredictionUtils;
+import com.app.footballprediction.dto.TeamFormResponse;
 import com.app.footballprediction.dto.TeamStatsResponse;
 import com.app.footballprediction.dto.TeamStatsResponse.*;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class TeamStatsService {
 
     /**
      * Get comprehensive statistics for a team.
+     * Supports fuzzy team name matching for better UX.
      */
     @Cacheable(value = "teamStats", key = "#teamName")
     public TeamStatsResponse getTeamStats(String teamName) {
@@ -37,41 +39,172 @@ public class TeamStatsService {
         LocalDate now = LocalDate.now();
         LocalDate beforeDate = now.plusDays(1);
 
-        log.debug("Query parameters: teamName='{}', beforeDate={}", teamName, beforeDate);
+        // Try to resolve the team name (handles case-insensitivity and fuzzy matching)
+        String resolvedTeamName = resolveTeamName(teamName, beforeDate);
 
-        // Fetch all matches for the team
-        List<Match> allMatches = matchRepository.findByTeamBeforeDate(teamName, beforeDate);
-        List<Match> homeMatches = matchRepository.findHomeMatchesByTeamBeforeDate(teamName, beforeDate);
-        List<Match> awayMatches = matchRepository.findAwayMatchesByTeamBeforeDate(teamName, beforeDate);
+        log.debug("Query parameters: teamName='{}', resolvedTo='{}', beforeDate={}",
+                  teamName, resolvedTeamName, beforeDate);
 
-        if (allMatches.isEmpty()) {
-            long totalMatchesInDb = matchRepository.count();
-            log.warn("No matches found for team '{}'. Total matches in DB: {}", teamName, totalMatchesInDb);
-            if (totalMatchesInDb == 0) {
-                throw new IllegalArgumentException(
-                        "No matches found for team: " + teamName +
-                        ". Database is empty - please call POST /api/ingestion/ingest first to load match data.");
-            } else {
-                throw new IllegalArgumentException(
-                        "No matches found for team: '" + teamName +
-                        "'. Database has " + totalMatchesInDb + " matches. " +
-                        "Check team name spelling (e.g., 'Man United' not 'Manchester United').");
+        // Fetch all matches for the resolved team name
+        List<Match> allMatches = matchRepository.findByTeamBeforeDate(resolvedTeamName, beforeDate);
+        List<Match> homeMatches = matchRepository.findHomeMatchesByTeamBeforeDate(resolvedTeamName, beforeDate);
+        List<Match> awayMatches = matchRepository.findAwayMatchesByTeamBeforeDate(resolvedTeamName, beforeDate);
+
+        log.debug("Found {} total matches for {}", allMatches.size(), resolvedTeamName);
+
+        return TeamStatsResponse.builder()
+                .teamName(resolvedTeamName)
+                .overall(calculateOverallStats(allMatches, resolvedTeamName))
+                .homeStats(calculateHomeAwayStats(homeMatches, resolvedTeamName, true))
+                .awayStats(calculateHomeAwayStats(awayMatches, resolvedTeamName, false))
+                .goalStats(calculateGoalStats(allMatches, resolvedTeamName))
+                .formStats(calculateFormStats(allMatches, resolvedTeamName))
+                .recentMatches(getRecentMatches(allMatches, resolvedTeamName, 10))
+                .currentSeason(calculateCurrentSeasonStats(allMatches, resolvedTeamName))
+                .topRivals(calculateTopRivals(allMatches, resolvedTeamName, 5))
+                .build();
+    }
+
+    /**
+     * Resolve team name using smart matching:
+     * 1. Try exact match
+     * 2. Try case-insensitive match
+     * 3. Try fuzzy/partial match
+     * 4. Suggest similar teams if not found
+     */
+    private String resolveTeamName(String teamName, LocalDate beforeDate) {
+        if (teamName == null || teamName.trim().isEmpty()) {
+            throw new IllegalArgumentException("Team name cannot be empty");
+        }
+
+        String trimmedName = teamName.trim();
+
+        // 1. Try exact match first
+        List<Match> exactMatches = matchRepository.findByTeamBeforeDate(trimmedName, beforeDate);
+        if (!exactMatches.isEmpty()) {
+            return trimmedName;
+        }
+
+        // 2. Try case-insensitive match
+        List<Match> caseInsensitiveMatches = matchRepository.findByTeamBeforeDateIgnoreCase(trimmedName, beforeDate);
+        if (!caseInsensitiveMatches.isEmpty()) {
+            // Return the actual team name from the database (proper casing)
+            Match firstMatch = caseInsensitiveMatches.get(0);
+            String actualName = firstMatch.getHomeTeam().equalsIgnoreCase(trimmedName)
+                    ? firstMatch.getHomeTeam()
+                    : firstMatch.getAwayTeam();
+            log.info("Resolved '{}' to '{}' (case-insensitive match)", trimmedName, actualName);
+            return actualName;
+        }
+
+        // 3. Try fuzzy/partial match
+        List<String> similarTeams = matchRepository.findTeamNamesContaining(trimmedName);
+        if (!similarTeams.isEmpty()) {
+            // Find the best match using similarity scoring
+            String bestMatch = findBestMatch(trimmedName, similarTeams);
+            if (bestMatch != null) {
+                log.info("Resolved '{}' to '{}' (fuzzy match)", trimmedName, bestMatch);
+                return bestMatch;
             }
         }
 
-        log.debug("Found {} total matches for {}", allMatches.size(), teamName);
+        // 4. No match found - provide helpful error with suggestions
+        long totalMatchesInDb = matchRepository.count();
+        if (totalMatchesInDb == 0) {
+            throw new IllegalArgumentException(
+                    "No matches found for team: '" + trimmedName + "'. " +
+                    "Database is empty - please call POST /api/ingestion/ingest first to load match data.");
+        }
 
-        return TeamStatsResponse.builder()
-                .teamName(teamName)
-                .overall(calculateOverallStats(allMatches, teamName))
-                .homeStats(calculateHomeAwayStats(homeMatches, teamName, true))
-                .awayStats(calculateHomeAwayStats(awayMatches, teamName, false))
-                .goalStats(calculateGoalStats(allMatches, teamName))
-                .formStats(calculateFormStats(allMatches, teamName))
-                .recentMatches(getRecentMatches(allMatches, teamName, 10))
-                .currentSeason(calculateCurrentSeasonStats(allMatches, teamName))
-                .topRivals(calculateTopRivals(allMatches, teamName, 5))
-                .build();
+        // Get some similar team suggestions
+        List<String> suggestions = getSimilarTeamSuggestions(trimmedName, 5);
+        String suggestionText = suggestions.isEmpty()
+                ? "Use GET /api/teams to see available teams."
+                : "Did you mean: " + String.join(", ", suggestions) + "?";
+
+        throw new IllegalArgumentException(
+                "No matches found for team: '" + trimmedName + "'. " +
+                "Database has " + totalMatchesInDb + " matches. " + suggestionText);
+    }
+
+    /**
+     * Find the best matching team name from a list of candidates.
+     * Uses simple string similarity scoring.
+     */
+    private String findBestMatch(String input, List<String> candidates) {
+        if (candidates == null || candidates.isEmpty()) {
+            return null;
+        }
+
+        String inputLower = input.toLowerCase();
+        String bestMatch = null;
+        double bestScore = 0.3; // Minimum threshold
+
+        for (String candidate : candidates) {
+            double score = calculateSimilarity(inputLower, candidate.toLowerCase());
+            if (score > bestScore) {
+                bestScore = score;
+                bestMatch = candidate;
+            }
+        }
+
+        return bestMatch;
+    }
+
+    /**
+     * Calculate string similarity using Jaro-Winkler-like approach.
+     * Returns value between 0 (no match) and 1 (exact match).
+     */
+    private double calculateSimilarity(String s1, String s2) {
+        if (s1.equals(s2)) return 1.0;
+        if (s1.isEmpty() || s2.isEmpty()) return 0.0;
+
+        // Check if one contains the other
+        if (s1.contains(s2) || s2.contains(s1)) {
+            double lengthRatio = (double) Math.min(s1.length(), s2.length()) / Math.max(s1.length(), s2.length());
+            return 0.6 + (0.4 * lengthRatio);
+        }
+
+        // Check common prefix
+        int prefixLength = 0;
+        int maxPrefixLength = Math.min(4, Math.min(s1.length(), s2.length()));
+        while (prefixLength < maxPrefixLength && s1.charAt(prefixLength) == s2.charAt(prefixLength)) {
+            prefixLength++;
+        }
+
+        // Simple character overlap calculation
+        int matches = 0;
+        for (char c : s1.toCharArray()) {
+            if (s2.indexOf(c) >= 0) {
+                matches++;
+            }
+        }
+        double charOverlap = (double) matches / s1.length();
+
+        return (prefixLength * 0.1) + (charOverlap * 0.5);
+    }
+
+    /**
+     * Get suggestions for similar team names.
+     */
+    private List<String> getSimilarTeamSuggestions(String teamName, int limit) {
+        // First try partial match
+        List<String> partialMatches = matchRepository.findTeamNamesContaining(teamName);
+        if (!partialMatches.isEmpty()) {
+            return partialMatches.stream().limit(limit).collect(Collectors.toList());
+        }
+
+        // If no partial matches, get all teams and find similar ones
+        List<String> allTeams = matchRepository.findAllDistinctTeamNames();
+        String inputLower = teamName.toLowerCase();
+
+        return allTeams.stream()
+                .map(team -> new AbstractMap.SimpleEntry<>(team, calculateSimilarity(inputLower, team.toLowerCase())))
+                .filter(e -> e.getValue() > 0.2)
+                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                .limit(limit)
+                .map(AbstractMap.SimpleEntry::getKey)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -477,6 +610,115 @@ public class TeamStatsService {
         }
 
         return totalShotsOnTarget > 0 ? PredictionUtils.round((double) totalGoals / totalShotsOnTarget * 100) : 0;
+    }
+
+    /**
+     * Get team form insights for the prediction view.
+     * Returns statistics focused on recent form and scoring patterns.
+     * Supports fuzzy team name matching for better UX.
+     *
+     * @param teamName The team name to get form insights for
+     * @return TeamFormResponse with form insights
+     */
+    @Cacheable(value = "teamForm", key = "#teamName")
+    public TeamFormResponse getTeamFormInsights(String teamName) {
+        log.info("Calculating form insights for team: '{}'", teamName);
+
+        LocalDate now = LocalDate.now();
+        LocalDate beforeDate = now.plusDays(1);
+
+        // Try to resolve the team name (handles case-insensitivity and fuzzy matching)
+        String resolvedTeamName = resolveTeamName(teamName, beforeDate);
+
+        List<Match> allMatches = matchRepository.findByTeamBeforeDate(resolvedTeamName, beforeDate);
+
+        // Calculate last 5 matches statistics
+        List<Match> last5Matches = allMatches.stream().limit(5).toList();
+
+        // Goals averages
+        double last5GoalsAvg = calcLast5GoalsAvg(last5Matches, resolvedTeamName);
+        double last5ConcededAvg = calcLast5ConcededAvg(last5Matches, resolvedTeamName);
+
+        // Clean sheet rate
+        double cleanSheetRate = calcCleanSheetRate(last5Matches, resolvedTeamName);
+
+
+        // Shot conversion
+        double shotConversion = calcShotConversionRate(last5Matches, resolvedTeamName, 5) / 100.0;
+
+        // Form trend based on comparing last 5 vs previous 5
+        String formTrend = calcFormTrend(allMatches, resolvedTeamName);
+
+        // Recent form string
+        String recentForm = buildFormString(allMatches, resolvedTeamName, 5);
+
+        // Goals timeline for sparkline
+        List<Integer> goalsTimeline = last5Matches.stream()
+                .map(m -> m.getGoalsScoredByTeam(resolvedTeamName))
+                .toList();
+
+        List<Integer> concededTimeline = last5Matches.stream()
+                .map(m -> m.getGoalsConcededByTeam(resolvedTeamName))
+                .toList();
+
+        return TeamFormResponse.builder()
+                .teamName(resolvedTeamName)
+                .last5GoalsAvg(PredictionUtils.round(last5GoalsAvg))
+                .last5ConcededAvg(PredictionUtils.round(last5ConcededAvg))
+                .cleanSheetRate(PredictionUtils.round(cleanSheetRate))
+                .shotConversion(PredictionUtils.round(shotConversion))
+                .formTrend(formTrend)
+                .recentForm(recentForm)
+                .goalsTimeline(goalsTimeline)
+                .concededTimeline(concededTimeline)
+                .build();
+    }
+
+    private double calcLast5GoalsAvg(List<Match> matches, String teamName) {
+        if (matches.isEmpty()) return 0.0;
+        return matches.stream()
+                .mapToInt(m -> m.getGoalsScoredByTeam(teamName))
+                .average()
+                .orElse(0.0);
+    }
+
+    private double calcLast5ConcededAvg(List<Match> matches, String teamName) {
+        if (matches.isEmpty()) return 0.0;
+        return matches.stream()
+                .mapToInt(m -> m.getGoalsConcededByTeam(teamName))
+                .average()
+                .orElse(0.0);
+    }
+
+    private double calcCleanSheetRate(List<Match> matches, String teamName) {
+        if (matches.isEmpty()) return 0.0;
+        long cleanSheets = matches.stream()
+                .filter(m -> m.getGoalsConcededByTeam(teamName) == 0)
+                .count();
+        return (double) cleanSheets / matches.size();
+    }
+
+
+    private String calcFormTrend(List<Match> allMatches, String teamName) {
+        if (allMatches.size() < 10) return "stable";
+
+        List<Match> last5 = allMatches.stream().limit(5).toList();
+        List<Match> prev5 = allMatches.stream().skip(5).limit(5).toList();
+
+        double last5Points = calcFormPoints(last5, teamName);
+        double prev5Points = calcFormPoints(prev5, teamName);
+
+        if (last5Points > prev5Points + 0.2) return "up";
+        if (last5Points < prev5Points - 0.2) return "down";
+        return "stable";
+    }
+
+    private double calcFormPoints(List<Match> matches, String teamName) {
+        if (matches.isEmpty()) return 0.0;
+        return matches.stream()
+                .mapToInt(m -> m.getPointsForTeam(teamName))
+                .average()
+                .orElse(0.0);
     }
 }
 

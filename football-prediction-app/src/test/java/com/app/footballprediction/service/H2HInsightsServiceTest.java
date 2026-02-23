@@ -207,21 +207,6 @@ class H2HInsightsServiceTest {
             assertThat(goalStats.getTotalGoalsAllTime()).isEqualTo(18);
         }
 
-        @Test
-        @DisplayName("should calculate BTTS percentage")
-        void goalStats_calculatesBtts() {
-            // Given
-            when(matchRepository.findH2HBeforeDate(eq("Arsenal"), eq("Chelsea"), any()))
-                    .thenReturn(h2hMatches);
-
-            // When
-            H2HInsightsResponse insights = h2hInsightsService.getH2HInsights("Arsenal", "Chelsea");
-
-            // Then
-            var goalStats = insights.getGoalStats();
-            // BTTS matches: 2-1, 1-1, 3-2, 2-2 = 4 out of 7
-            assertThat(goalStats.getBttsPercentage()).isGreaterThan(50.0);
-        }
     }
 
     @Nested

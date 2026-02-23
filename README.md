@@ -1,301 +1,269 @@
-# ⚽ Football Match Outcome Predictor
+# ⚽ Football Match Prediction & Insights Platform
 
-A production-ready multi-module Spring Boot application that predicts Premier League match outcomes (Home Win / Draw / Away Win) using Advanced Machine Learning algorithms including Random Forest, Gradient Boosting, and Ensemble methods.
+A **Season-aware AI-powered Football Match Prediction & Insights Platform** built with Spring Boot and Machine Learning. This production-ready application predicts Premier League match outcomes using advanced ensemble learning while providing comprehensive pre-match insights, season-based trending analytics, and historical performance tracking.
 
-[![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.java.net/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![Weka](https://img.shields.io/badge/Weka-3.8.6-blue.svg)](https://www.cs.waikato.ac.nz/ml/weka/)
-[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Build Status](https://img.shields.io/badge/Build-Passing-success.svg)]()
-[![Code Coverage](https://img.shields.io/badge/Coverage-85%25-green.svg)]()
-[![Last Updated](https://img.shields.io/badge/Updated-Feb%2020%202026-blue.svg)]()
+[![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.java.net/)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Weka ML](https://img.shields.io/badge/Weka-3.8.6-0052CC?style=for-the-badge&logo=apache&logoColor=white)](https://www.cs.waikato.ac.nz/ml/weka/)
+[![H2 Database](https://img.shields.io/badge/H2-Embedded-0000BB?style=for-the-badge&logo=databricks&logoColor=white)](https://www.h2database.com/)
+[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
 
 ---
 
-## 🆕 Recent Updates
+## 📋 Table of Contents
 
-**February 20, 2026** - Latest Release
-- ⬆️ **Spring Boot 4.0.2**: Upgraded to latest Spring Boot 4.x for improved performance and security
-- 📝 **Documentation Updated**: README refreshed with latest project information
-- 🏗️ **Multi-Module Architecture**: Three-module Maven project structure (app, common, training-service)
-- 🤖 **Stacked Ensemble ML**: RandomForest + AdaBoost + Logistic Regression meta-model
-- 📊 **25 Statistical Features**: 3-phase feature engineering (form, goals, H2H, shots, corners, streaks)
-- 🎨 **Modern Dark Theme UI**: Responsive design with Manual/Upcoming prediction modes
-- 📅 **PL Calendar Integration**: Date-based predictions with Today/Tomorrow/Weekend buttons
-- 📰 **News Feed**: Premier League news aggregation
-- 🏆 **Live Standings**: Current Premier League table display
-
-**February 18, 2026**
-- 📝 **Startup Scripts Updated**: Enhanced service startup and API testing scripts
-- 📚 **Documentation Improvements**: Comprehensive README updates with detailed architecture
-- 🧪 **Unit Tests Fixed**: Corrected test suite for better reliability
-- 🏗️ **Code Modularization**: Restructured codebase into multi-module Maven project
-- 🤖 **XGBoost Integration**: Added XGBoost as an alternative ML algorithm (experimental)
-- 🔒 **Security Enhancements**: Removed hardcoded API keys, improved security practices
-- ⚙️ **GitHub Actions**: Added CI/CD pipeline with Maven build automation
-- 🎨 **Design Improvements**: Enhanced UI/UX with responsive dark theme
-- 🚀 **Initial Release**: Football Predictor with ML predictions, news feed, and calendar integration
+- [Project Overview](#-project-overview)
+- [Core Features](#-core-features)
+- [Architecture](#-architecture)
+- [API Documentation](#-api-documentation)
+- [Database Schema](#-database-schema)
+- [How It Works](#-how-it-works)
+- [Setup Instructions](#-setup-instructions)
+- [Production Considerations](#-production-considerations)
+- [Future Roadmap](#-future-roadmap)
 
 ---
 
-## 🎯 Project Highlights
+## 🎯 Project Overview
 
-- **🏆 High Accuracy**: Achieves ~62% prediction accuracy (industry baseline ~45%)
-- **🚀 Production Ready**: Fully containerized with comprehensive monitoring
-- **🤖 Auto-Learning**: Self-improving models with bi-monthly retraining
-- **📱 Modern UI**: Responsive dark-themed interface with Manual/Upcoming prediction modes
-- **⚡ Real-time**: Live predictions with external API integration (football-data.org)
-- **🔒 Enterprise Grade**: Rate limiting, caching, and error handling
-- **📊 Team Statistics**: Comprehensive team stats with form, goals, streaks, and H2H data
+This platform is designed for **football analytics enthusiasts** who want data-driven match predictions and comprehensive team insights. The system combines:
 
----
+- **Machine Learning Predictions**: Stacked ensemble model (RandomForest + AdaBoostM1 + Logistic Regression)
+- **Season-aware Analytics**: All insights are computed within season boundaries—no cross-season data mixing
+- **Real-time Data Integration**: Live data from football-data.org API for upcoming matches and standings
+- **Historical Analysis**: 22 seasons of Premier League data (2004/05 - 2025/26)
 
-## 🏗️ Architecture Overview
+### Key Differentiators
 
-This system is built as a **multi-module Maven project** consisting of:
-
-### 📦 Modules
-
-1. **`football-prediction-app`** (Port 8080) - Main Spring Boot application
-   - Web UI with responsive dark theme design
-   - Manual and Upcoming prediction modes
-   - Team Statistics dashboard with 5 tabs (Overview, Goals, Form, Matches, Rivals)
-   - REST API for predictions and data management
-   - External API integrations (football-data.org, news)
-   - Feature engineering and data processing
-
-2. **`football-prediction-common`** - Shared library module
-   - Common entities (Match model)
-   - Shared repositories
-   - Feature engineering services
-
-3. **`model-training-service`** (Port 8081) - Dedicated ML training service
-   - Automated model training and evaluation
-   - Advanced ML algorithms (Random Forest, AdaBoost, Ensemble)
-   - Cross-validation and hyperparameter tuning
-   - Scheduled retraining (bi-monthly)
-
-### 🎯 Key Features
-- ⚽ **Stacked Ensemble ML**: RandomForest + Gradient Boosting + Logistic Regression meta-model
-- 📊 **Rich Feature Engineering**: 25 statistical features in 3 phases (form, goals, H2H, shots, corners, streaks, rest)
-- 🤖 **Automated Retraining**: Bi-monthly model updates with performance monitoring
-- 🎨 **Modern UI**: Dark theme with Manual/Upcoming prediction modes
-- 📈 **Team Statistics**: Comprehensive stats dashboard with form visualization, goal patterns, and H2H records
-- 🔄 **Real-time Data**: Live match data, standings, and calendar via football-data.org API
-- 📰 **News Integration**: Premier League news aggregation
-- 📅 **Match Calendar**: Date-based prediction for upcoming fixtures
-- 🏆 **Standings**: Current Premier League table display
-- 🐳 **Cloud Ready**: Docker containerization with multi-stage builds
-- 🔒 **Production Features**: Rate limiting, caching, comprehensive logging
-- 📱 **Mobile Optimized**: Touch-friendly interface with gesture support
-- ⌨️ **Keyboard Accessible**: Full keyboard navigation with Escape key support for modals
-- 🌐 **API-First**: RESTful APIs with multiple training endpoints
-- 🧪 **Thoroughly Tested**: 120+ unit/integration tests with high coverage
-- 📊 **Monitoring**: Health checks, metrics, and performance tracking
-
----
-
-## 🎬 Quick Demo
-
-### 🌐 Live Application
-- **Web UI**: [http://localhost:8080](http://localhost:8080) - Interactive prediction interface
-- **API Docs**: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html) - OpenAPI documentation
-- **Health Check**: [http://localhost:8080/actuator/health](http://localhost:8080/actuator/health) - System status
-
-### 📸 UI Features
 | Feature | Description |
 |---------|-------------|
-| 🏠 **Make a Prediction** | Manual and Upcoming tabs for different prediction modes |
-| ⚡ **Quick Predictions** | Click on upcoming matches to instantly predict |
-| 📊 **Team Statistics** | 5-tab dashboard: Overview, Goals, Form, Matches, Rivals |
-| 📅 **PL Calendar** | Date-based predictions with Today/Tomorrow/Weekend buttons |
-| 🏆 **Upcoming Matches** | Auto-fetched predictions for Premier League fixtures |
-| 📰 **News Feed** | Latest Premier League news |
-| ⚙️ **Admin Panel** | Model training controls (requires authentication) |
-| ⌨️ **Keyboard Support** | Press Escape key to close modal dialogs |
-
-### 🚀 One-Click Deployment
-```bash
-# Docker Compose (Recommended)
-docker-compose up -d
-
-# Or use the automated script
-./scripts/start-services.sh
-```
+| **Season Isolation** | Hot teams, cold teams, and all metrics are strictly per-season |
+| **25 ML Features** | Form, goals, H2H, shots, corners, streaks, rest days |
+| **Pre-Match Insights** | Goal threat, fatigue warnings, BTTS probability |
+| **Multi-module Architecture** | Separate prediction app and training service |
 
 ---
 
-## 🚀 Quick Start
+## ✨ Core Features
 
-### 📋 Prerequisites
-- **Java 21+** (OpenJDK recommended)
-- **Maven 3.8+**
-- **Docker & Docker Compose** (optional but recommended)
-- **8GB+ RAM** (for ML model training)
+### 🤖 Match Prediction Engine
 
-### 🐳 Option 1: Docker Compose (Recommended)
+The prediction engine uses a **Stacked Ensemble ML Model**:
 
-```bash
-# Clone and start everything
-git clone <your-repo-url>
-cd football-prediction
-
-# Start all services with one command
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Access the application
-# UI: http://localhost:8080
-# Training Service: http://localhost:8081
+```
+┌─────────────────────────────────────────────┐
+│           Stacked Ensemble Model            │
+├─────────────────────────────────────────────┤
+│  Base Models:                               │
+│  ├── RandomForest (100 trees)               │
+│  └── AdaBoostM1 (100 iterations)            │
+│                                             │
+│  Meta-Model:                                │
+│  └── Logistic Regression                    │
+│                                             │
+│  Output: H (Home Win) / D (Draw) / A (Away) │
+└─────────────────────────────────────────────┘
 ```
 
-### ⚡ Option 2: Automated Script
+- **25 Engineered Features** across 3 phases
+- **Confidence Levels**: HIGH / MEDIUM / LOW based on probability distribution
+- **Automatic Retraining**: Scheduled bi-monthly (1st & 15th @ 3 AM)
 
-```bash
-# Build and start all services
-./scripts/start-services.sh
+### 📊 Pre-Match Insights
 
-# Test APIs
-./scripts/test-apis.sh
-```
+Comprehensive analysis generated for every match prediction:
 
-### 🛠️ Option 3: Manual Development Setup
+| Insight | Description |
+|---------|-------------|
+| **Form Comparison** | Home vs Away form points (last 5 matches) |
+| **Streak Indicators** | 🔥 Win streaks, unbeaten streaks |
+| **Rest Days Warning** | ⚠️ Fatigue indicator (<4 days rest) |
+| **Goal Threat Meter** | Offensive threat percentage (0-100%) |
+| **Over/Under 2.5** | Probability based on goal averages |
+| **BTTS %** | Both teams to score probability |
 
-```bash
-# Clone repository
-git clone <your-repo-url>
-cd football-prediction
+### 🔥 Season-wise Trending Insights
 
-# Build all modules
-mvn clean install
+All trending insights are calculated **strictly within the selected season**:
 
-# Start main application
-cd football-prediction-app
-mvn spring-boot:run
+| Insight | Criteria |
+|---------|----------|
+| **🔥 Hot Teams** | Teams on 3+ match winning streaks |
+| **❄️ Cold Teams** | Teams without a win in 5+ matches |
+| **⚽ Top Scorers** | Highest-scoring teams (season aggregate) |
+| **🧱 Defensive Walls** | Most clean sheets in the season |
+| **🎯 Upset Alerts** | Away team favored (>50% win probability) |
+| **🎉 Goal Fest** | Matches with highest expected total goals |
 
-# In another terminal, start training service
-cd model-training-service
-mvn spring-boot:run
-```
+### 🆚 Head-to-Head Analytics
 
-> **💡 Note**: On first startup, the app will train a model (~30-60 seconds). On subsequent starts, it automatically loads the existing model and skips training.
+- **Historical Record**: "Arsenal leads 15-8-7 vs Chelsea"
+- **Last 5 Meetings**: Scores and outcomes
+- **H2H Goal Stats**: Average goals when these teams meet
+- **Common Results**: Most frequent scoreline
+- **Venue Advantage**: H2H win % at home vs away
 
----
+### 🏆 League Standings
 
-## 📖 Table of Contents
+- **Current Season Table**: Real-time Premier League standings
+- **Season Filter**: View historical standings by season
+- **Zone Indicators**: Champions League, Europa League, Relegation
+- **Form Column**: Last 5 match results (W/D/L)
 
-- [Architecture](#-architecture)
-- [Features](#-features)
-- [API Documentation](#-api-documentation)
-- [Configuration](#-configuration)
-- [Model Training](#-model-training)
-- [Project Structure](#-project-structure)
-- [Testing](#-testing)
-- [Deployment](#-deployment)
-- [License](#-license)
+### 📅 Upcoming Matches
+
+- **Match-day Predictions**: Auto-predictions for scheduled fixtures
+- **Date-based Filtering**: Today/Tomorrow/Weekend quick filters
+- **Live Data Integration**: Fetched from football-data.org API
+
+### 📈 Model Accuracy Tracking
+
+- **Overall Accuracy**: Current model performance
+- **High Confidence Accuracy**: Hit rate for HIGH confidence predictions
+- **Trend Indicator**: Performance trend (UP/DOWN/STABLE)
 
 ---
 
 ## 🏗️ Architecture
 
-### Microservices Design
+### System Architecture
 
 ```
-┌─────────────────────────┐         ┌──────────────────────────┐
-│   Main App (8080)       │         │  Training Svc (8081)     │
-│   ┌─────────────────┐   │         │   ┌──────────────────┐   │
-│   │ REST API        │   │         │   │ Train Model      │   │
-│   │ Web UI          │   │         │   │ Test Model       │   │
-│   │ Predictions     │   │         │   │ Scheduled Tasks  │   │
-│   └─────────────────┘   │         │   └──────────────────┘   │
-│         │               │         │          │               │
-│         ▼               │         │          ▼               │
-│   ┌─────────────────┐   │         │   ┌──────────────────┐   │
-│   │ Load Model      │◄──┼─────────┼──►│ Save Model       │   │
-│   └─────────────────┘   │ Shared  │   └──────────────────┘   │
-└─────────────────────────┘ Storage └──────────────────────────┘
-         │                      │                  │
-         └──────────────────────┼──────────────────┘
-                                ▼
-                    ┌───────────────────────┐
-                    │   Shared Resources    │
-                    │                       │
-                    │  ┌─────────────────┐  │
-                    │  │ H2 Database     │  │
-                    │  │ footballdb      │  │
-                    │  └─────────────────┘  │
-                    │  ┌─────────────────┐  │
-                    │  │ ML Model        │  │
-                    │  │ predictor.model │  │
-                    │  └─────────────────┘  │
-                    └───────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                        FOOTBALL PREDICTION PLATFORM                          │
+├──────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  ┌─────────────────────────────────────┐   ┌────────────────────────────┐   │
+│  │      Main Application (8080)        │   │  Training Service (8081)   │   │
+│  │                                     │   │                            │   │
+│  │  ┌───────────────────────────────┐  │   │  ┌──────────────────────┐  │   │
+│  │  │        Controllers            │  │   │  │   Training API       │  │   │
+│  │  │  • PredictionController       │  │   │  │  POST /train         │  │   │
+│  │  │  • AnalyticsController        │  │   │  │  POST /test          │  │   │
+│  │  │  • DashboardController        │  │   │  │  GET  /model-info    │  │   │
+│  │  │  • TeamStatsController        │  │   │  └──────────────────────┘  │   │
+│  │  │  • ExternalApiController      │  │   │                            │   │
+│  │  └───────────────────────────────┘  │   │  ┌──────────────────────┐  │   │
+│  │               │                     │   │  │  Scheduled Tasks     │  │   │
+│  │               ▼                     │   │  │  • Bi-monthly train  │  │   │
+│  │  ┌───────────────────────────────┐  │   │  └──────────────────────┘  │   │
+│  │  │      Service Layer            │  │   └────────────────┬───────────┘   │
+│  │  │  • PreMatchInsightsService    │  │                    │               │
+│  │  │  • TrendingInsightsService    │  │   ┌────────────────▼───────────┐   │
+│  │  │  • LeagueStandingService      │  │   │     Shared Storage         │   │
+│  │  │  • TeamStatsService           │  │   │                            │   │
+│  │  │  • H2HInsightsService         │  │   │  ┌──────────────────────┐  │   │
+│  │  │  • DashboardService           │  │   │  │   H2 Database        │  │   │
+│  │  │  • TeamAnalyticsService       │  │   │  │   footballdb.mv.db   │  │   │
+│  │  └───────────────────────────────┘  │   │  └──────────────────────┘  │   │
+│  │               │                     │   │                            │   │
+│  │               ▼                     │   │  ┌──────────────────────┐  │   │
+│  │  ┌───────────────────────────────┐  │   │  │   ML Model           │  │   │
+│  │  │     Repository Layer          │  │   │  │   predictor.model    │  │   │
+│  │  │  • MatchRepository            │◄─┼───┼──│                      │  │   │
+│  │  │  • TeamRepository             │  │   │  └──────────────────────┘  │   │
+│  │  │  • LeagueStandingRepository   │  │   │                            │   │
+│  │  │  • PredictionRepository       │  │   └────────────────────────────┘   │
+│  │  └───────────────────────────────┘  │                                    │
+│  │                                     │                                    │
+│  │  ┌───────────────────────────────┐  │                                    │
+│  │  │     Caffeine Cache Layer      │  │                                    │
+│  │  │  • standings (5 min TTL)      │  │                                    │
+│  │  │  • trendingInsights (5 min)   │  │                                    │
+│  │  │  • teamStats (10 min)         │  │                                    │
+│  │  │  • preMatchInsights (10 min)  │  │                                    │
+│  │  │  • h2hInsights (10 min)       │  │                                    │
+│  │  └───────────────────────────────┘  │                                    │
+│  └─────────────────────────────────────┘                                    │
+│                                                                              │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    Common Module (Shared Library)                     │   │
+│  │  • Match Entity           • MatchFeatures DTO                        │   │
+│  │  • Team Entity            • FeatureEngineeringService                │   │
+│  │  • League Entity          • Prediction Entity                        │   │
+│  │  • LeagueStanding Entity  • Shared Repositories                      │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                              │
+└──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Data Flow
+### Module Structure
+
+| Module | Description |
+|--------|-------------|
+| `football-prediction-app` | Main application (REST APIs, Web UI, Services) |
+| `football-prediction-common` | Shared entities, repositories, utilities |
+| `model-training-service` | Dedicated ML training microservice |
+
+### Layered Architecture
 
 ```
-CSV Files → Ingestion Service → H2 Database → Feature Engineering
-                                                      ↓
-                                            Model Training Service
-                                                      ↓
-                                              Random Forest Model
-                                                      ↓
-                                            Prediction Service → API
+Controller Layer (REST APIs)
+         │
+         ▼
+Service Layer (Business Logic)
+         │
+         ├──► Caffeine Cache Layer
+         │
+         ▼
+Repository Layer (Data Access)
+         │
+         ▼
+Database (H2 Embedded)
 ```
 
----
+### Season-aware Filtering Strategy
 
-## ✨ Features
+All insight services implement season-scoped queries:
 
-### Machine Learning
-- **Stacked Ensemble Model** combining RandomForest + Gradient Boosting (AdaBoostM1) + Logistic Regression meta-model
-- **Random Forest** classifier with 100 trees and optimized hyperparameters
-- **Gradient Boosting** (AdaBoostM1) with 100 boosting iterations using REPTree base learners
-- **25 engineered features** organized in 3 phases:
-  - **Phase 1**: Form points, goals scored/conceded, H2H stats, total goals average
-  - **Phase 2**: Shots on target averages, corners averages  
-  - **Phase 3**: Goal difference, overall form, win streaks, unbeaten streaks, rest days
-- **Temporal train/test split** (80/20) to prevent data leakage
-- **Cross-validation** support (10-fold CV)
-- **Voting & Stacking Ensembles** with grid search optimization
-- **Hyperparameter tuning** via grid search for RandomForest and AdaBoost
-- **Automatic retraining** twice monthly (1st & 15th @ 3 AM)
+```java
+// Example: TrendingInsightsService.java
+@Cacheable(value = "trendingInsights", key = "#season")
+public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
+    // All queries filter by season column
+    List<Match> seasonMatches = matchRepository.findBySeasonOrderByMatchDateDesc(season);
+    
+    // Insights computed only from season-scoped data
+    List<HotTeam> hotTeams = calculateHotTeams(seasonTeams, beforeDate, season);
+    List<ColdTeam> coldTeams = calculateColdTeams(seasonTeams, beforeDate, season);
+    // ...
+}
+```
 
-### Data
-- **22 seasons** of Premier League data (2004/05 - 2025/26)
-- **~8,000 historical matches** from football-data.co.uk
-- **Automatic updates** via scheduled tasks
-- **CSV ingestion** with duplicate detection
+### Caching Strategy
 
-### API Features
-- RESTful endpoints for predictions
-- Web UI with modern design
-- Rate limiting and caching
-- Comprehensive error handling
-- Request/response logging
-- Health check endpoints
+Built-in **Caffeine cache** with configurable TTLs:
 
-### DevOps
-- Docker & Docker Compose support
-- Automated build scripts
-- Comprehensive test suite (120 tests)
-- Structured logging (Log4j2)
-- Production-ready configuration
+| Cache | TTL | Max Size | Purpose |
+|-------|-----|----------|---------|
+| `standings` | 5 min | 50 | League table data |
+| `trendingInsights` | 5 min | 20 | Hot/cold teams, alerts |
+| `teamStats` | 10 min | 100 | Team statistics |
+| `preMatchInsights` | 10 min | 200 | Pre-match analysis |
+| `h2hInsights` | 10 min | 200 | H2H historical data |
+| `teamAnalytics` | 15 min | 100 | Full team analytics |
+| `news` | 15 min | 50 | News feed |
+| `teamLogos` | 60 min | 200 | Team logo URLs |
 
 ---
 
 ## 📡 API Documentation
 
-### Main Application (Port 8080)
+### Base URLs
 
-#### Predict Match Outcome
-```bash
-POST http://localhost:8080/api/predict
-Content-Type: application/json
+- **Main Application**: `http://localhost:8080/api`
+- **Training Service**: `http://localhost:8081/api/training`
 
+---
+
+### Prediction Endpoints
+
+#### POST `/api/predict`
+Predict match outcome between two teams.
+
+**Request:**
+```json
 {
   "homeTeam": "Arsenal",
   "awayTeam": "Chelsea"
@@ -307,62 +275,308 @@ Content-Type: application/json
 {
   "homeTeam": "Arsenal",
   "awayTeam": "Chelsea",
-  "prediction": "H",
-  "probabilities": {
-    "homeWin": 0.52,
-    "draw": 0.28,
-    "awayWin": 0.20
+  "prediction": "Home Win",
+  "predictionCode": "H",
+  "probHomeWin": 0.52,
+  "probDraw": 0.28,
+  "probAwayWin": 0.20,
+  "confidence": "MEDIUM",
+  "features": {
+    "homeFormPoints": 12,
+    "awayFormPoints": 9,
+    "homeGoalsScoredAvg": 2.1,
+    "awayGoalsScoredAvg": 1.8,
+    "homeGoalsConcededAvg": 0.8,
+    "awayGoalsConcededAvg": 1.2,
+    "h2hHomeWinRate": 0.45,
+    "h2hDrawRate": 0.25,
+    "h2hAwayWinRate": 0.30,
+    "homeWinStreak": 3,
+    "awayWinStreak": 1,
+    "homeUnbeatenStreak": 5,
+    "awayUnbeatenStreak": 2,
+    "homeDaysSinceLastMatch": 7,
+    "awayDaysSinceLastMatch": 4,
+    "homeGoalThreat": 72.5,
+    "awayGoalThreat": 58.0
   },
-  "confidence": "medium"
+  "h2hInsights": {
+    "totalMeetings": 30,
+    "homeTeamWins": 15,
+    "draws": 8,
+    "awayTeamWins": 7,
+    "homeTeamWinRate": 0.50,
+    "last5Meetings": [
+      {"date": "2025-01-15", "homeTeam": "Arsenal", "awayTeam": "Chelsea", "score": "2-1", "result": "H"}
+    ]
+  }
 }
 ```
 
-#### Get Upcoming Predictions
-```bash
-GET http://localhost:8080/api/predict/upcoming
+---
+
+### Analytics Endpoints
+
+#### GET `/api/analytics/pre-match`
+Get comprehensive pre-match insights.
+
+**Request:**
 ```
-
-#### Check Model Status
-```bash
-GET http://localhost:8080/api/model/status
-```
-
-#### Load/Reload Model
-```bash
-POST http://localhost:8080/api/model/load
-```
-
-#### Ingest CSV Data
-```bash
-POST http://localhost:8080/api/ingestion/ingest
-```
-
-### Training Service (Port 8081)
-
-#### Train Model
-```bash
-POST http://localhost:8081/api/training/train
+GET /api/analytics/pre-match?homeTeam=Arsenal&awayTeam=Chelsea
 ```
 
 **Response:**
 ```json
 {
-  "success": true,
-  "message": "Model training completed successfully",
-  "report": "... detailed metrics ...",
-  "trainingTimeMs": 5432
+  "homeTeam": "Arsenal",
+  "awayTeam": "Chelsea",
+  "homeForm": {
+    "points": 12,
+    "form": "WWDWW",
+    "winStreak": 2,
+    "unbeatenStreak": 5
+  },
+  "awayForm": {
+    "points": 9,
+    "form": "WDLWW",
+    "winStreak": 2,
+    "unbeatenStreak": 2
+  },
+  "homeRestDays": 7,
+  "awayRestDays": 4,
+  "awayFatigueWarning": true,
+  "homeGoalThreat": 72.5,
+  "awayGoalThreat": 58.0,
+  "overUnder25Probability": 0.68,
+  "bttsPercentage": 0.55
 }
 ```
 
-#### Test Model
-```bash
-POST http://localhost:8081/api/training/test
+#### GET `/api/analytics/trends`
+Get season-wise trending insights.
+
+**Request:**
+```
+GET /api/analytics/trends?season=2025-26
 ```
 
-#### Get Model Info
-```bash
-GET http://localhost:8081/api/training/model-info
+**Response:**
+```json
+{
+  "season": "2025-26",
+  "hotTeams": [
+    {"teamName": "Liverpool", "winStreak": 5, "goalsScored": 15, "recentForm": "WWWWW"}
+  ],
+  "coldTeams": [
+    {"teamName": "Southampton", "matchesWithoutWin": 7, "recentForm": "LLDLL"}
+  ],
+  "topScorers": [
+    {"teamName": "Man City", "goalsScored": 45, "matchesAnalyzed": 20, "avgGoalsPerMatch": 2.25}
+  ],
+  "defensiveWalls": [
+    {"teamName": "Arsenal", "cleanSheets": 10, "matchesAnalyzed": 20, "cleanSheetPercentage": 50.0}
+  ],
+  "upsetAlerts": [
+    {"homeTeam": "Wolves", "awayTeam": "Liverpool", "awayWinProbability": 0.62}
+  ],
+  "goalFestMatches": [
+    {"homeTeam": "Man City", "awayTeam": "Chelsea", "expectedGoals": 3.8}
+  ]
+}
 ```
+
+#### GET `/api/analytics/h2h`
+Get head-to-head insights between two teams.
+
+**Request:**
+```
+GET /api/analytics/h2h?homeTeam=Arsenal&awayTeam=Chelsea
+```
+
+**Response:**
+```json
+{
+  "homeTeam": "Arsenal",
+  "awayTeam": "Chelsea",
+  "totalMeetings": 30,
+  "homeTeamWins": 15,
+  "draws": 8,
+  "awayTeamWins": 7,
+  "homeTeamWinRate": 0.50,
+  "drawRate": 0.27,
+  "awayTeamWinRate": 0.23,
+  "avgGoalsPerMatch": 2.5,
+  "bttsPercentage": 0.60,
+  "mostCommonResult": "1-1",
+  "last5Meetings": [
+    {"date": "2025-01-15", "homeTeam": "Arsenal", "awayTeam": "Chelsea", "homeGoals": 2, "awayGoals": 1}
+  ]
+}
+```
+
+---
+
+### Dashboard Endpoints
+
+#### GET `/api/dashboard/upcoming-matches`
+Get upcoming matches for dashboard.
+
+**Response:**
+```json
+{
+  "matches": [
+    {
+      "id": 12345,
+      "homeTeam": "Arsenal",
+      "awayTeam": "Chelsea",
+      "matchDate": "2026-02-28",
+      "matchday": 27,
+      "homeTeamLogo": "https://...",
+      "awayTeamLogo": "https://..."
+    }
+  ],
+  "count": 10,
+  "competition": "Premier League"
+}
+```
+
+#### GET `/api/dashboard/league-standings`
+Get league table with optional season filter.
+
+**Request:**
+```
+GET /api/dashboard/league-standings?leagueId=1&season=2025-26
+```
+
+**Response:**
+```json
+{
+  "leagueName": "Premier League",
+  "leagueCode": "PL",
+  "season": "2025/26",
+  "totalTeams": 20,
+  "standings": [
+    {
+      "position": 1,
+      "teamName": "Liverpool",
+      "teamLogo": "https://...",
+      "played": 25,
+      "won": 18,
+      "drawn": 5,
+      "lost": 2,
+      "goalsFor": 55,
+      "goalsAgainst": 20,
+      "goalDifference": 35,
+      "points": 59,
+      "form": "WWDWW",
+      "zone": "CHAMPIONS_LEAGUE"
+    }
+  ]
+}
+```
+
+#### GET `/api/dashboard/model-accuracy`
+Get model accuracy statistics.
+
+**Response:**
+```json
+{
+  "overallAccuracy": 62.3,
+  "totalPredictions": 500,
+  "correctPredictions": 312,
+  "highConfidenceAccuracy": 71.5,
+  "trendIndicator": "UP",
+  "trendChange": 2.5,
+  "lastUpdated": "2026-02-23T10:30:00"
+}
+```
+
+---
+
+### Team Statistics Endpoints
+
+#### GET `/api/teams/{teamName}/stats`
+Get comprehensive team statistics.
+
+**Request:**
+```
+GET /api/teams/Arsenal/stats
+```
+
+**Response:**
+```json
+{
+  "teamName": "Arsenal",
+  "teamLogo": "https://...",
+  "overview": {
+    "totalMatches": 500,
+    "wins": 250,
+    "draws": 125,
+    "losses": 125,
+    "winPercentage": 50.0
+  },
+  "currentForm": {
+    "lastMatches": "WWDWW",
+    "formPoints": 13,
+    "winStreak": 2
+  },
+  "goals": {
+    "totalScored": 800,
+    "totalConceded": 500,
+    "avgScoredPerMatch": 1.6,
+    "avgConcededPerMatch": 1.0,
+    "cleanSheets": 150
+  },
+  "homeVsAway": {
+    "homeWinRate": 55.0,
+    "awayWinRate": 40.0,
+    "homeGoalsAvg": 1.8,
+    "awayGoalsAvg": 1.4
+  }
+}
+```
+
+---
+
+### Insights Endpoints
+
+#### GET `/api/insights/trending`
+Get trending insights (alias to analytics/trends).
+
+**Request:**
+```
+GET /api/insights/trending?season=2025-26
+```
+
+#### GET `/api/insights/seasons`
+Get list of available seasons.
+
+**Response:**
+```json
+{
+  "seasons": ["2025-26", "2024-25", "2023-24", "2022-23"],
+  "currentSeason": "2025-26"
+}
+```
+
+---
+
+### Model Management Endpoints
+
+#### POST `/api/model/train` (Port 8080)
+Trigger model training from main app.
+
+#### POST `/api/model/load` (Port 8080)
+Load/reload the trained model.
+
+#### GET `/api/model/status` (Port 8080)
+Check if model is loaded and ready.
+
+#### POST `/api/training/train` (Port 8081)
+Train model via training service.
+
+#### GET `/api/training/model-info` (Port 8081)
+Get model metadata.
 
 **Response:**
 ```json
@@ -372,168 +586,401 @@ GET http://localhost:8081/api/training/model-info
     "modelExists": true,
     "modelPath": "../data/match_predictor.model",
     "modelSize": 1234567,
-    "lastModified": "2026-02-18T03:00:00",
-    "totalMatches": 3800
+    "lastModified": "2026-02-20T03:00:00",
+    "totalMatches": 8420
   }
 }
 ```
 
-### Web UI
-
-Access the web interface at: **http://localhost:8080**
-
-Features:
-- Interactive prediction form
-- Real-time probability visualization
-- Match history browser
-- Team statistics dashboard
-
 ---
 
-## 📸 Screenshots
+## 🗄️ Database Schema
 
-### Application Features
+### Entity Relationship Diagram
 
-#### 1. Match Prediction
-One-click predictions with detailed probability breakdown:
-<img width="1009" height="864" alt="image" src="https://github.com/user-attachments/assets/2ce6145e-1827-4dc4-9885-0e697d57e45f" />
+```
+┌─────────────────┐       ┌──────────────────────┐       ┌─────────────────┐
+│     leagues     │       │   league_standings   │       │      teams      │
+├─────────────────┤       ├──────────────────────┤       ├─────────────────┤
+│ id (PK)         │◄──────│ league_id (FK)       │       │ id (PK)         │
+│ code            │       │ season               │───────►│ name (UNIQUE)   │
+│ name            │       │ team_name            │       │ logo_url        │
+│ country_code    │       │ position             │       │ short_name      │
+│ current_season  │       │ played/won/drawn/lost│       │ primary_color   │
+└─────────────────┘       │ goals_for/against    │       └─────────────────┘
+                          │ points/form          │
+                          └──────────────────────┘
 
-#### 2. Results Visualization
-Color-coded probability bars and confidence indicators:
-<img width="1009" height="228" alt="image" src="https://github.com/user-attachments/assets/fdc1a5cb-16f1-4a00-b290-b38bf80fe568" />
+┌──────────────────────────────────────────────────────────────────┐
+│                           matches                                 │
+├──────────────────────────────────────────────────────────────────┤
+│ id (PK)                                                          │
+│ match_date, home_team, away_team, season, referee                │
+│ full_time_home_goals, full_time_away_goals, full_time_result     │
+│ half_time_home_goals, half_time_away_goals                       │
+│ home_shots, away_shots, home_shots_on_target, away_shots_on_target│
+│ home_corners, away_corners                                        │
+│ home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards│
+│ b365h, b365d, b365a, bwh, bwd, bwa, iwh, iwd, iwa, psh, psd, psa  │
+└──────────────────────────────────────────────────────────────────┘
 
-#### 3. Analysis Features
-View underlying statistics used for predictions:
-<img width="1009" height="321" alt="image" src="https://github.com/user-attachments/assets/183810ce-8c0a-401a-85a6-5dea373ec54f" />
-
-#### 4. Model Management
-Train/retrain the model and manage data from the UI:
-<img width="942" height="319" alt="image" src="https://github.com/user-attachments/assets/06338c8a-6e09-4272-81ee-2a8baf83de11" />
-
-#### 5. Football News
-<img width="984" height="713" alt="image" src="https://github.com/user-attachments/assets/13732236-2ccd-412b-aa00-338fc5c46663" />
-
-#### 6. Real-time Status
-See if the ML model is loaded and ready:
-<img width="972" height="633" alt="image" src="https://github.com/user-attachments/assets/f74d6a57-ee2d-47a0-9597-f09a1c91cd19" />
-
-#### 7. Calendar
-Premier League Calendar: Prediction based on the selected date
-<img width="1009" height="489" alt="image" src="https://github.com/user-attachments/assets/52b71589-b087-4019-8ba1-56b50c0164af" />
-
-#### 8. Predict Upcoming Matches
-<img width="607" height="1286" alt="image" src="https://github.com/user-attachments/assets/f14b0c2f-f320-4543-bd24-64c1338d72bb" />
-
-#### 9. Current Standing
-<img width="749" height="785" alt="image" src="https://github.com/user-attachments/assets/65a35d88-1ca3-4aa6-b1ea-43a97f6f70f4" />
-
----
-
-## ⚙️ Configuration
-
-### Main Application
-
-**File:** `src/main/resources/application.properties`
-
-```properties
-# Server
-server.port=8080
-
-# Database
-spring.datasource.url=jdbc:h2:file:./data/footballdb
-
-# Model Paths
-model.output.path=./data/match_predictor.model
-model.ensemble.path=./data/ensemble_model.model
-
-# Scheduler
-scheduler.enabled=true
-scheduler.cron=0 0 6 * * MON,FRI
-scheduler.current-season-url=https://www.football-data.co.uk/mmz4281/2526/E0.csv
-scheduler.current-season-file=data/PL_25_26.csv
-
-# Feature Engineering
-feature.form.window=5
+┌──────────────────────────────────────────────────────────────────┐
+│                          predictions                              │
+├──────────────────────────────────────────────────────────────────┤
+│ id (PK)                                                          │
+│ match_id (FK), team_id, team_name, opponent_name                 │
+│ is_home, season, match_date                                      │
+│ predicted_result, actual_result                                  │
+│ home_win_probability, draw_probability, away_win_probability     │
+│ confidence_level, is_correct, prediction_date                    │
+│                                                                  │
+│ INDEXES: idx_prediction_team, idx_prediction_season,             │
+│          idx_prediction_match, idx_prediction_date               │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
-### Training Service
+### Key Tables
 
-**File:** `model-training-service/src/main/resources/application.properties`
+| Table | Purpose | Key Columns |
+|-------|---------|-------------|
+| `matches` | Historical match data | date, teams, goals, stats, season |
+| `teams` | Team information | name, logo_url, colors |
+| `leagues` | League metadata | code, name, current_season |
+| `league_standings` | Season standings | position, points, form |
+| `predictions` | Prediction tracking | predicted vs actual results |
 
-```properties
-# Server
-server.port=8081
+> **Note**: Season data is stored as a column in `matches` table (e.g., "2025-26"), not as a separate `seasons` table.
 
-# Database (shared)
-spring.datasource.url=jdbc:h2:file:../data/footballdb
+---
 
-# Model Output (shared)
-model.output.path=../data/match_predictor.model
+## ⚙️ How It Works
 
-# Training Configuration
-model.training.min-matches=100
-model.training.train-split=0.8
-model.crossvalidation.folds=10
+### 1. Data Ingestion
 
-# Automatic Training (1st & 15th @ 3 AM)
-training.schedule.enabled=true
-training.schedule.cron=0 0 3 1,15 * *
+```
+┌────────────────────────┐     ┌─────────────────────────┐
+│  CSV Files (22 seasons)│     │  football-data.org API  │
+│  • PL_04_05.csv        │     │  • Live standings       │
+│  • PL_05_06.csv        │     │  • Upcoming matches     │
+│  • ...                 │     │  • Match results        │
+│  • PL_25_26.csv        │     │                         │
+└──────────┬─────────────┘     └───────────┬─────────────┘
+           │                               │
+           ▼                               ▼
+    ┌──────────────────────────────────────────────┐
+    │           CsvIngestionService                │
+    │  • Parse date/score/stats                    │
+    │  • Validate team names                       │
+    │  • Deduplicate existing records              │
+    │  • Map season from filename                  │
+    └──────────────────────┬───────────────────────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+                    │  H2 Database │
+                    │  ~8000 rows  │
+                    └──────────────┘
+```
+
+### 2. Feature Engineering (25 Features)
+
+```
+Match Input (homeTeam, awayTeam)
+              │
+              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    FeatureEngineeringService                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Phase 1: Form & Goals                                          │
+│  ├── homeFormPoints (last 5 matches)                            │
+│  ├── awayFormPoints                                             │
+│  ├── homeGoalsScoredAvg                                         │
+│  ├── awayGoalsScoredAvg                                         │
+│  ├── homeGoalsConcededAvg                                       │
+│  ├── awayGoalsConcededAvg                                       │
+│  ├── totalGoalsAvg                                              │
+│  ├── h2hHomeWinRate                                             │
+│  ├── h2hDrawRate                                                │
+│  └── h2hAwayWinRate                                             │
+│                                                                 │
+│  Phase 2: Match Statistics                                      │
+│  ├── homeShotsOnTargetAvg                                       │
+│  ├── awayShotsOnTargetAvg                                       │
+│  ├── homeCornersAvg                                             │
+│  └── awayCornersAvg                                             │
+│                                                                 │
+│  Phase 3: Momentum & Fatigue                                    │
+│  ├── homeGoalDifference                                         │
+│  ├── awayGoalDifference                                         │
+│  ├── homeOverallForm                                            │
+│  ├── awayOverallForm                                            │
+│  ├── homeWinStreak                                              │
+│  ├── awayWinStreak                                              │
+│  ├── homeUnbeatenStreak                                         │
+│  ├── awayUnbeatenStreak                                         │
+│  ├── homeDaysSinceLastMatch                                     │
+│  └── awayDaysSinceLastMatch                                     │
+│                                                                 │
+└──────────────────────────────┬──────────────────────────────────┘
+                               │
+                               ▼
+                        MatchFeatures DTO
+```
+
+### 3. Prediction Generation
+
+```
+MatchFeatures (25 features)
+              │
+              ▼
+┌─────────────────────────────────────────────────┐
+│            ModelTrainingService                  │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  Stacked Ensemble:                              │
+│  ┌───────────────┐  ┌───────────────┐           │
+│  │ RandomForest  │  │  AdaBoostM1   │           │
+│  │  (100 trees)  │  │ (100 iters)   │           │
+│  └───────┬───────┘  └───────┬───────┘           │
+│          │                  │                   │
+│          └────────┬─────────┘                   │
+│                   ▼                             │
+│          ┌───────────────┐                      │
+│          │   Logistic    │                      │
+│          │  Regression   │ (Meta-classifier)    │
+│          └───────┬───────┘                      │
+│                  │                              │
+└──────────────────┼──────────────────────────────┘
+                   │
+                   ▼
+         ┌─────────────────┐
+         │  Probabilities  │
+         │  H: 0.52        │
+         │  D: 0.28        │
+         │  A: 0.20        │
+         └────────┬────────┘
+                  │
+                  ▼
+          Prediction: "H"
+          Confidence: MEDIUM
+```
+
+### 4. Insight Computation
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                Season-aware Insight Engine                       │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  Input: season = "2025-26"                                      │
+│                                                                 │
+│  Step 1: Filter matches by season                               │
+│  SELECT * FROM matches WHERE season = '2025-26'                 │
+│                                                                 │
+│  Step 2: Calculate per-team metrics (within season only)        │
+│  • Win streaks, form points, goals scored/conceded              │
+│  • Clean sheets, matches without win                            │
+│                                                                 │
+│  Step 3: Rank and filter                                        │
+│  • Hot teams: win_streak >= 3                                   │
+│  • Cold teams: matches_without_win >= 5                         │
+│  • Top scorers: ORDER BY goals_scored DESC LIMIT 5              │
+│  • Defensive walls: ORDER BY clean_sheets DESC LIMIT 5          │
+│                                                                 │
+│  Step 4: Cache results (TTL: 5 minutes)                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 5. Season-based Aggregation
+
+All insight calculations are **strictly scoped to the selected season**:
+
+```java
+// No cross-season data contamination
+private List<HotTeam> calculateHotTeams(Set<String> teams, 
+                                        LocalDate beforeDate, 
+                                        String season) {
+    for (String team : teams) {
+        // Only fetch matches from this season
+        List<Match> recentMatches = matchRepository
+            .findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+        
+        // Calculate streak within season
+        int winStreak = calculateWinStreak(recentMatches);
+        
+        if (winStreak >= HOT_FORM_THRESHOLD) {
+            hotTeams.add(buildHotTeam(team, recentMatches));
+        }
+    }
+    return hotTeams;
+}
+```
+
+---
+
+## 🚀 Setup Instructions
+
+### Prerequisites
+
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| Java | 21+ | Runtime |
+| Maven | 3.8+ | Build tool |
+| Docker | Latest | Containerization (optional) |
+| RAM | 8GB+ | ML training |
+
+### Option 1: Docker Compose (Recommended)
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd football-prediction
+
+# Set environment variable (optional - for live data)
+export FOOTBALL_API_KEY=your_api_key_here
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Access application
+# Web UI: http://localhost:8080
+# Training API: http://localhost:8081
+```
+
+### Option 2: Local Development
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd football-prediction
+
+# Build all modules
+mvn clean install -DskipTests
+
+# Terminal 1: Start main application
+cd football-prediction-app
+mvn spring-boot:run
+
+# Terminal 2: Start training service
+cd model-training-service
+mvn spring-boot:run
+```
+
+### Option 3: Quick Start Script
+
+```bash
+# Make script executable
+chmod +x scripts/start-services.sh
+
+# Start services
+./scripts/start-services.sh
+
+# Test APIs
+./scripts/test-apis.sh
 ```
 
 ### Environment Variables
 
-Override any configuration with environment variables:
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `FOOTBALL_API_KEY` | - | API key for football-data.org |
+| `SPRING_PROFILES_ACTIVE` | default | Profile: default, docker |
+| `ADMIN_USERNAME` | admin | Admin panel username |
+| `ADMIN_PASSWORD` | - | Admin panel password (set your own) |
 
-```bash
-export SPRING_DATASOURCE_URL=jdbc:h2:file:/custom/path/db
-export MODEL_OUTPUT_PATH=/custom/path/model.model
-export SCHEDULER_CURRENT_SEASON_URL=https://custom-url.com/data.csv
-```
+### First-time Startup Behavior
 
-### Docker Configuration
+On first run, the application will:
+1. **Ingest CSV data** (~8,000 matches) into H2 database
+2. **Seed team logos** for Premier League teams
+3. **Train ML model** (~30-60 seconds)
+4. **Initialize default league** (Premier League)
 
-**File:** `src/main/resources/application-docker.properties`
+### ⚠️ Security Note
 
-```properties
-spring.datasource.url=jdbc:h2:file:/app/data/footballdb
-model.output.path=/app/data/match_predictor.model
-```
+Before deploying to production:
+1. **Set a strong admin password** via `ADMIN_PASSWORD` environment variable
+2. **Never commit** `.env` files or API keys to version control
+3. **Use HTTPS** in production environments
+4. The default password is `changeme` - always change it!
 
 ---
 
-## 🤖 Model Training
+## 🏭 Production Considerations
 
-### Automatic Training
+### Query Optimization
 
-The training service automatically retrains the model:
-- **Schedule**: 1st and 15th of each month at 3:00 AM
-- **Process**: Fetches all data, engineers features, trains Random Forest, evaluates accuracy, saves model
-- **No manual intervention required**
+**Indexed Columns:**
+```sql
+-- matches table
+CREATE INDEX idx_match_date ON matches(match_date);
+CREATE INDEX idx_match_teams ON matches(home_team, away_team);
+CREATE INDEX idx_match_season ON matches(season);
 
-### Manual Training
+-- predictions table
+CREATE INDEX idx_prediction_team ON predictions(teamId);
+CREATE INDEX idx_prediction_season ON predictions(season);
+CREATE INDEX idx_prediction_match ON predictions(matchId);
+CREATE INDEX idx_prediction_date ON predictions(predictionDate);
 
-Trigger training on demand:
-
-```bash
-curl -X POST http://localhost:8081/api/training/train
+-- league_standings table
+CREATE INDEX idx_standings_league_season ON league_standings(league_id, season);
+CREATE INDEX idx_standings_points ON league_standings(points DESC, goal_difference DESC);
 ```
 
-### Training Process
+### N+1 Prevention
 
-1. **Data Loading**: Fetch all matches from database (chronologically ordered)
-2. **Feature Engineering**: Calculate 25 features per match
-3. **Temporal Split**: 80% training, 20% testing (no future data leakage)
-4. **Model Training**: Random Forest with 100 trees, 5 features per split
-5. **Evaluation**: Test on held-out data, calculate accuracy/precision/recall
-6. **Persistence**: Save model to shared storage
+Services use batch queries and DTOs to prevent N+1:
 
-### Model Metrics
+```java
+// Bad: N+1 problem
+for (Match match : matches) {
+    Team homeTeam = teamRepository.findByName(match.getHomeTeam()); // N queries
+}
 
-- **Accuracy**: ~55% (baseline ~45% always predicting home win)
-- **Features**: 25 (organized in 3 phases: form/goals/H2H, shots/corners, streaks/rest)
-- **Algorithm**: Stacked Ensemble (RandomForest + AdaBoostM1 + Logistic Regression)
-- **Training Time**: ~5-10 seconds for 3800 matches
-- **Model Size**: ~1-2 MB
+// Good: Batch fetch
+Map<String, String> teamLogos = teamRepository.findAll().stream()
+    .collect(Collectors.toMap(Team::getName, Team::getLogoUrl));
+
+for (Match match : matches) {
+    String logo = teamLogos.get(match.getHomeTeam()); // O(1) lookup
+}
+```
+
+### Performance Targets
+
+| Operation | Target | Strategy |
+|-----------|--------|----------|
+| Dashboard endpoints | <300ms | Caffeine caching |
+| Prediction requests | <200ms | Pre-loaded model |
+| Insights queries | <500ms | Season-filtered queries |
+| Model training | <60s | Background execution |
+
+### Scalability Considerations
+
+- **Stateless Services**: Both apps are stateless, ready for horizontal scaling
+- **Shared Storage**: Model file on shared volume for multi-instance deployment
+- **Cache Invalidation**: Manual cache clear endpoint available
+- **Database**: H2 for development; recommend PostgreSQL for production
+
+---
+
+## 🔮 Future Roadmap
+
+| Feature | Description | Priority |
+|---------|-------------|----------|
+| **Elo Rating System** | Dynamic team strength ratings | High |
+| **xG Integration** | Expected goals model | High |
+| **Real-time Retraining** | Model updates after each match | Medium |
+| **Player-level Analytics** | Individual player impact | Medium |
+| **Multi-league Support** | La Liga, Bundesliga, Serie A | Medium |
+| **Deep Learning Models** | LSTM for sequence prediction | Low |
+| **WebSocket Updates** | Live prediction updates | Low |
 
 ---
 
@@ -541,470 +988,81 @@ curl -X POST http://localhost:8081/api/training/train
 
 ```
 football-prediction/
-├── README.md                      # This file
-├── LICENSE                        # MIT License
-├── pom.xml                        # Maven configuration
-├── docker-compose.yml             # Multi-container orchestration
-├── Dockerfile                     # Main app Docker image
+├── README.md                          # This file
+├── LICENSE                            # MIT License
+├── pom.xml                            # Parent POM
+├── docker-compose.yml                 # Multi-service orchestration
+├── Dockerfile                         # Main app Dockerfile
 │
-├── scripts/                       # Utility scripts
-│   ├── start-services.sh         # Automated startup
-│   └── test-apis.sh              # API testing
+├── football-prediction-app/           # Main Application
+│   ├── pom.xml
+│   └── src/main/
+│       ├── java/com/app/footballprediction/
+│       │   ├── controller/            # REST endpoints
+│       │   │   ├── PredictionController.java
+│       │   │   ├── AnalyticsController.java
+│       │   │   ├── DashboardController.java
+│       │   │   ├── TeamStatsController.java
+│       │   │   └── ExternalApiController.java
+│       │   ├── service/               # Business logic
+│       │   │   ├── PreMatchInsightsService.java
+│       │   │   ├── TrendingInsightsService.java
+│       │   │   ├── LeagueStandingService.java
+│       │   │   ├── H2HInsightsService.java
+│       │   │   └── DashboardService.java
+│       │   ├── dto/                   # Data transfer objects
+│       │   ├── config/                # Configuration
+│       │   │   └── CacheConfig.java   # Caffeine cache
+│       │   └── scheduler/             # Scheduled tasks
+│       └── resources/
+│           ├── application.properties
+│           ├── static/                # Web UI (HTML/CSS/JS)
+│           └── data/                  # CSV files (22 seasons)
 │
-├── src/                           # Main application
-│   ├── main/
-│   │   ├── java/com/app/footballprediction/
-│   │   │   ├── config/           # Spring configuration
-│   │   │   ├── controller/       # REST controllers
-│   │   │   ├── dto/              # Data transfer objects
-│   │   │   ├── featureengineering/ # Feature calculation
-│   │   │   ├── model/            # Domain models
-│   │   │   ├── modeltraining/    # ML training logic
-│   │   │   ├── repository/       # Data access
-│   │   │   ├── scheduler/        # Scheduled tasks
-│   │   │   └── service/          # Business logic
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       ├── log4j2.xml
-│   │       ├── data/             # CSV files (22 seasons)
-│   │       └── static/           # Web UI (HTML/CSS/JS)
-│   └── test/                      # Comprehensive tests
+├── football-prediction-common/        # Shared Library
+│   ├── pom.xml
+│   └── src/main/java/com/app/common/
+│       ├── model/                     # JPA Entities
+│       │   ├── Match.java
+│       │   ├── Team.java
+│       │   ├── League.java
+│       │   ├── LeagueStanding.java
+│       │   └── Prediction.java
+│       ├── repository/                # Spring Data JPA
+│       └── service/                   # Shared services
+│           └── FeatureEngineeringService.java
 │
-├── model-training-service/        # Training microservice
-│   ├── README.md
+├── model-training-service/            # ML Training Service
 │   ├── pom.xml
 │   ├── Dockerfile
-│   └── src/
-│       ├── main/java/com/app/modeltraining/
-│       │   ├── controller/       # Training API
-│       │   ├── service/          # Training logic
-│       │   ├── scheduler/        # Auto-training
-│       │   └── ...
-│       └── resources/
-│           └── application.properties
+│   └── src/main/java/com/app/modeltraining/
+│       ├── controller/
+│       │   └── ModelTrainingController.java
+│       ├── service/
+│       │   └── ModelTrainingService.java
+│       └── scheduler/
+│           └── TrainingScheduler.java
 │
-├── screenshots/                   # Application screenshots
-│   ├── README.md                 # Screenshot guidelines
-│   ├── home-page.png            # (to be added)
-│   ├── prediction-result.png    # (to be added)
-│   └── ...                      # Other screenshots
+├── data/                              # Shared data volume
+│   ├── footballdb.mv.db              # H2 database file
+│   ├── match_predictor.model         # Trained ML model
+│   └── model_backups/                # Model version backups
 │
-├── data/                          # Shared storage (gitignored)
-│   ├── footballdb.mv.db          # H2 database
-│   ├── match_predictor.model     # Trained model
-│   └── model_backups/            # Model versions
+├── logs/                              # Application logs
+│   ├── api/
+│   ├── model/
+│   └── error/
 │
-└── logs/                          # Application logs (gitignored)
-    ├── api/
-    ├── model/
-    └── model-training/
+└── scripts/
+    ├── start-services.sh             # Startup script
+    └── test-apis.sh                  # API test script
 ```
 
 ---
-
-## 🧪 Testing
-
-### Run All Tests
-
-```bash
-# Main application tests (120 tests)
-mvn test
-
-# Training service tests
-cd model-training-service && mvn test
-```
-
-### Test Coverage
-
-- **Total Tests**: 120
-- **Pass Rate**: 100%
-- **Coverage**:
-  - Unit tests: Service classes, repositories, DTOs
-  - Integration tests: Database, CSV ingestion
-  - ML tests: Training, evaluation, prediction
-  - E2E tests: Full prediction pipeline
-
-### API Testing
-
-Use the provided test script:
-
-```bash
-./scripts/test-apis.sh
-```
-
-This will test:
-- ✅ Service health checks
-- ✅ Model training
-- ✅ Model testing
-- ✅ Predictions
-- ✅ All API endpoints
-
----
-
-## 🚢 Deployment
-
-### Local Development
-
-```bash
-./scripts/start-services.sh
-# Choose option 1 (Docker) or 2 (Separate processes)
-```
-
-### Docker Production
-
-```bash
-# Build images
-docker-compose build
-
-# Start services
-docker-compose up -d
-
-# Scale prediction service
-docker-compose up -d --scale football-predictor=3
-
-# View logs
-docker-compose logs -f
-
-# Stop
-docker-compose down
-```
-
-### Cloud Deployment
-
-#### Environment Variables
-```bash
-export SPRING_DATASOURCE_URL=jdbc:h2:file:/var/app/data/footballdb
-export MODEL_OUTPUT_PATH=/var/app/models/predictor.model
-export FOOTBALL_API_KEY=your_api_key_here
-```
-
-#### Health Checks
-- Main App: `http://localhost:8080/api/model/status`
-- Training: `http://localhost:8081/api/training/model-info`
-
-#### Monitoring
-- Logs: `logs/` directory
-- Metrics: Spring Boot Actuator endpoints
-- Database: H2 console at `/h2-console`
-
----
-
-## 🔧 Development
-
-### Adding New Features
-
-1. **New ML Features**
-   - Update `MatchFeatures.java`
-   - Modify `FeatureEngineeringService.java`
-   - Update `ModelTrainingService.buildAttributes()`
-   - Add tests
-
-2. **New Endpoints**
-   - Create controller in `controller/`
-   - Add DTOs in `dto/`
-   - Implement service logic
-   - Write tests
-
-3. **New Configuration**
-   - Add properties to `application.properties`
-   - Document in this README
-
-### Code Style
-
-- Java 21 features encouraged
-- Lombok for boilerplate reduction
-- SLF4J for logging
-- JUnit 5 for testing
-- Follow existing package structure
-
-### Building
-
-```bash
-# Clean build
-mvn clean install
-
-# Skip tests
-mvn clean install -DskipTests
-
-# Build Docker image
-docker build -t football-prediction:latest .
-```
-
----
-
-## 📊 Performance
-
-### Main Application
-- **Startup Time**: ~8 seconds
-- **Prediction Latency**: <100ms
-- **Memory**: 256-512 MB
-- **Throughput**: 100+ requests/second
-
-### Training Service
-- **Training Time**: 5-10 seconds (3800 matches)
-- **Memory**: 512 MB - 1 GB
-- **Model Size**: 1-2 MB
-- **Startup Time**: ~5 seconds
-
----
-
-## 🐛 Troubleshooting
-
-### Services Won't Start
-
-**Problem**: Port already in use
-
-**Solution**:
-```bash
-# Find process using port
-lsof -i :8080
-lsof -i :8081
-
-# Kill process
-kill -9 <PID>
-```
-
-### Model Not Found
-
-**Problem**: Main app can't load model
-
-**Solution**:
-```bash
-# Train the model first
-curl -X POST http://localhost:8081/api/training/train
-```
-
-### Database Empty
-
-**Problem**: No match data
-
-**Solution**:
-```bash
-# Ingest CSV data
-curl -X POST http://localhost:8080/api/ingestion/ingest
-```
-
-### Tests Failing
-
-**Problem**: Tests fail with database error
-
-**Solution**: Clean and rebuild
-```bash
-mvn clean test
-```
-
----
-
-## 📊 Performance Metrics
-
-### 🎯 Model Performance (February 2026)
-- **Accuracy**: 62.3% (vs industry baseline 45%)
-- **Precision**: 0.61 (Home), 0.58 (Draw), 0.65 (Away)
-- **Recall**: 0.63 (Home), 0.55 (Draw), 0.68 (Away)
-- **F1-Score**: 0.62 overall
-- **Cross-validation**: 10-fold CV with 59.8% ±2.1% accuracy
-
-### ⚡ System Performance
-- **Prediction Time**: <200ms average
-- **Model Training**: 45-90 seconds (full dataset)
-- **Memory Usage**: 512MB peak (during training)
-- **API Response**: 95th percentile <500ms
-- **Uptime**: 99.9% (last 6 months)
-
-### 📈 Usage Statistics
-- **Total Predictions**: 15,247 (since launch)
-- **Daily Active Users**: 156 average
-- **API Calls**: 2.3M total
-- **Data Points**: 8,420 matches analyzed
-- **Feature Engineering**: 25 statistical features in 3 phases
-
----
-
-## 🆕 Recent Updates
-
-### Current Version: v2.2.0 (February 2026)
-
-**Latest Features:**
-- ✨ **Stacked Ensemble Model**: Combines RandomForest (100 trees) + Gradient Boosting (AdaBoostM1, 100 iterations) + Logistic Regression meta-model
-- 🎯 **25 Engineered Features**: Organized in 3 phases covering form, goals, H2H, shots, corners, streaks, and rest days
-- 📊 **Advanced Model Training**: Grid search hyperparameter optimization for RandomForest and AdaBoost
-- 🔄 **Voting Ensemble**: Alternative ensemble combining RF, AdaBoost, and J48 Decision Tree
-- 📱 **Modern UI**: Dark theme with responsive PWA-ready design
-- 🌐 **Live Integration**: Real-time data from football-data.org API (matches, standings, calendar)
-- 📰 **News Feed**: Premier League news integration
-- 📅 **Match Calendar**: Date-based prediction for upcoming fixtures
-- 🏆 **Standings**: Current Premier League table display
-- 🐳 **Production Ready**: Full Docker containerization with monitoring
-- 🧪 **Quality Assurance**: 120+ tests with 85% code coverage
-- ⚡ **Performance**: Sub-200ms prediction latency
-- 🎯 **High Accuracy**: 62.3% prediction accuracy (vs 45% baseline)
-
-**v2.1.0 (January 2026):**
-- Basic ensemble models with Random Forest
-- Initial PWA support
-- Docker containerization
-
-**v2.0.0 (December 2025):**
-- Multi-module microservices architecture
-- Bi-monthly automated retraining
-- External API integration
-
----
-
-## 🌟 Roadmap
-
-### Completed ✅
-- [x] Enhanced UI with modern design system
-- [x] PWA support for mobile installation  
-- [x] Real-time match data integration via football-data.org API
-- [x] Multi-module microservices architecture
-- [x] Docker containerization with multi-stage builds
-- [x] Comprehensive test suite (120+ tests)
-- [x] Stacked Ensemble model (RandomForest + AdaBoost + Logistic Regression)
-- [x] Advanced feature engineering (25 features in 3 phases)
-- [x] Grid search hyperparameter optimization
-- [x] Cross-validation training (10-fold CV)
-- [x] Voting and Stacking ensemble methods
-- [x] Premier League news integration
-- [x] Match calendar with date-based predictions
-- [x] Current standings display
-- [x] Bi-monthly automated model retraining
-
-### In Progress 🚧
-- [ ] xG (Expected Goals) feature integration
-- [ ] Player injury impact analysis
-- [ ] Team lineup-based predictions
-- [ ] Historical performance dashboards
-
-### 📊 Available Data for Upcoming Features
-
-The dataset contains rich information that enables the planned features:
-
-| Data Category | Fields | Use Cases |
-|---------------|--------|-----------|
-| **Match Results** | FTHG, FTAG, FTR, HTHG, HTAG, HTR | Goals analysis, half-time patterns, result distributions |
-| **Match Stats** | HS, AS, HST, AST, HC, AC | Shot conversion, corner analysis, attacking metrics |
-| **Discipline** | HY, AY, HR, AR | Card statistics, referee analysis, discipline patterns |
-| **Betting Odds** | B365, BW, BF, PS, WH, 1XB (H/D/A) | Odds comparison, value betting, market analysis |
-| **Over/Under** | B365>2.5, B365<2.5, etc. | Goal prediction, over/under trends |
-| **Asian Handicap** | AHh, B365AHH, B365AHA | Handicap analysis, close match predictions |
-| **Referee** | Referee name | Referee statistics, bias analysis |
-| **Historical** | 22 seasons (2004-2026) | Long-term trends, team history, H2H records |
-
-### Planned 📋
-
-#### 🏆 League Statistics Dashboard
-- [ ] **Season Overview Panel**: Total goals scored (home vs away), average goals per match, home/draw/away win percentages
-- [ ] **Goals Trends Chart**: Line chart showing goals-per-season trends over 21 seasons
-- [ ] **Home Advantage Analysis**: Track how home advantage has changed over the years
-- [ ] **Record Matches**: Display biggest wins, highest-scoring games, most common scorelines
-
-#### 👥 Team Performance Analytics
-- [x] **Team Stats Page**: Dedicated page for each team with comprehensive statistics ✅
-- [x] **Form Visualization**: Last 10 matches with W-D-L colored indicators ✅
-- [x] **Home vs Away Split**: Goals, wins, clean sheets comparison (home vs away) ✅
-- [x] **Scoring Patterns**: First half vs second half goal distribution (using HTHG/HTAG data) ✅
-- [x] **Shot Conversion Rate**: (Goals / Shots on Target) percentage per team ✅
-- [x] **Defensive Metrics**: Goals conceded, clean sheet percentage, shots allowed ✅
-
-#### 🆚 Enhanced Head-to-Head (H2H) Insights
-- [x] **Historical Record Display**: "Arsenal leads 15-8-7 vs Chelsea" format ✅
-- [x] **Recent H2H Timeline**: Last 5 meetings with results and scorelines ✅
-- [x] **H2H Goal Stats**: Average goals when these teams meet ✅
-- [x] **Common Results**: Most frequent outcome in H2H matchups ✅
-- [x] **Venue Advantage**: H2H win % based on home/away ✅
-
-#### ⚽ Pre-Match Insights Panel
-- [ ] **Form Comparison Bars**: Visual comparison of homeFormPoints vs awayFormPoints
-- [ ] **Streak Indicators**: 🔥 "Arsenal on 5-match winning streak" badges
-- [ ] **Rest Days Warning**: ⚠️ "Liverpool played 3 days ago" fatigue indicator
-- [ ] **Goal Threat Meter**: Based on scoring/conceding averages
-- [ ] **Over/Under 2.5 Probability**: Derived from goal averages
-- [ ] **Both Teams to Score %**: Based on scoring/conceding patterns
-
-#### 📈 Betting Odds Comparison
-- [ ] **Odds Comparison Table**: Side-by-side bookmaker odds (B365, BW, PS, WH, 1XB)
-- [ ] **Best Value Highlight**: Identify which bookmaker offers best price
-- [ ] **Market Movement Tracker**: Opening vs closing odds changes
-- [ ] **Model vs Market**: Compare ML prediction probability with implied odds
-- [ ] **Value Bet Finder**: Flag matches where model confidence > implied probability
-
-#### 🎯 Model Performance Analytics
-- [ ] **Accuracy by Result Type**: "Home wins: 68%, Draws: 45%, Away wins: 58%"
-- [ ] **Confidence Level Analysis**: Hit rates for High/Medium/Low confidence predictions
-- [ ] **Prediction History Log**: Last 50 predictions with actual results
-- [ ] **Calibration Chart**: When predicting 60% home win, how often does home win?
-- [ ] **Confusion Matrix Visualization**: Interactive H/D/A prediction accuracy display
-
-#### 📊 Statistical Patterns & Trends
-- [ ] **Most Common Scorelines**: "1-1 is the most common result (15%)"
-- [ ] **Goals by Half**: First half vs second half scoring trends
-- [ ] **Red Card Impact**: Win % after receiving a red card
-- [ ] **Corner Statistics**: Teams winning most corners, corner averages
-- [ ] **Referee Insights**: Cards per referee, home advantage by referee (using Referee data)
-
-#### 🔥 Live/Trending Insights
-- [x] **Hot Teams Widget**: Teams on 3+ match winning streaks ✅
-- [x] **Cold Teams Widget**: Teams without a win in 5+ matches ✅
-- [x] **Top Scorers**: Teams scoring most goals in recent matches ✅
-- [x] **Defensive Walls**: Teams with most clean sheets recently ✅
-- [x] **Upset Alerts**: Matches where away team has >50% win probability ✅
-- [x] **Goal Fest Predictions**: Matches with highest expected total goals ✅
-
-#### 📱 Quick Stats Cards (Mobile-Friendly)
-- [ ] **League Quick Stats**: Home Win %, Avg Goals, Model Accuracy in card format
-- [ ] **This Gameweek Summary**: Key predictions and stats for upcoming matches
-- [ ] **Trending Stats**: Dynamic stats that update based on recent data
-
-#### 🛠️ Infrastructure & Technical
-- [ ] Multi-league support (La Liga, Bundesliga, Serie A, Ligue 1)
-- [ ] Deep learning models (LSTM for sequence prediction, Neural Networks)
-- [ ] Native mobile apps (iOS/Android with React Native)
-- [ ] Cloud deployment (AWS Lambda / GCP Cloud Run)
-- [ ] GraphQL API alongside REST
-- [ ] Redis caching layer for improved performance
-- [ ] API authentication and rate limiting per user
-- [ ] Model versioning and A/B testing framework
-
-#### 📐 Planned API Endpoints
-```
-GET /api/stats/league-overview?season=2024-25
-GET /api/stats/team/{teamName}
-GET /api/stats/h2h?home={team1}&away={team2}
-GET /api/stats/trending-teams
-GET /api/stats/referee/{refereeName}
-GET /api/stats/common-scorelines
-GET /api/predictions/history?limit=50
-GET /api/predictions/accuracy
-GET /api/predictions/calibration
-GET /api/odds/comparison?matchId={id}
-GET /api/odds/value-bets
-```
-
----
-
-## 📚 Resources
-
-### Documentation
-- **Weka ML**: [cs.waikato.ac.nz/ml/weka](https://www.cs.waikato.ac.nz/ml/weka/)
-- **Spring Boot**: [spring.io/projects/spring-boot](https://spring.io/projects/spring-boot)
-- **Docker**: [docs.docker.com](https://docs.docker.com/)
-
-### Data Sources
-- **Football Data API**: [football-data.org](https://www.football-data.org/)
-- **Historical Data**: [football-data.co.uk](https://www.football-data.co.uk/)
-
----
-
 
 ## 📄 License
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-### 🔓 Commercial Use
-- ✅ **Allowed**: Commercial use, modification, distribution
-- ✅ **Required**: Include original license and copyright
-- ❌ **Forbidden**: Liability claims against authors
 
 ---
 
@@ -1012,8 +1070,13 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 - **Weka Team** - Machine learning library
 - **Spring Community** - Framework and documentation
-- **Football-Data.co.uk** - Historical football data
+- **Football-Data.co.uk** - Historical match data
+- **Football-Data.org** - Live match API
 
 ---
 
-**⚽ Made with ❤️ | Star ⭐ this repo if you find it useful!**
+<p align="center">
+  <strong>⚽ Built for Football Analytics Enthusiasts</strong><br>
+  <em>Season-aware • AI-powered • Production-ready</em>
+</p>
+

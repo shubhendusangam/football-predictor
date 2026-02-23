@@ -1,0 +1,857 @@
+/* ==========================================
+   PRE-MATCH INSIGHTS UI STYLES
+   Dark Theme Compatible
+   ========================================== */
+
+/* Main Container */
+.pre-match-insights {
+    margin-top: 2rem;
+    padding: 0;
+}
+
+.pre-match-insights-container {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+/* Section Header */
+.pre-match-insights-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pre-match-insights-header .header-icon {
+    font-size: 1.5rem;
+}
+
+.pre-match-insights-header .header-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.pre-match-insights-header .header-badge {
+    margin-left: auto;
+    padding: 0.25rem 0.75rem;
+    background: var(--accent-blue);
+    color: white;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Section Content */
+.pre-match-insights-content {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* ==========================================
+   SECTION 1: Metrics Comparison Table
+   ========================================== */
+.metrics-comparison {
+    background: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.metrics-comparison-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-primary);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.metrics-comparison-title .title-icon {
+    font-size: 1.125rem;
+}
+
+.metrics-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.metrics-table th,
+.metrics-table td {
+    padding: 0.875rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.metrics-table th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.metrics-table th.metric-col {
+    text-align: left;
+    padding-left: 1.25rem;
+}
+
+.metrics-table th.home-col {
+    color: var(--accent-green);
+}
+
+.metrics-table th.away-col {
+    color: var(--accent-blue);
+}
+
+.metrics-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.metrics-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.metrics-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.metrics-table td.metric-name {
+    text-align: left;
+    padding-left: 1.25rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.metrics-table td.metric-name .metric-icon {
+    margin-right: 0.5rem;
+}
+
+.metrics-table td.home-value {
+    color: var(--accent-green);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.metrics-table td.away-value {
+    color: var(--accent-blue);
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.metrics-table td .value-highlight {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.metrics-table td .value-highlight.positive {
+    color: var(--accent-green);
+}
+
+.metrics-table td .value-highlight.negative {
+    color: var(--accent-red);
+}
+
+.metrics-table td .value-highlight.neutral {
+    color: var(--accent-yellow);
+}
+
+/* Streak badges */
+.streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.streak-badge.win-streak {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green);
+}
+
+.streak-badge.loss-streak {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red);
+}
+
+.streak-badge.draw-streak,
+.streak-badge.unbeaten-streak {
+    background: rgba(251, 191, 36, 0.15);
+    color: var(--accent-yellow);
+}
+
+/* ==========================================
+   SECTION 2: Form Comparison Bar
+   ========================================== */
+.form-comparison-section {
+    background: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.form-comparison-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.form-comparison-title .title-icon {
+    font-size: 1.125rem;
+}
+
+.form-comparison-bar-container {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.form-comparison-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.form-comparison-labels .team-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.form-comparison-labels .team-label.home {
+    color: var(--accent-green);
+}
+
+.form-comparison-labels .team-label.away {
+    color: var(--accent-blue);
+}
+
+.form-dual-bar {
+    display: flex;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    overflow: hidden;
+    background: var(--bg-primary);
+}
+
+.form-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    min-width: 3rem;
+}
+
+.form-bar.home {
+    background: linear-gradient(90deg, var(--accent-green), #16a34a);
+}
+
+.form-bar.away {
+    background: linear-gradient(90deg, #2563eb, var(--accent-blue));
+}
+
+.form-comparison-details {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+}
+
+.form-detail-item {
+    text-align: center;
+}
+
+.form-detail-item .detail-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.form-detail-item .detail-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+.form-detail-item.home .detail-value {
+    color: var(--accent-green);
+}
+
+.form-detail-item.away .detail-value {
+    color: var(--accent-blue);
+}
+
+/* Form string badges */
+.form-string-container {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.form-result-badge {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: white;
+}
+
+.form-result-badge.W {
+    background: var(--accent-green);
+}
+
+.form-result-badge.D {
+    background: var(--accent-yellow);
+}
+
+.form-result-badge.L {
+    background: var(--accent-red);
+}
+
+/* ==========================================
+   SECTION 3: Head-to-Head Summary
+   ========================================== */
+.h2h-summary-section {
+    background: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.h2h-summary-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.h2h-summary-title .title-icon {
+    font-size: 1.125rem;
+}
+
+.h2h-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+}
+
+.h2h-stat-card {
+    text-align: center;
+    padding: 1rem 0.75rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.h2h-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.h2h-stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.h2h-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.h2h-stat-card.total .h2h-stat-value {
+    color: var(--accent-blue);
+}
+
+.h2h-stat-card.home-wins .h2h-stat-value {
+    color: var(--accent-green);
+}
+
+.h2h-stat-card.draws .h2h-stat-value {
+    color: var(--accent-yellow);
+}
+
+.h2h-stat-card.away-wins .h2h-stat-value {
+    color: var(--accent-red);
+}
+
+/* H2H Historical Summary Text */
+.h2h-summary-text {
+    margin-top: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-primary);
+    border-radius: 0.5rem;
+    text-align: center;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+}
+
+.h2h-summary-text strong {
+    color: var(--text-primary);
+}
+
+/* ==========================================
+   SECTION 4: Last 5 Meetings Table
+   ========================================== */
+.recent-meetings-section {
+    background: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.recent-meetings-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-primary);
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recent-meetings-title .title-icon {
+    font-size: 1.125rem;
+}
+
+.recent-meetings-table-wrapper {
+    overflow-x: auto;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.recent-meetings-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 400px;
+}
+
+.recent-meetings-table th,
+.recent-meetings-table td {
+    padding: 0.875rem 1rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.recent-meetings-table th {
+    background: var(--bg-secondary);
+    font-weight: 600;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.recent-meetings-table tbody tr {
+    transition: background 0.2s ease;
+}
+
+.recent-meetings-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.recent-meetings-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.recent-meetings-table td.date-col {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    white-space: nowrap;
+}
+
+.recent-meetings-table td.team-col {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.recent-meetings-table td.team-col.winner {
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.recent-meetings-table td.score-col {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.score-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    background: var(--bg-primary);
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+}
+
+/* ==========================================
+   SECTION 5: Advanced Match Stats Cards
+   ========================================== */
+.advanced-stats-section {
+    background: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.advanced-stats-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.advanced-stats-title .title-icon {
+    font-size: 1.125rem;
+}
+
+.advanced-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+}
+
+.advanced-stat-card {
+    text-align: center;
+    padding: 1.25rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.advanced-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--accent-blue);
+}
+
+.advanced-stat-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.advanced-stat-value {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.advanced-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.advanced-stat-sublabel {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+.pre-match-insights-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.pre-match-insights-loading .loading-spinner {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+.pre-match-insights-loading .loading-text {
+    font-size: 0.9375rem;
+    color: var(--text-muted);
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+.pre-match-insights-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    text-align: center;
+}
+
+.pre-match-insights-error .error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.7;
+}
+
+.pre-match-insights-error .error-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.375rem;
+}
+
+.pre-match-insights-error .error-message {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+}
+
+.pre-match-insights-error .retry-btn {
+    padding: 0.5rem 1.25rem;
+    background: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.pre-match-insights-error .retry-btn:hover {
+    background: var(--accent-blue-hover);
+}
+
+/* ==========================================
+   KEY INSIGHTS
+   ========================================== */
+.key-insights-section {
+    background: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.key-insights-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.key-insights-title .title-icon {
+    font-size: 1.125rem;
+}
+
+.key-insights-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.key-insight-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.key-insight-item .insight-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN
+   ========================================== */
+@media (max-width: 768px) {
+    .pre-match-insights-header {
+        padding: 1rem 1.25rem;
+    }
+
+    .pre-match-insights-header .header-title {
+        font-size: 1.125rem;
+    }
+
+    .pre-match-insights-content {
+        padding: 1.25rem;
+        gap: 1.5rem;
+    }
+
+    .metrics-table th,
+    .metrics-table td {
+        padding: 0.75rem 0.625rem;
+        font-size: 0.875rem;
+    }
+
+    .h2h-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .h2h-stat-value {
+        font-size: 1.5rem;
+    }
+
+    .advanced-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .form-dual-bar {
+        height: 2.25rem;
+    }
+
+    .form-bar {
+        font-size: 0.8125rem;
+        min-width: 2.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .pre-match-insights-header {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .pre-match-insights-header .header-badge {
+        margin-left: 0;
+    }
+
+    .metrics-table {
+        font-size: 0.8125rem;
+    }
+
+    .metrics-table th,
+    .metrics-table td {
+        padding: 0.625rem 0.5rem;
+    }
+
+    .h2h-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .h2h-stat-card {
+        padding: 0.875rem 0.5rem;
+    }
+
+    .h2h-stat-value {
+        font-size: 1.375rem;
+    }
+
+    .advanced-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .advanced-stat-card {
+        padding: 1rem 0.75rem;
+    }
+
+    .advanced-stat-value {
+        font-size: 1.25rem;
+    }
+
+    .form-comparison-labels .team-label {
+        font-size: 0.8125rem;
+    }
+
+    .form-result-badge {
+        width: 1.25rem;
+        height: 1.25rem;
+        font-size: 0.625rem;
+    }
+}
+
+/* ==========================================
+   SCROLLBAR STYLING
+   ========================================== */
+.recent-meetings-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.recent-meetings-table-wrapper::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 3px;
+}
+
+.recent-meetings-table-wrapper::-webkit-scrollbar-thumb {
+    background: var(--bg-tertiary);
+    border-radius: 3px;
+}
+
+.recent-meetings-table-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--border-color);
+}
+
+/* ==========================================
+   NO DATA STATE
+   ========================================== */
+.no-data-message {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-muted);
+}
+
+.no-data-message .no-data-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+.no-data-message .no-data-text {
+    font-size: 0.9375rem;
+}
+

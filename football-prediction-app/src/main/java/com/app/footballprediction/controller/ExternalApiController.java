@@ -10,10 +10,13 @@ import com.app.common.model.MatchFeatures;
 import com.app.common.util.PredictionUtils;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.service.FootballDataApiService;
+import com.app.footballprediction.service.PredictionTrackingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 import java.util.*;
 
@@ -35,6 +38,7 @@ public class ExternalApiController {
     private final FootballDataApiService footballDataApiService;
     private final FeatureEngineeringService featureEngineeringService;
     private final ModelTrainingService modelTrainingService;
+    private final PredictionTrackingService predictionTrackingService;
 
     /**
      * Get current standings with team form.
@@ -58,8 +62,32 @@ public class ExternalApiController {
     }
 
     /**
+     * Clear the external API cache.
+     * Useful when data appears stale or after errors.
+     * <p>
+     * POST /api/external/clear-cache
+     */
+    @PostMapping("/clear-cache")
+    public ResponseEntity<?> clearCache() {
+        try {
+            footballDataApiService.clearCache();
+            log.info("External API cache cleared via API request");
+            return ResponseEntity.ok(Map.of(
+                    "message", "Cache cleared successfully",
+                    "timestamp", java.time.Instant.now().toString()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to clear cache: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to clear cache",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    /**
      * Get upcoming scheduled matches.
-     *
+     * <p>
      * GET /api/external/upcoming?competition=PL
      */
     @GetMapping("/upcoming")
@@ -79,7 +107,7 @@ public class ExternalApiController {
 
     /**
      * Get finished matches from current season.
-     *
+     * <p>
      * GET /api/external/finished?competition=PL
      */
     @GetMapping("/finished")
@@ -99,7 +127,7 @@ public class ExternalApiController {
 
     /**
      * Get matches for a specific date and predict outcomes.
-     *
+     * <p>
      * GET /api/external/matches-by-date?date=2026-02-17&competition=PL
      */
     @GetMapping("/matches-by-date")
@@ -265,6 +293,31 @@ public class ExternalApiController {
             // Run prediction
             double[] probs = modelTrainingService.predict(features);
             String label = modelTrainingService.getPredictedLabel(probs);
+            // Calculate raw confidence as the max probability
+            double confidence = Math.max(probs[0], Math.max(probs[1], probs[2]));
+
+            // Parse match date and determine season
+            LocalDate matchDate = parseMatchDate(match.getUtcDate());
+            String season = determineSeason(matchDate);
+
+            // Record predictions for both teams (for model accuracy tracking)
+            try {
+                predictionTrackingService.recordMatchPredictions(
+                        match.getId(),
+                        homeTeam,
+                        awayTeam,
+                        season,
+                        matchDate,
+                        label,
+                        confidence,
+                        probs[0],
+                        probs[1],
+                        probs[2]
+                );
+                log.debug("Recorded prediction for {} vs {} on {}", homeTeam, awayTeam, matchDate);
+            } catch (Exception e) {
+                log.warn("Failed to record prediction for {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
+            }
 
             return MatchPrediction.builder()
                     .matchId(match.getId())
@@ -298,6 +351,41 @@ public class ExternalApiController {
                     .awayTeamForm(awayForm)
                     .error("Team not found in historical data: " + e.getMessage())
                     .build();
+        }
+    }
+
+    /**
+     * Parse match date from API format (ISO 8601).
+     */
+    private LocalDate parseMatchDate(String utcDate) {
+        if (utcDate == null || utcDate.isEmpty()) {
+            return LocalDate.now();
+        }
+        try {
+            // Format: "2024-02-24T15:00:00Z"
+            return LocalDate.parse(utcDate.substring(0, 10));
+        } catch (Exception e) {
+            log.warn("Failed to parse date {}: {}", utcDate, e.getMessage());
+            return LocalDate.now();
+        }
+    }
+
+    /**
+     * Determine season from match date.
+     * Football season runs August to May, so:
+     * - Aug-Dec = current year - next year (e.g., 2025-26)
+     * - Jan-Jul = previous year - current year (e.g., 2024-25)
+     */
+    private String determineSeason(LocalDate matchDate) {
+        int year = matchDate.getYear();
+        int month = matchDate.getMonthValue();
+
+        if (month >= 8) {
+            // August-December: season is currentYear-nextYear
+            return String.format("%d-%02d", year, (year + 1) % 100);
+        } else {
+            // January-July: season is previousYear-currentYear
+            return String.format("%d-%02d", year - 1, year % 100);
         }
     }
 

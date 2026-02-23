@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Component Demo - Football Forecaster</title>
+    <link rel="stylesheet" href="css/layout.css">
+    <style>
+        /* Additional styles for component showcase */
+        .demo-section {
+            margin-bottom: 3rem;
+        }
+
+        .demo-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .code-block {
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            color: #22c55e;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <span class="brand-icon">⚽</span>
+                <h1 class="brand-name">Football Forecaster</h1>
+            </div>
+            <ul class="navbar-links">
+                <li><a href="#components" class="nav-link active">Components Demo</a></li>
+                <li><a href="#dashboard" class="nav-link">Dashboard</a></li>
+                <li><a href="#predictions" class="nav-link">Predictions</a></li>
+            </ul>
+            <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+                <span class="toggle-icon">☰</span>
+            </button>
+        </div>
+    </nav>
+
+    <div class="app-container">
+        <!-- Collapsible Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#components" class="sidebar-link active">
+                    <span class="sidebar-icon">🎨</span>
+                    <span class="sidebar-label">Components</span>
+                </a>
+                <a href="#cards" class="sidebar-link">
+                    <span class="sidebar-icon">🃏</span>
+                    <span class="sidebar-label">Cards</span>
+                </a>
+                <a href="#badges" class="sidebar-link">
+                    <span class="sidebar-icon">🏷️</span>
+                    <span class="sidebar-label">Badges</span>
+                </a>
+                <a href="#buttons" class="sidebar-link">
+                    <span class="sidebar-icon">🔘</span>
+                    <span class="sidebar-label">Buttons</span>
+                </a>
+                <a href="#grids" class="sidebar-link">
+                    <span class="sidebar-icon">📐</span>
+                    <span class="sidebar-label">Grid Layouts</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content" id="mainContent">
+            <div class="content-header">
+                <h2 class="page-title">Component Showcase</h2>
+                <p class="page-description">Reusable UI components for the Football Forecaster application</p>
+            </div>
+
+            <!-- Badges Demo -->
+            <section class="demo-section">
+                <div class="section-header">
+                    <h3 class="section-title">Badge Components</h3>
+                </div>
+                <div class="demo-grid">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <span class="badge badge-success">Success</span>
+                            <div class="code-block">
+                                <code>badge-success</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <span class="badge badge-info">Info</span>
+                            <div class="code-block">
+                                <code>badge-info</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <span class="badge badge-warning">Warning</span>
+                            <div class="code-block">
+                                <code>badge-warning</code>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <span class="badge badge-danger">Danger</span>
+                            <div class="code-block">
+                                <code>badge-danger</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Button Styles Demo -->
+            <section class="demo-section">
+                <div class="section-header">
+                    <h3 class="section-title">Button Styles</h3>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary">Primary Button</button>
+                    <button class="btn btn-secondary">Secondary Button</button>
+                    <button class="btn btn-outline">Outline Button</button>
+                    <button class="btn btn-primary" disabled>Disabled Button</button>
+                </div>
+                <div class="code-block">
+                    <code>
+                        &lt;button class="btn btn-primary"&gt;Primary&lt;/button&gt;<br>
+                        &lt;button class="btn btn-secondary"&gt;Secondary&lt;/button&gt;<br>
+                        &lt;button class="btn btn-outline"&gt;Outline&lt;/button&gt;
+                    </code>
+                </div>
+            </section>
+
+            <!-- Card Variations -->
+            <section class="demo-section">
+                <div class="section-header">
+                    <h3 class="section-title">Card Variations</h3>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Basic Card</h3>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">A simple card with header and body. Perfect for displaying summary information.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Card with Badge</h3>
+                            <span class="badge badge-success">Active</span>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Card featuring a status badge in the header for quick visual feedback.</p>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Match Prediction</h3>
+                            <span class="badge badge-info">AI</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="flex justify-between items-center mb-2">
+                                <span>Manchester United</span>
+                                <span style="color: var(--accent-green); font-weight: bold;">vs</span>
+                                <span>Liverpool</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="badge badge-warning">Home Win</span>
+                                <span style="color: var(--text-muted);">85% confidence</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Statistics Card</h3>
+                            <span class="badge badge-success">+12%</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="flex flex-col gap-2">
+                                <div class="flex justify-between">
+                                    <span style="color: var(--text-muted);">Accuracy</span>
+                                    <span style="color: var(--accent-green); font-weight: bold;">87.5%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span style="color: var(--text-muted);">Predictions</span>
+                                    <span style="font-weight: bold;">1,234</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span style="color: var(--text-muted);">Win Rate</span>
+                                    <span style="color: var(--accent-green); font-weight: bold;">82.3%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Grid Layout Demo -->
+            <section class="demo-section">
+                <div class="section-header">
+                    <h3 class="section-title">Responsive Grid Layouts</h3>
+                </div>
+                <p class="mb-3" style="color: var(--text-muted);">
+                    The dashboard uses CSS Grid with auto-fit to create responsive layouts.
+                    Resize your browser to see the grid adapt.
+                </p>
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Grid Item 1</h4>
+                            <p class="card-text">Auto-fits to available space</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Grid Item 2</h4>
+                            <p class="card-text">Minimum 300px width</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Grid Item 3</h4>
+                            <p class="card-text">Equal width distribution</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Grid Item 4</h4>
+                            <p class="card-text">Responsive by default</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Grid Item 5</h4>
+                            <p class="card-text">1.5rem gap between items</p>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-body">
+                            <h4 style="color: var(--accent-green); margin-bottom: 0.5rem;">Grid Item 6</h4>
+                            <p class="card-text">Stacks on mobile</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Utility Classes Demo -->
+            <section class="demo-section">
+                <div class="section-header">
+                    <h3 class="section-title">Utility Classes</h3>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="mb-2">Flexbox Utilities</h4>
+                        <div class="flex justify-between items-center mb-3" style="padding: 1rem; background: var(--bg-tertiary); border-radius: 0.5rem;">
+                            <span>Left</span>
+                            <span>Center</span>
+                            <span>Right</span>
+                        </div>
+                        <div class="code-block">
+                            <code>class="flex justify-between items-center"</code>
+                        </div>
+
+                        <h4 class="mb-2 mt-4">Spacing Utilities</h4>
+                        <div class="flex gap-2">
+                            <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 0.5rem;">gap-1</div>
+                            <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 0.5rem;">gap-2</div>
+                            <div style="padding: 1rem; background: var(--bg-tertiary); border-radius: 0.5rem;">gap-3</div>
+                        </div>
+                        <div class="code-block">
+                            <code>mt-1 mt-2 mt-3 mt-4 | mb-1 mb-2 mb-3 mb-4 | gap-1 gap-2 gap-3</code>
+                        </div>
+
+                        <h4 class="mb-2 mt-4">Text Utilities</h4>
+                        <p class="text-center mb-1" style="padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.5rem;">text-center</p>
+                        <p class="text-right" style="padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.5rem;">text-right</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- JavaScript API Demo -->
+            <section class="demo-section">
+                <div class="section-header">
+                    <h3 class="section-title">Dynamic Component Creation</h3>
+                </div>
+                <div class="card">
+                    <div class="card-body">
+                        <p class="mb-3">Use the UIUtils API to create components programmatically:</p>
+                        <button class="btn btn-primary mb-3" onclick="demonstrateAPI()">
+                            Create Dynamic Card
+                        </button>
+                        <div id="dynamicContainer" class="dashboard-grid"></div>
+                        <div class="code-block mt-3">
+                            <code>
+                                const card = UIUtils.createCard(<br>
+                                &nbsp;&nbsp;'Dynamic Title',<br>
+                                &nbsp;&nbsp;'&lt;p&gt;Content&lt;/p&gt;',<br>
+                                &nbsp;&nbsp;{ type: 'success', text: 'New' }<br>
+                                );<br>
+                                container.appendChild(card);
+                            </code>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="js/layout.js"></script>
+    <script>
+        // Demo function for dynamic component creation
+        function demonstrateAPI() {
+            const container = document.getElementById('dynamicContainer');
+
+            const cards = [
+                {
+                    title: 'Dynamically Created Card',
+                    content: '<p>This card was created using <code>UIUtils.createCard()</code></p><p style="margin-top: 1rem; color: var(--text-muted);">Click the button again to create more!</p>',
+                    badge: { type: 'success', text: 'New' }
+                }
+            ];
+
+            const newCard = UIUtils.createCard(
+                cards[0].title,
+                cards[0].content,
+                cards[0].badge
+            );
+
+            container.appendChild(newCard);
+
+            // Add a subtle animation
+            newCard.style.opacity = '0';
+            newCard.style.transform = 'translateY(20px)';
+
+            setTimeout(() => {
+                newCard.style.transition = 'all 0.3s ease';
+                newCard.style.opacity = '1';
+                newCard.style.transform = 'translateY(0)';
+            }, 10);
+        }
+    </script>
+</body>
+</html>
+

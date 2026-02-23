@@ -1,0 +1,513 @@
+/* ==========================================
+   HISTORICAL SEASON EXPLORER STYLES
+   Football Forecaster - Historical Data View
+   ========================================== */
+
+/* ==========================================
+   SEASON SELECTOR SECTION
+   ========================================== */
+
+.historical-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.season-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.season-selector label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.season-select {
+    padding: 0.625rem 1rem;
+    padding-right: 2.5rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    min-width: 140px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.season-select:hover {
+    border-color: var(--accent-green);
+}
+
+.season-select:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+/* ==========================================
+   FILTER & SORT CONTROLS
+   ========================================== */
+
+.historical-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+}
+
+.filter-input {
+    padding: 0.5rem 1rem;
+    padding-left: 2.5rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    min-width: 200px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--accent-green);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.2);
+}
+
+.filter-input::placeholder {
+    color: var(--text-muted);
+}
+
+.filter-wrapper {
+    position: relative;
+}
+
+.filter-wrapper::before {
+    content: '🔍';
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.875rem;
+}
+
+.sort-select {
+    padding: 0.5rem 1rem;
+    padding-right: 2rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    background-size: 0.875rem;
+}
+
+.sort-select:focus {
+    outline: none;
+    border-color: var(--accent-green);
+}
+
+.sort-direction-btn {
+    padding: 0.5rem 0.75rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sort-direction-btn:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.sort-direction-btn.active {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+    color: white;
+}
+
+/* ==========================================
+   SEASON SUMMARY CARDS
+   ========================================== */
+
+.season-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.summary-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    text-align: center;
+}
+
+.summary-card-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent-green);
+    margin-bottom: 0.25rem;
+}
+
+.summary-card-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================
+   DATA TABLE STYLES
+   ========================================== */
+
+.historical-table-container {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.historical-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.historical-table th {
+    background-color: var(--bg-tertiary);
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.historical-table th:hover {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.historical-table th.sorted {
+    color: var(--accent-green);
+}
+
+.historical-table th .sort-indicator {
+    margin-left: 0.5rem;
+    opacity: 0.5;
+}
+
+.historical-table th.sorted .sort-indicator {
+    opacity: 1;
+}
+
+.historical-table td {
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9375rem;
+    color: var(--text-primary);
+}
+
+.historical-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.historical-table tbody tr:hover {
+    background-color: rgba(34, 197, 94, 0.05);
+}
+
+.historical-table .team-name {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.historical-table .team-logo {
+    font-size: 1.25rem;
+}
+
+.historical-table .stat-value {
+    font-weight: 500;
+}
+
+.historical-table .rate-badge {
+    display: inline-block;
+    padding: 0.25rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.historical-table .rate-badge.high {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.historical-table .rate-badge.medium {
+    background-color: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+}
+
+.historical-table .rate-badge.low {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.expand-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.25rem;
+    padding: 0.25rem;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.expand-btn:hover {
+    color: var(--accent-green);
+}
+
+.expand-btn.expanded {
+    transform: rotate(180deg);
+}
+
+/* ==========================================
+   EXPANDED ROW WITH CHART
+   ========================================== */
+
+.chart-row {
+    background-color: var(--bg-primary);
+}
+
+.chart-row td {
+    padding: 1.5rem;
+}
+
+.team-chart-container {
+    height: 250px;
+    position: relative;
+}
+
+.team-chart-canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+.no-chart-data {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--text-muted);
+    font-size: 0.9375rem;
+}
+
+/* ==========================================
+   PAGINATION CONTROLS
+   ========================================== */
+
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: all 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border-color: var(--accent-green);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-btn.active {
+    background-color: var(--accent-green);
+    border-color: var(--accent-green);
+    color: white;
+}
+
+.pagination-info {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    padding: 0 1rem;
+}
+
+.page-size-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+    padding-left: 1rem;
+    border-left: 1px solid var(--border-color);
+}
+
+.page-size-selector label {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.page-size-select {
+    padding: 0.375rem 0.625rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+
+.historical-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    color: var(--text-muted);
+}
+
+.historical-loading .spinner {
+    font-size: 2.5rem;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   EMPTY STATE
+   ========================================== */
+
+.historical-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.historical-empty .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.historical-empty .empty-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.historical-empty .empty-message {
+    color: var(--text-muted);
+    max-width: 400px;
+}
+
+/* ==========================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================== */
+
+@media (max-width: 1024px) {
+    .historical-table-container {
+        overflow-x: auto;
+    }
+
+    .historical-table {
+        min-width: 800px;
+    }
+}
+
+@media (max-width: 768px) {
+    .historical-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .season-selector {
+        justify-content: space-between;
+    }
+
+    .historical-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-input {
+        width: 100%;
+    }
+
+    .pagination {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .page-size-selector {
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        padding-top: 1rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .season-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .season-summary {
+        grid-template-columns: 1fr;
+    }
+}
+

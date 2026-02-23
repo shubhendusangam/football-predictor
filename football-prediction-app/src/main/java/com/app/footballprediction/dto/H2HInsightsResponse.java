@@ -78,7 +78,6 @@ public class H2HInsightsResponse {
         private String highestScoringMatchDetails; // e.g., "5-4 (Arsenal vs Chelsea, 2024-10-15)"
         private int cleanSheetsHomeTeam;     // Clean sheets for homeTeam
         private int cleanSheetsAwayTeam;     // Clean sheets for awayTeam
-        private double bttsPercentage;       // Both Teams To Score percentage
     }
 
     /**

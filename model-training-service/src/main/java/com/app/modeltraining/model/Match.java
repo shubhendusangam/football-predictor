@@ -28,6 +28,8 @@ public class Match {
    private LocalDate matchDate;
    private String homeTeam;
    private String awayTeam;
+   private String season;        // e.g., "2023-24"
+   private String referee;       // Match referee
 
    // ── Full-Time Result ───────────────────────────────────
    private Integer fullTimeHomeGoals;   // FTHG

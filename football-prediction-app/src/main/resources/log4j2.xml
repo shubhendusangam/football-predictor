@@ -6,16 +6,16 @@
         <!-- Use relative path for portability across different environments -->
         <Property name="LOG_DIR">./logs</Property>
 
-        <!-- Console pattern — coloured, readable -->
+        <!-- Console pattern — cleaner, more readable startup logs -->
         <Property name="CONSOLE_PATTERN">
-            %d{HH:mm:ss.SSS} %highlight{%-5level}{
+            %d{HH:mm:ss} %highlight{%-5level}{
             FATAL=red blink,
             ERROR=red,
             WARN=yellow,
             INFO=green,
             DEBUG=cyan,
             TRACE=white}
-            [%15.15t] %cyan{%-40.40c{1.}} : %msg%n%throwable
+            %cyan{%-30.30c{1.}} : %msg%n%throwable
         </Property>
 
         <!-- File pattern — full detail, no colour codes -->
@@ -115,6 +115,10 @@
     <!-- ── Loggers ────────────────────────────────────────────────── -->
     <Loggers>
 
+        <!-- ═══════════════════════════════════════════════════════════════
+             APPLICATION LOGGERS - These are the important ones
+             ═══════════════════════════════════════════════════════════════ -->
+
         <!-- API layer → api.log + console + error.log -->
         <Logger name="com.app.footballprediction.controller"
                 level="INFO" additivity="false">
@@ -147,19 +151,85 @@
             <AppenderRef ref="AsyncError"/>
         </Logger>
 
-        <!-- Spring framework — warn only, reduces noise -->
+        <!-- Main application startup -->
+        <Logger name="com.app.footballprediction" level="INFO" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- ═══════════════════════════════════════════════════════════════
+             FRAMEWORK LOGGERS - Reduce noise during startup
+             ═══════════════════════════════════════════════════════════════ -->
+
+        <!-- Spring framework — WARN only, reduces startup noise -->
         <Logger name="org.springframework" level="WARN" additivity="false">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="AsyncError"/>
         </Logger>
 
-        <!-- Hibernate SQL — set to DEBUG to see all queries -->
+        <!-- Spring Boot — only show errors -->
+        <Logger name="org.springframework.boot" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- Spring Web — only important messages -->
+        <Logger name="org.springframework.web" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+            <AppenderRef ref="AsyncError"/>
+        </Logger>
+
+        <!-- Spring Data/JPA — silence during startup -->
+        <Logger name="org.springframework.data" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Hibernate — silence startup noise -->
+        <Logger name="org.hibernate" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Hibernate SQL — set to DEBUG to see queries, WARN for silence -->
         <Logger name="org.hibernate.SQL" level="WARN" additivity="false">
             <AppenderRef ref="Console"/>
         </Logger>
 
+        <!-- H2 Database — silence -->
+        <Logger name="org.h2" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- HikariCP connection pool — silence -->
+        <Logger name="com.zaxxer.hikari" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Apache HTTP client — silence -->
+        <Logger name="org.apache.http" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Apache Catalina/Tomcat — silence -->
+        <Logger name="org.apache.catalina" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <Logger name="org.apache.tomcat" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Weka ML library — reduce verbosity -->
+        <Logger name="weka" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
+        <!-- Jackson JSON — silence -->
+        <Logger name="com.fasterxml.jackson" level="WARN" additivity="false">
+            <AppenderRef ref="Console"/>
+        </Logger>
+
         <!-- Root — catches everything not matched above -->
-        <Root level="INFO">
+        <Root level="WARN">
             <AppenderRef ref="Console"/>
             <AppenderRef ref="AsyncError"/>
         </Root>
