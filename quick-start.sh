@@ -50,7 +50,7 @@ case $choice in
         print_status "Build complete!"
         echo ""
         print_status "Starting application..."
-        java -jar football-prediction-app/target/football-prediction-app.jar
+        java -jar football-prediction-app/target/football-prediction-app-1.0.0.jar
         ;;
     2)
         print_status "Running tests..."
@@ -71,11 +71,11 @@ case $choice in
         ;;
     5)
         print_status "Starting application..."
-        if [ ! -f "football-prediction-app/target/football-prediction-app.jar" ]; then
+        if [ ! -f "football-prediction-app/target/football-prediction-app-1.0.0.jar" ]; then
             echo "Error: JAR file not found. Please build the application first (option 1 or 3)."
             exit 1
         fi
-        java -jar football-prediction-app/target/football-prediction-app.jar
+        java -jar football-prediction-app/target/football-prediction-app-1.0.0.jar
         ;;
     *)
         echo "Invalid choice. Exiting."

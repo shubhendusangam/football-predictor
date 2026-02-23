@@ -21,6 +21,7 @@ A **Season-aware AI-powered Football Match Prediction & Insights Platform** buil
 - [How It Works](#-how-it-works)
 - [Setup Instructions](#-setup-instructions)
 - [Production Considerations](#-production-considerations)
+- [Design Decisions](#-design-decisions)
 - [Future Roadmap](#-future-roadmap)
 
 ---
@@ -967,6 +968,77 @@ for (Match match : matches) {
 - **Shared Storage**: Model file on shared volume for multi-instance deployment
 - **Cache Invalidation**: Manual cache clear endpoint available
 - **Database**: H2 for development; recommend PostgreSQL for production
+
+---
+
+## 🎨 Design Decisions
+
+### Architecture Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Multi-module Maven** | Separate `common`, `app`, and `training-service` modules | Clean separation of concerns; shared entities avoid duplication; independent deployment |
+| **Embedded H2 Database** | File-based H2 instead of external DB | Zero-config setup; portable development; sufficient for single-instance deployment |
+| **Weka ML Library** | Weka 3.8.6 over scikit-learn/TensorFlow | Pure Java integration; no Python interop needed; mature algorithms; simple deployment |
+| **Stacked Ensemble** | RandomForest + AdaBoostM1 + Logistic meta-model | Combines strengths of multiple classifiers; reduces overfitting; improves generalization |
+| **Temporal Train/Test Split** | 80/20 chronological split | Prevents future data leakage; mimics real-world prediction scenario |
+
+### Data Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Season Isolation** | All analytics computed within season boundaries | Cross-season data is misleading (squad changes, promotions); ensures statistical relevance |
+| **33 Seasons of Data** | 1993/94 - 2025/26 Premier League | Comprehensive training data; captures different football eras and rule changes |
+| **25 Engineered Features** | Form, goals, H2H, shots, corners, streaks, rest | Balance between signal and noise; domain-expert selected; avoids feature explosion |
+| **CSV Data Ingestion** | Batch load from CSV files on startup | Simple data pipeline; easy to update; no external ETL dependencies |
+| **Team Name Normalization** | `TeamNameNormalizer` utility class | Handles historical name variations (e.g., "Man United" vs "Manchester United") |
+
+### API Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **REST API** | Standard REST over GraphQL | Simpler implementation; better caching; sufficient for use case |
+| **DTO Pattern** | Separate DTOs for requests/responses | Decouples API contract from internal entities; versioning flexibility |
+| **Caffeine Cache** | In-memory caching with configurable TTL | Low latency; no external cache server needed; simple invalidation |
+| **Async Training** | Training runs in background thread | Non-blocking API; immediate response to user; long operations don't timeout |
+
+### ML Model Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **RandomForest Base** | 100 trees, 5 features per split | Good accuracy; handles non-linear relationships; resistant to overfitting |
+| **AdaBoostM1 Base** | 100 iterations with REPTree | Boosting complements bagging (RF); captures different patterns |
+| **Logistic Meta-Model** | Combines base model outputs | Learns optimal weighting; calibrated probability outputs |
+| **Bi-monthly Retraining** | 1st and 15th of each month @ 3 AM | Incorporates recent match data; off-peak hours; balances freshness vs stability |
+| **Confidence Thresholds** | HIGH (>50%), MEDIUM (40-50%), LOW (<40%) | Actionable confidence levels; helps users filter predictions |
+
+### Frontend Design Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Vanilla JS + CSS** | No React/Vue/Angular | Minimal bundle size; no build step; simple deployment; sufficient for dashboard |
+| **Modular JS Architecture** | `router.js`, `api.js`, `dashboard.js` separation | Maintainable code; lazy loading; clear responsibilities |
+| **CSS Custom Properties** | CSS variables for theming | Easy dark/light mode; consistent styling; no preprocessor needed |
+| **Responsive Design** | Mobile-first CSS | Works on all devices; single codebase |
+
+### Infrastructure Decisions
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| **Docker Multi-stage Build** | Build in JDK, run in JRE Alpine | Smaller image size (~150MB); faster startup; security (no compiler in prod) |
+| **Shared Volume** | `/app/data` for DB and model | Both services access same data; model trained by one, used by other |
+| **Non-root Container** | `appuser:appgroup` (1001:1001) | Security best practice; principle of least privilege |
+| **Health Checks** | HTTP endpoint checks | Kubernetes/Docker health monitoring; automatic restart on failure |
+
+### Trade-offs Accepted
+
+| Trade-off | Accepted Limitation | Benefit Gained |
+|-----------|---------------------|----------------|
+| **H2 Database** | Single-instance only; no concurrent writes | Zero configuration; embedded simplicity |
+| **No Real-time Updates** | Predictions are request-based, not push | Simpler architecture; no WebSocket complexity |
+| **Single League** | Premier League only (for now) | Deep domain expertise; quality over breadth |
+| **Batch Training** | Model not updated after each match | Stability; prevents overfitting to recent results |
+| **No User Authentication** | Admin-only password protection | Simpler UX; public read access appropriate for predictions |
 
 ---
 

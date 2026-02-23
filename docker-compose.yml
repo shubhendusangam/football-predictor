@@ -12,8 +12,8 @@ services:
   # Main Football Prediction Application
   football-predictor:
     build:
-      context: ./football-prediction-app
-      dockerfile: ../Dockerfile
+      context: .
+      dockerfile: Dockerfile
       args:
         MODULE_NAME: football-prediction-app
     container_name: football-predictor
@@ -43,8 +43,10 @@ services:
   # Model Training Service
   model-training-service:
     build:
-      context: ./model-training-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: model-training-service/Dockerfile.multi-stage
+      args:
+        MODULE_NAME: model-training-service
     container_name: model-training-service
     ports:
       - "8081:8081"

@@ -1,6 +1,6 @@
 # ============================================
-# Football Match Predictor - Multi-Module Dockerfile
-# Multi-stage build for optimized image size
+# Model Training Service - Multi-Stage Dockerfile
+# Builds from source using parent pom.xml
 # ============================================
 
 # Stage 1: Build All Modules
@@ -30,12 +30,10 @@ COPY football-prediction-app/src football-prediction-app/src
 COPY model-training-service/src model-training-service/src
 
 # Build all modules (skip tests for faster build)
-RUN ./mvnw clean package -DskipTests -B
+RUN ./mvnw clean package -DskipTests -B -pl model-training-service -am
 
-# Stage 2: Runtime for Main Application
+# Stage 2: Runtime
 FROM eclipse-temurin:21-jre-alpine
-
-ARG MODULE_NAME=football-prediction-app
 
 WORKDIR /app
 
@@ -47,27 +45,24 @@ RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
 # Create data directory for H2 database and model
-RUN mkdir -p /app/data/csv /app/logs && chown -R appuser:appgroup /app
+RUN mkdir -p /app/data /app/logs/model-training && chown -R appuser:appgroup /app
 
 # Copy the built JAR from builder stage
-COPY --from=builder /app/${MODULE_NAME}/target/*.jar app.jar
-
-# Copy static resources and data files (CSV data for ingestion)
-COPY --from=builder --chown=appuser:appgroup /app/football-prediction-app/src/main/resources/data/ /app/data/csv/
+COPY --from=builder /app/model-training-service/target/model-training-service-1.0.0.jar app.jar
 
 # Switch to non-root user
 USER appuser
 
 # Expose port
-EXPOSE 8080
+EXPOSE 8081
 
 # Environment variables
-ENV JAVA_OPTS="-Xms256m -Xmx512m" \
+ENV JAVA_OPTS="-Xms512m -Xmx1024m" \
     SPRING_PROFILES_ACTIVE=docker
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD curl -f http://localhost:8080/api/model/status || exit 1
+    CMD curl -f http://localhost:8081/api/training/model-info || exit 1
 
 # Run the application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
