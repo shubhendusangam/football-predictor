@@ -8,14 +8,14 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 ### Scope within the System
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     System Architecture                          │
+│                     System Architecture                         │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  ┌───────────────────┐         ┌───────────────────┐           │
-│  │ football-         │         │ model-training-   │           │
-│  │ prediction-app    │         │ service           │           │
-│  │ (Port 8080)       │         │ (Port 8081)       │           │
-│  └─────────┬─────────┘         └─────────┬─────────┘           │
+│  ┌───────────────────┐         ┌───────────────────┐            │
+│  │ football-         │         │ model-training-   │            │
+│  │ prediction-app    │         │ service           │            │
+│  │ (Port 8080)       │         │ (Port 8081)       │            │
+│  └─────────┬─────────┘         └─────────┬─────────┘            │
 │            │                             │                      │
 │            └──────────┬──────────────────┘                      │
 │                       │                                         │
@@ -94,29 +94,29 @@ com.app.common/
 ### Data Flow
 
 ```
-External Data (CSV/API)
-         │
-         ▼
+                  External Data (CSV/API)
+                         │
+                         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    Repository Layer                          │
+│                    Repository Layer                         │
 │  ┌─────────────────┐  ┌─────────────────┐                   │
 │  │ MatchRepository │  │ TeamRepository  │  ...              │
 │  └────────┬────────┘  └────────┬────────┘                   │
-│           │                    │                             │
-│           └────────┬───────────┘                             │
-│                    ▼                                         │
-│         ┌─────────────────────────────┐                      │
-│         │ FeatureEngineeringService   │                      │
-│         │ • buildFeaturesForTraining()│                      │
-│         │ • buildFeaturesForPrediction│                      │
-│         └──────────────┬──────────────┘                      │
-│                        │                                     │
-│                        ▼                                     │
-│              MatchFeatures DTO (25 features)                 │
+│           │                    │                            │
+│           └────────┬───────────┘                            │
+│                    ▼                                        │
+│         ┌─────────────────────────────┐                     │
+│         │ FeatureEngineeringService   │                     │
+│         │ • buildFeaturesForTraining()│                     │
+│         │ • buildFeaturesForPrediction│                     │
+│         └──────────────┬──────────────┘                     │
+│                        │                                    │
+│                        ▼                                    │
+│              MatchFeatures DTO (25 features)                │
 └─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-   Consumed by App / Training Service
+                         │
+                         ▼
+          Consumed by App / Training Service
 ```
 
 ---
