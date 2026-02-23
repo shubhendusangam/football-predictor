@@ -32,7 +32,7 @@ This platform is designed for **football analytics enthusiasts** who want data-d
 - **Machine Learning Predictions**: Stacked ensemble model (RandomForest + AdaBoostM1 + Logistic Regression)
 - **Season-aware Analytics**: All insights are computed within season boundaries—no cross-season data mixing
 - **Real-time Data Integration**: Live data from football-data.org API for upcoming matches and standings
-- **Historical Analysis**: 22 seasons of Premier League data (2004/05 - 2025/26)
+- **Historical Analysis**: 33 seasons of Premier League data (1993/94 - 2025/26)
 
 ### Key Differentiators
 
@@ -659,9 +659,9 @@ Get model metadata.
 
 ```
 ┌────────────────────────┐     ┌─────────────────────────┐
-│  CSV Files (22 seasons)│     │  football-data.org API  │
-│  • PL_04_05.csv        │     │  • Live standings       │
-│  • PL_05_06.csv        │     │  • Upcoming matches     │
+│  CSV Files (33 seasons)│     │  football-data.org API  │
+│  • PL_93_94.csv        │     │  • Live standings       │
+│  • PL_94_95.csv        │     │  • Upcoming matches     │
 │  • ...                 │     │  • Match results        │
 │  • PL_25_26.csv        │     │                         │
 └──────────┬─────────────┘     └───────────┬─────────────┘
@@ -678,7 +678,7 @@ Get model metadata.
                            ▼
                     ┌──────────────┐
                     │  H2 Database │
-                    │  ~8000 rows  │
+                    │  ~12500 rows │
                     └──────────────┘
 ```
 
@@ -1017,7 +1017,7 @@ football-prediction/
 │       └── resources/
 │           ├── application.properties
 │           ├── static/                # Web UI (HTML/CSS/JS)
-│           └── data/                  # CSV files (22 seasons)
+│           └── data/                  # CSV files (33 seasons)
 │
 ├── football-prediction-common/        # Shared Library
 │   ├── pom.xml
