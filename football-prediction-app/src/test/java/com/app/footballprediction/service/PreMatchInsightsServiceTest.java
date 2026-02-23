@@ -2,6 +2,7 @@ package com.app.footballprediction.service;
 
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.footballprediction.dto.PreMatchInsightsResponse;
 import com.app.footballprediction.dto.PreMatchInsightsResponse.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,6 +36,9 @@ class PreMatchInsightsServiceTest {
 
     @Mock
     private MatchRepository matchRepository;
+
+    @Mock
+    private SeasonTeamStatsRepository seasonTeamStatsRepository;
 
     @Mock
     private TeamStatsService teamStatsService;

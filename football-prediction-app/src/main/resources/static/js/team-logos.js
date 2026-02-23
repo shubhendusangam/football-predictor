@@ -90,7 +90,8 @@
             <div class="team-logo ${sizeClass}" title="${escapedName}">
                 <img src="${url}"
                      alt="${escapedName} logo"
-                     onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';"
+                     crossorigin="anonymous"
+                     onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${DEFAULT_LOGO}';"
                      loading="lazy">
             </div>`;
     }
@@ -113,8 +114,10 @@
         img.src = url;
         img.alt = `${teamName || 'Team'} logo`;
         img.loading = 'lazy';
+        img.crossOrigin = 'anonymous';
         img.onerror = function() {
             this.onerror = null;
+            this.removeAttribute('crossorigin');
             this.src = DEFAULT_LOGO;
         };
 

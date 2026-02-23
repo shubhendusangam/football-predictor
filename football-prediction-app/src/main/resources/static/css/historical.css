@@ -330,6 +330,105 @@
 }
 
 /* ==========================================
+   EXPANDED ROW WITH DETAIL TABLE
+   ========================================== */
+
+.team-detail-container {
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.detail-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.detail-table-wrapper {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.detail-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    table-layout: fixed;
+}
+
+.detail-table th {
+    background-color: var(--bg-secondary);
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+/* Center align numeric column headers */
+.detail-table th:nth-child(n+3) {
+    text-align: center;
+}
+
+.detail-table td {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Center align numeric data columns */
+.detail-table td:nth-child(n+3) {
+    text-align: center;
+}
+
+.detail-table tbody tr:hover {
+    background-color: rgba(34, 197, 94, 0.05);
+}
+
+.detail-table .stat-value {
+    font-weight: 500;
+}
+
+/* Result badges */
+.result-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.result-badge.result-w,
+.result-badge.result-win {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.result-badge.result-d,
+.result-badge.result-draw {
+    background-color: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+}
+
+.result-badge.result-l,
+.result-badge.result-loss {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+/* ==========================================
    PAGINATION CONTROLS
    ========================================== */
 

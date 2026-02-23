@@ -8,6 +8,7 @@ import com.app.common.repository.MatchRepository;
 import com.app.common.repository.PredictionRepository;
 import com.app.common.repository.TeamRepository;
 import com.app.common.service.FeatureEngineeringService;
+import com.app.common.util.TeamNameNormalizer;
 import com.app.footballprediction.config.CacheConfig;
 import com.app.footballprediction.dto.TeamAnalyticsDto;
 import com.app.footballprediction.dto.TeamAnalyticsDto.*;
@@ -191,8 +192,15 @@ public class TeamAnalyticsService {
             return fromPredictions;
         }
 
-        // Otherwise, fetch from external API and generate predictions
-        return fetchUpcomingFromExternalApi(teamName);
+        // Try external API first (Premier League teams)
+        List<UpcomingMatch> fromApi = fetchUpcomingFromExternalApi(teamName);
+        if (!fromApi.isEmpty()) {
+            return fromApi;
+        }
+
+        // Fallback: Generate simulated fixtures from historical opponents
+        // This helps teams not in the external API (Championship, lower leagues, etc.)
+        return generateSimulatedUpcomingFixtures(teamName);
     }
 
     /**
@@ -219,7 +227,7 @@ public class TeamAnalyticsService {
                     .toList();
 
             if (teamMatches.isEmpty()) {
-                log.debug("No upcoming matches found for team: {}", teamName);
+                log.debug("No upcoming matches found for team {} in Premier League API", teamName);
                 return Collections.emptyList();
             }
 
@@ -247,15 +255,215 @@ public class TeamAnalyticsService {
     }
 
     /**
+     * Generate simulated upcoming fixtures based on historical opponents.
+     * This is a fallback for teams not in the Premier League API (Championship, League One, etc.)
+     * Uses the team's most common opponents from their current/recent season to create realistic fixtures.
+     */
+    private List<UpcomingMatch> generateSimulatedUpcomingFixtures(String teamName) {
+        try {
+            log.debug("Generating simulated fixtures for team: {} (not in PL API)", teamName);
+
+            // Get the team's recent opponents from the current season
+            String currentSeason = getCurrentSeason();
+            LocalDate futureDate = LocalDate.now().plusYears(1); // Use future date to get all matches
+            List<Match> recentMatches = matchRepository.findByTeamAndSeasonBeforeDate(teamName, currentSeason, futureDate);
+
+            if (recentMatches.isEmpty()) {
+                // Try last season if current season has no data
+                String lastSeason = getPreviousSeason(currentSeason);
+                recentMatches = matchRepository.findByTeamAndSeasonBeforeDate(teamName, lastSeason, futureDate);
+            }
+
+            if (recentMatches.isEmpty()) {
+                log.debug("No historical matches found for {}, cannot generate fixtures", teamName);
+                return Collections.emptyList();
+            }
+
+            // Find all unique opponents this team has faced
+            Set<String> alreadyPlayedThisSeason = new HashSet<>();
+
+            for (Match match : recentMatches) {
+                String opponent = match.getHomeTeam().equalsIgnoreCase(teamName)
+                        ? match.getAwayTeam()
+                        : match.getHomeTeam();
+                alreadyPlayedThisSeason.add(opponent);
+            }
+
+            // Find opponents not yet played at home or away (for reverse fixture simulation)
+            Set<String> homeOpponentsPlayed = recentMatches.stream()
+                    .filter(m -> m.getHomeTeam().equalsIgnoreCase(teamName))
+                    .map(Match::getAwayTeam)
+                    .collect(Collectors.toSet());
+
+            Set<String> awayOpponentsPlayed = recentMatches.stream()
+                    .filter(m -> m.getAwayTeam().equalsIgnoreCase(teamName))
+                    .map(Match::getHomeTeam)
+                    .collect(Collectors.toSet());
+
+            // Generate reverse fixtures (if played away, next fixture is home, and vice versa)
+            List<UpcomingMatch> simulatedMatches = new ArrayList<>();
+            LocalDate nextMatchDate = LocalDate.now().plusDays(3); // Start from 3 days from now
+
+            // First, add reverse fixtures
+            for (String opponent : awayOpponentsPlayed) {
+                if (!homeOpponentsPlayed.contains(opponent) && simulatedMatches.size() < MAX_UPCOMING_MATCHES) {
+                    UpcomingMatch fixture = generatePredictedFixture(teamName, opponent, true, nextMatchDate);
+                    if (fixture != null) {
+                        simulatedMatches.add(fixture);
+                        nextMatchDate = nextMatchDate.plusDays(7); // Weekly spacing
+                    }
+                }
+            }
+
+            for (String opponent : homeOpponentsPlayed) {
+                if (!awayOpponentsPlayed.contains(opponent) && simulatedMatches.size() < MAX_UPCOMING_MATCHES) {
+                    UpcomingMatch fixture = generatePredictedFixture(teamName, opponent, false, nextMatchDate);
+                    if (fixture != null) {
+                        simulatedMatches.add(fixture);
+                        nextMatchDate = nextMatchDate.plusDays(7);
+                    }
+                }
+            }
+
+            // If we still need more fixtures, generate from remaining league opponents
+            if (simulatedMatches.size() < MAX_UPCOMING_MATCHES) {
+                List<String> allLeagueTeams = findLeagueOpponents(teamName, currentSeason);
+                boolean isHome = true;
+                for (String opponent : allLeagueTeams) {
+                    if (!alreadyPlayedThisSeason.contains(opponent) && simulatedMatches.size() < MAX_UPCOMING_MATCHES) {
+                        UpcomingMatch fixture = generatePredictedFixture(teamName, opponent, isHome, nextMatchDate);
+                        if (fixture != null) {
+                            simulatedMatches.add(fixture);
+                            nextMatchDate = nextMatchDate.plusDays(7);
+                            isHome = !isHome; // Alternate home/away
+                        }
+                    }
+                }
+            }
+
+            if (!simulatedMatches.isEmpty()) {
+                log.info("Generated {} simulated upcoming fixtures for {} (non-PL team)",
+                        simulatedMatches.size(), teamName);
+            }
+
+            return simulatedMatches;
+
+        } catch (Exception e) {
+            log.warn("Failed to generate simulated fixtures for {}: {}", teamName, e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * Generate a single predicted fixture
+     */
+    private UpcomingMatch generatePredictedFixture(String teamName, String opponent, boolean isHome, LocalDate matchDate) {
+        try {
+            String homeTeam = isHome ? teamName : opponent;
+            String awayTeam = isHome ? opponent : teamName;
+
+            double probHomeWin = 0.33;
+            double probDraw = 0.34;
+            double probAwayWin = 0.33;
+            String predictedResult = "DRAW";
+            double confidence = 0.33;
+
+            if (modelTrainingService.isModelLoaded()) {
+                try {
+                    MatchFeatures features = featureEngineeringService.buildFeaturesForPrediction(homeTeam, awayTeam);
+                    if (features != null) {
+                        double[] probabilities = modelTrainingService.predict(features);
+                        if (probabilities != null && probabilities.length == 3) {
+                            probHomeWin = probabilities[0];
+                            probDraw = probabilities[1];
+                            probAwayWin = probabilities[2];
+
+                            if (probHomeWin >= probDraw && probHomeWin >= probAwayWin) {
+                                predictedResult = isHome ? "WIN" : "LOSS";
+                                confidence = probHomeWin;
+                            } else if (probAwayWin >= probHomeWin && probAwayWin >= probDraw) {
+                                predictedResult = isHome ? "LOSS" : "WIN";
+                                confidence = probAwayWin;
+                            } else {
+                                predictedResult = "DRAW";
+                                confidence = probDraw;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    log.debug("Could not generate prediction for {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
+                }
+            }
+
+            return UpcomingMatch.builder()
+                    .matchId(null)
+                    .matchDate(matchDate)
+                    .opponent(opponent)
+                    .isHome(isHome)
+                    .venue(isHome ? "Home" : "Away")
+                    .predictedResult(predictedResult)
+                    .confidence(confidence)
+                    .probHomeWin(probHomeWin)
+                    .probDraw(probDraw)
+                    .probAwayWin(probAwayWin)
+                    .simulated(true) // Flag to indicate this is a simulated fixture
+                    .build();
+
+        } catch (Exception e) {
+            log.debug("Failed to generate fixture for {} vs {}: {}", teamName, opponent, e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Find all teams in the same league/season as the given team
+     */
+    private List<String> findLeagueOpponents(String teamName, String season) {
+        List<Match> seasonMatches = matchRepository.findBySeasonOrderByMatchDateDesc(season);
+        Set<String> teams = new HashSet<>();
+
+        for (Match match : seasonMatches) {
+            teams.add(match.getHomeTeam());
+            teams.add(match.getAwayTeam());
+        }
+
+        teams.remove(teamName);
+        return new ArrayList<>(teams);
+    }
+
+
+    /**
+     * Get previous season string
+     */
+    private String getPreviousSeason(String currentSeason) {
+        try {
+            String[] parts = currentSeason.split("-");
+            int startYear = Integer.parseInt(parts[0]) - 1;
+            int endYear = Integer.parseInt(parts[1]) - 1;
+            return startYear + "-" + String.format("%02d", endYear);
+        } catch (Exception e) {
+            return "2024-25"; // Fallback
+        }
+    }
+
+    /**
      * Build an UpcomingMatch with prediction from API match data
      */
     private UpcomingMatch buildUpcomingMatchFromApi(FootballApiResponse.ApiMatch apiMatch, String teamName) {
         String homeTeam = apiMatch.getHomeTeam().getName();
         String awayTeam = apiMatch.getAwayTeam().getName();
 
-        // Determine if our team is home or away
-        boolean isHome = normalizeTeamName(homeTeam).equalsIgnoreCase(normalizeTeamName(teamName));
-        String opponent = isHome ? awayTeam : homeTeam;
+        // Normalize API team names to match our database format
+        String normalizedHomeTeam = TeamNameNormalizer.normalize(homeTeam);
+        String normalizedAwayTeam = TeamNameNormalizer.normalize(awayTeam);
+
+        // Determine if our team is home or away using proper team name comparison
+        boolean isHome = TeamNameNormalizer.isSameTeam(homeTeam, teamName);
+        String opponent = isHome ? normalizedAwayTeam : normalizedHomeTeam;
+
+        // Use normalized names for prediction
+        String predictionHomeTeam = isHome ? teamName : normalizedHomeTeam;
+        String predictionAwayTeam = isHome ? normalizedAwayTeam : teamName;
 
         // Parse match date
         LocalDate matchDate = parseApiDate(apiMatch.getUtcDate());
@@ -272,8 +480,9 @@ public class TeamAnalyticsService {
 
         if (modelTrainingService.isModelLoaded()) {
             try {
+                // Use normalized team names for prediction (matches database format)
                 MatchFeatures features = featureEngineeringService.buildFeaturesForPrediction(
-                        homeTeam, awayTeam);
+                        predictionHomeTeam, predictionAwayTeam);
 
                 if (features != null) {
                     double[] probabilities = modelTrainingService.predict(features);
@@ -296,7 +505,7 @@ public class TeamAnalyticsService {
                     }
                 }
             } catch (Exception e) {
-                log.debug("Could not generate prediction for {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
+                log.debug("Could not generate prediction for {} vs {}: {}", predictionHomeTeam, predictionAwayTeam, e.getMessage());
             }
         }
 
@@ -315,26 +524,28 @@ public class TeamAnalyticsService {
     }
 
     /**
-     * Check if an API match involves the given team
+     * Check if an API match involves the given team.
+     * Uses TeamNameNormalizer.isSameTeam() for proper name matching
+     * (e.g., "Manchester United FC" matches "Man United").
      */
     private boolean matchesTeam(FootballApiResponse.ApiMatch match, String teamName) {
         if (match.getHomeTeam() == null || match.getAwayTeam() == null) {
             return false;
         }
-        String normalizedHome = normalizeTeamName(match.getHomeTeam().getName());
-        String normalizedAway = normalizeTeamName(match.getAwayTeam().getName());
-        return normalizedHome.equalsIgnoreCase(teamName) || normalizedAway.equalsIgnoreCase(teamName);
+        String homeTeamName = match.getHomeTeam().getName();
+        String awayTeamName = match.getAwayTeam().getName();
+
+        return TeamNameNormalizer.isSameTeam(homeTeamName, teamName) ||
+               TeamNameNormalizer.isSameTeam(awayTeamName, teamName);
     }
 
     /**
-     * Normalize team name for matching (handles variations like "Arsenal FC" vs "Arsenal")
+     * Normalize team name for matching (handles variations like "Arsenal FC" vs "Arsenal").
+     * Uses TeamNameNormalizer for consistent name resolution.
      */
     private String normalizeTeamName(String teamName) {
         if (teamName == null) return "";
-        return teamName.replace(" FC", "")
-                       .replace(" AFC", "")
-                       .replace(" F.C.", "")
-                       .trim();
+        return TeamNameNormalizer.normalize(teamName);
     }
 
     /**

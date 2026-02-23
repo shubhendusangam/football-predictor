@@ -2,6 +2,7 @@ package com.app.footballprediction.service;
 
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.common.service.FeatureEngineeringService;
 import com.app.footballprediction.dto.TrendingInsightsResponse;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
@@ -31,6 +32,9 @@ class TrendingInsightsServiceTest {
 
     @Mock
     private MatchRepository matchRepository;
+
+    @Mock
+    private SeasonTeamStatsRepository seasonTeamStatsRepository;
 
     @Mock
     private FeatureEngineeringService featureEngineeringService;

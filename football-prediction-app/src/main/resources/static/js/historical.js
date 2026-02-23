@@ -324,14 +324,74 @@ class HistoricalExplorer {
     }
 
     /**
-     * Render the chart row for a team
+     * Render the detail row for a team (tabular data instead of chart)
      */
     renderChartRow(team, rowId) {
+        const recentForm = team.recentForm || [];
+
+        if (recentForm.length === 0) {
+            return `
+                <tr class="chart-row" id="${rowId}-chart">
+                    <td colspan="6">
+                        <div class="team-detail-container">
+                            <div class="empty-message">No recent match data available</div>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        // Calculate cumulative points
+        const matchesWithCumulative = [];
+        let cumulativePoints = 0;
+        const reversedForm = [...recentForm].reverse();
+        reversedForm.forEach(m => {
+            cumulativePoints += m.points;
+            matchesWithCumulative.push({
+                ...m,
+                cumulativePoints
+            });
+        });
+        // Reverse back to show most recent first
+        matchesWithCumulative.reverse();
+
         return `
             <tr class="chart-row" id="${rowId}-chart">
                 <td colspan="6">
-                    <div class="team-chart-container">
-                        <canvas id="chart-${team.team.replace(/\s+/g, '-')}" class="team-chart-canvas"></canvas>
+                    <div class="team-detail-container">
+                        <h4 class="detail-title">${team.team} - Season Match History (${matchesWithCumulative.length} matches)</h4>
+                        <div class="detail-table-wrapper">
+                            <table class="detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Opponent</th>
+                                        <th>Result</th>
+                                        <th>Goals Scored</th>
+                                        <th>Goals Conceded</th>
+                                        <th>Points</th>
+                                        <th>Cumulative Pts</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${matchesWithCumulative.map(match => `
+                                        <tr>
+                                            <td>${match.date || '-'}</td>
+                                            <td>${match.opponent || '-'}</td>
+                                            <td>
+                                                <span class="result-badge result-${(match.result || '').toLowerCase()}">
+                                                    ${match.result || '-'}
+                                                </span>
+                                            </td>
+                                            <td class="stat-value">${match.goalsScored ?? '-'}</td>
+                                            <td class="stat-value">${match.goalsConceded ?? '-'}</td>
+                                            <td class="stat-value">${match.points ?? '-'}</td>
+                                            <td class="stat-value"><strong>${match.cumulativePoints}</strong></td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </td>
             </tr>
@@ -531,180 +591,11 @@ class HistoricalExplorer {
     }
 
     /**
-     * Initialize charts for expanded rows
+     * Initialize detail views for expanded rows
+     * (No longer using charts - now using tabular data)
      */
     initializeCharts() {
-        if (!this.data || !this.data.teamStats) return;
-
-        this.expandedRows.forEach(teamName => {
-            const teamData = this.data.teamStats.find(t => t.team === teamName);
-            if (teamData && teamData.recentForm && teamData.recentForm.length > 0) {
-                this.createChart(teamName, teamData.recentForm);
-            }
-        });
-    }
-
-    /**
-     * Create a line chart for a team's recent form
-     */
-    createChart(teamName, formData) {
-        const canvasId = `chart-${teamName.replace(/\s+/g, '-')}`;
-        const canvas = document.getElementById(canvasId);
-
-        if (!canvas) {
-            console.warn('[Historical] Canvas not found:', canvasId);
-            return;
-        }
-
-        // Check if Chart.js is available
-        if (typeof Chart === 'undefined') {
-            console.warn('[Historical] Chart.js not loaded, loading dynamically...');
-            this.loadChartJS().then(() => this.createChart(teamName, formData));
-            return;
-        }
-
-        const ctx = canvas.getContext('2d');
-
-        // Reverse to show chronological order
-        const reversedForm = [...formData].reverse();
-
-        const labels = reversedForm.map(m => m.date.substring(5)); // MM-DD format
-        const pointsData = [];
-        let cumulative = 0;
-        reversedForm.forEach(m => {
-            cumulative += m.points;
-            pointsData.push(cumulative);
-        });
-
-        const goalsData = reversedForm.map(m => m.goalsScored);
-        const concededData = reversedForm.map(m => m.goalsConceded);
-
-        // Destroy existing chart if exists
-        if (this.charts[teamName]) {
-            this.charts[teamName].destroy();
-        }
-
-        this.charts[teamName] = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Cumulative Points',
-                        data: pointsData,
-                        borderColor: '#22c55e',
-                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                        tension: 0.3,
-                        fill: true,
-                        yAxisID: 'y'
-                    },
-                    {
-                        label: 'Goals Scored',
-                        data: goalsData,
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'transparent',
-                        tension: 0.3,
-                        borderDash: [5, 5],
-                        yAxisID: 'y1'
-                    },
-                    {
-                        label: 'Goals Conceded',
-                        data: concededData,
-                        borderColor: '#ef4444',
-                        backgroundColor: 'transparent',
-                        tension: 0.3,
-                        borderDash: [5, 5],
-                        yAxisID: 'y1'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        labels: {
-                            color: '#94a3b8',
-                            usePointStyle: true
-                        }
-                    },
-                    title: {
-                        display: true,
-                        text: `${teamName} - Recent Performance`,
-                        color: '#f1f5f9',
-                        font: { size: 14, weight: 600 }
-                    },
-                    tooltip: {
-                        backgroundColor: '#1e293b',
-                        titleColor: '#f1f5f9',
-                        bodyColor: '#cbd5e1',
-                        borderColor: '#334155',
-                        borderWidth: 1,
-                        callbacks: {
-                            afterLabel: (context) => {
-                                const idx = context.dataIndex;
-                                const match = reversedForm[idx];
-                                if (match) {
-                                    return `vs ${match.opponent} (${match.result})`;
-                                }
-                                return '';
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: 'rgba(51, 65, 85, 0.5)' }
-                    },
-                    y: {
-                        type: 'linear',
-                        position: 'left',
-                        title: {
-                            display: true,
-                            text: 'Points',
-                            color: '#94a3b8'
-                        },
-                        ticks: { color: '#94a3b8' },
-                        grid: { color: 'rgba(51, 65, 85, 0.5)' }
-                    },
-                    y1: {
-                        type: 'linear',
-                        position: 'right',
-                        title: {
-                            display: true,
-                            text: 'Goals',
-                            color: '#94a3b8'
-                        },
-                        ticks: { color: '#94a3b8' },
-                        grid: { drawOnChartArea: false }
-                    }
-                }
-            }
-        });
-    }
-
-    /**
-     * Dynamically load Chart.js if not available
-     */
-    loadChartJS() {
-        return new Promise((resolve, reject) => {
-            if (typeof Chart !== 'undefined') {
-                resolve();
-                return;
-            }
-
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-            script.onload = resolve;
-            script.onerror = reject;
-            document.head.appendChild(script);
-        });
+        // No longer needed since we use tabular data instead of charts
     }
 
     /**

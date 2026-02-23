@@ -202,33 +202,57 @@
                             <span>Away Win</span>
                         </div>
                     </div>
+
+                    <!-- Upset Alert Badge -->
+                    <div class="upset-alert-badge hidden" id="upsetAlertBadge">
+                        <span class="upset-icon">⚠️</span>
+                        <span>Upset Potential</span>
+                    </div>
+                </div>
+
+                <!-- Elo Rating Section -->
+                <div class="elo-section hidden" id="eloSection">
+                    <div class="elo-header">
+                        <span class="elo-title">📊 Elo Rating Comparison</span>
+                    </div>
+                    <div class="elo-values">
+                        <div class="elo-team">
+                            <div class="elo-team-name">Home</div>
+                            <div class="elo-value" id="homeEloValue">1500</div>
+                        </div>
+                        <div class="elo-diff-container">
+                            <div class="elo-diff-label">Difference</div>
+                            <div class="elo-diff-value neutral" id="eloDifferenceValue">0</div>
+                        </div>
+                        <div class="elo-team">
+                            <div class="elo-team-name">Away</div>
+                            <div class="elo-value" id="awayEloValue">1500</div>
+                        </div>
+                    </div>
+                    <div class="elo-strength-bar">
+                        <div class="strength-bar-container strength-bar-home">
+                            <div class="strength-bar" id="homeStrengthBar"></div>
+                        </div>
+                        <div class="strength-divider"></div>
+                        <div class="strength-bar-container strength-bar-away">
+                            <div class="strength-bar" id="awayStrengthBar"></div>
+                        </div>
+                    </div>
                 </div>
 
 
                 <!-- Expandable Explain Prediction Section -->
-                <div class="explain-prediction-card">
+                <div class="explain-section">
                     <button class="explain-toggle" id="explainToggle">
-                        <span class="explain-title">
+                        <span class="explain-toggle-text">
                             <span class="explain-icon">💡</span>
-                            Explain Prediction
+                            Why this prediction?
                         </span>
                         <span class="expand-icon" id="expandIcon">▼</span>
                     </button>
                     <div class="explain-content hidden" id="explainContent">
-                        <div class="explain-placeholder">
-                            <p class="placeholder-text">
-                                Prediction explanation will be available here in a future update.
-                            </p>
-                            <p class="placeholder-details">
-                                This section will include:
-                            </p>
-                            <ul class="placeholder-list">
-                                <li>Head-to-head statistics</li>
-                                <li>Recent form analysis</li>
-                                <li>Key factors influencing the prediction</li>
-                                <li>Historical accuracy for similar matches</li>
-                            </ul>
-                        </div>
+                        <!-- Content populated dynamically by JavaScript -->
+                        <p class="explain-empty">Loading explanation...</p>
                     </div>
                 </div>
 

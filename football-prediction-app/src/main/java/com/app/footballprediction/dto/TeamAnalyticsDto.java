@@ -104,6 +104,12 @@ public class TeamAnalyticsDto {
         private Double probAwayWin;
         private String formLast5;
         private String opponentFormLast5;
+        /**
+         * True if this fixture is generated from historical data rather than from official schedule.
+         * Used for non-Premier League teams where we don't have API access to real fixtures.
+         */
+        @Builder.Default
+        private boolean simulated = false;
     }
 
     /**

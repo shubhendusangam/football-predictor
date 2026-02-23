@@ -152,6 +152,21 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
    List<Match> findBySeasonOrderByMatchDateDesc(@Param("season") String season);
 
    /**
+    * Get all matches for a specific season (for fixture generation).
+    */
+   @Query("SELECT m FROM Match m WHERE m.season = :season ORDER BY m.matchDate DESC")
+   List<Match> findBySeason(@Param("season") String season);
+
+   /**
+    * Get all completed matches involving a team within a specific season.
+    * Used for generating simulated upcoming fixtures for non-PL teams.
+    */
+   @Query("SELECT m FROM Match m WHERE (LOWER(m.homeTeam) = LOWER(:team) OR LOWER(m.awayTeam) = LOWER(:team)) " +
+         "AND m.season = :season AND m.fullTimeResult IS NOT NULL " +
+         "ORDER BY m.matchDate DESC")
+   List<Match> findByTeamAndSeason(@Param("team") String team, @Param("season") String season);
+
+   /**
     * Get the most recent season (based on latest match date).
     */
    @Query("SELECT m.season FROM Match m WHERE m.fullTimeResult IS NOT NULL " +

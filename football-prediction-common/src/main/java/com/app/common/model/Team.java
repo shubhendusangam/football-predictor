@@ -11,6 +11,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 /**
  * Entity representing a football team with logo support.
  */
@@ -48,5 +50,19 @@ public class Team {
      */
     @Column(name = "primary_color")
     private String primaryColor;
+
+    /**
+     * Timestamp when the logo was last updated.
+     * Used to determine if logo needs refresh.
+     */
+    @Column(name = "logo_last_updated")
+    private LocalDateTime logoLastUpdated;
+
+    /**
+     * Season when the logo was seeded (e.g., "2025-26").
+     * Used to check if logo needs updating for new season.
+     */
+    @Column(name = "logo_seeded_season")
+    private String logoSeededSeason;
 }
 

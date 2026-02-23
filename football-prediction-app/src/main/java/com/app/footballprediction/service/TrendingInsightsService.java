@@ -2,7 +2,9 @@ package com.app.footballprediction.service;
 
 import com.app.common.model.Match;
 import com.app.common.model.MatchFeatures;
+import com.app.common.model.SeasonTeamStats;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.common.service.FeatureEngineeringService;
 import com.app.common.util.PredictionUtils;
 import com.app.footballprediction.dto.TrendingInsightsResponse;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 public class TrendingInsightsService {
 
     private final MatchRepository matchRepository;
+    private final SeasonTeamStatsRepository seasonTeamStatsRepository;
     private final FeatureEngineeringService featureEngineeringService;
     private final ModelTrainingService modelTrainingService;
 
@@ -48,6 +51,8 @@ public class TrendingInsightsService {
     private static final int HOT_FORM_WINDOW = 5;               // Window for alternative hot form check
     private static final int COLD_STREAK_THRESHOLD = 5;
     private static final int TOP_N_RESULTS = 5;
+    private static final double UPSET_PROBABILITY_THRESHOLD = 0.40; // 40% threshold for upset alerts
+    private static final double ELO_UPSET_THRESHOLD = 50.0;     // Minimum Elo difference for upset consideration
 
     /**
      * Get the current season identifier.
@@ -448,34 +453,45 @@ public class TrendingInsightsService {
     }
 
     /**
-     * 🎯 Upset Alerts: Matches where away team has >50% win probability.
+     * 🎯 Upset Alerts: Matches where lower-Elo team has significant win probability.
+     *
+     * <p>Analysis uses both ML predictions and Elo ratings to identify potential upsets.
+     * An upset is flagged when:
+     * <ul>
+     *   <li>Away team has >40% win probability despite lower Elo rating, OR</li>
+     *   <li>Home team has >40% win probability despite significantly lower Elo</li>
+     * </ul>
      *
      * <p>Analysis is based on teams from the specified season only.
      */
     private List<UpsetAlert> calculateUpsetAlerts(Set<String> teams, String season) {
         List<UpsetAlert> upsetAlerts = new ArrayList<>();
 
-        // We need upcoming matches - generate potential matchups from current season teams
-        // In production, this would use actual scheduled fixtures
-        // For now, we'll analyze all possible Premier League matchups and identify upsets
-
         try {
             // Check if model is ready
             if (!modelTrainingService.isModelLoaded()) {
-                log.warn("Model not ready - skipping upset alerts");
-                return upsetAlerts;
+                log.warn("Model not ready - using Elo-only upset detection");
             }
 
             // Get teams that have played in the specified season only
             LocalDate beforeDate = LocalDate.now().plusDays(1);
             Map<String, Long> teamMatchCounts = new HashMap<>();
+            Map<String, Double> teamEloRatings = new HashMap<>();
+
             for (String team : teams) {
                 // Use season-filtered query to get match counts within this season only
                 List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
                 long matchCount = matches.size();
-                // Require at least 5 matches in this season to qualify
-                if (matchCount >= 5) {
+                // Require at least 3 matches in this season to qualify (lowered from 5)
+                if (matchCount >= 3) {
                     teamMatchCounts.put(team, matchCount);
+
+                    // Get Elo rating from season stats
+                    Optional<SeasonTeamStats> stats = seasonTeamStatsRepository
+                            .findBySeasonIdAndTeamNameIgnoreCase(season, team);
+                    double eloRating = stats.map(SeasonTeamStats::getEloRating)
+                            .orElse(SeasonTeamStats.DEFAULT_ELO_RATING);
+                    teamEloRatings.put(team, eloRating);
                 }
             }
 
@@ -485,47 +501,110 @@ public class TrendingInsightsService {
                     .map(Map.Entry::getKey)
                     .toList();
 
-            // Analyze matchups where away team is stronger
+            log.debug("Analyzing {} active teams for upset potential in season {}", activeTeams.size(), season);
+
+            // Analyze matchups for upset potential
             for (String homeTeam : activeTeams) {
                 for (String awayTeam : activeTeams) {
                     if (homeTeam.equals(awayTeam)) continue;
 
                     try {
-                        MatchFeatures features = featureEngineeringService.buildFeaturesForPrediction(homeTeam, awayTeam);
-                        double[] probs = modelTrainingService.predict(features);
+                        double homeElo = teamEloRatings.getOrDefault(homeTeam, 1500.0);
+                        double awayElo = teamEloRatings.getOrDefault(awayTeam, 1500.0);
+                        double eloDiff = homeElo - awayElo;
 
-                        // Upset = away win probability > 50%
-                        if (probs[2] > 0.50) {
-                            String reason = generateUpsetReason(features, homeTeam, awayTeam, probs);
+                        // Get ML predictions if model is loaded
+                        double[] probs = {0.33, 0.34, 0.33}; // Default
+                        MatchFeatures features = null;
+
+                        if (modelTrainingService.isModelLoaded()) {
+                            features = featureEngineeringService.buildFeaturesForPrediction(homeTeam, awayTeam);
+                            probs = modelTrainingService.predict(features);
+                        }
+
+                        // Upset detection logic:
+                        // 1. Home team has higher Elo but away team has >40% win probability
+                        // 2. Away team has higher Elo but home team has >40% win probability
+                        boolean isUpset = false;
+                        String upsetType = "";
+
+                        if (eloDiff > ELO_UPSET_THRESHOLD && probs[2] > UPSET_PROBABILITY_THRESHOLD) {
+                            // Home team stronger but away might win
+                            isUpset = true;
+                            upsetType = "Away upset vs stronger home team";
+                        } else if (eloDiff < -ELO_UPSET_THRESHOLD && probs[0] > UPSET_PROBABILITY_THRESHOLD) {
+                            // Away team stronger but home might win
+                            isUpset = true;
+                            upsetType = "Home upset vs stronger away team";
+                        }
+
+                        if (isUpset) {
+                            String reason = generateUpsetReasonWithElo(features, homeTeam, awayTeam, probs, homeElo, awayElo, upsetType);
 
                             upsetAlerts.add(UpsetAlert.builder()
                                     .homeTeam(homeTeam)
                                     .awayTeam(awayTeam)
-                                    .matchDate("Hypothetical")
+                                    .matchDate("Potential")
                                     .awayWinProbability(PredictionUtils.round(probs[2] * 100))
                                     .homeWinProbability(PredictionUtils.round(probs[0] * 100))
                                     .drawProbability(PredictionUtils.round(probs[1] * 100))
                                     .confidence(PredictionUtils.getConfidence(probs))
                                     .reason(reason)
-                                    .homeTeamFormPoints((int) Math.round(features.getHomeFormPoints() * 5))
-                                    .awayTeamFormPoints((int) Math.round(features.getAwayFormPoints() * 5))
+                                    .homeTeamFormPoints(features != null ? (int) Math.round(features.getHomeFormPoints() * 5) : 0)
+                                    .awayTeamFormPoints(features != null ? (int) Math.round(features.getAwayFormPoints() * 5) : 0)
                                     .build());
                         }
                     } catch (Exception e) {
-                        // Skip this matchup
+                        // Skip this matchup - log at debug level to avoid spam
+                        log.debug("Skipping matchup {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
                     }
                 }
             }
 
-            // Sort by away win probability
-            upsetAlerts.sort((a, b) -> Double.compare(b.getAwayWinProbability(), a.getAwayWinProbability()));
+            // Sort by highest upset probability (away win for away upsets, home win for home upsets)
+            upsetAlerts.sort((a, b) -> {
+                double aMax = Math.max(a.getAwayWinProbability(), a.getHomeWinProbability());
+                double bMax = Math.max(b.getAwayWinProbability(), b.getHomeWinProbability());
+                return Double.compare(bMax, aMax);
+            });
+
+            log.info("Found {} potential upset alerts for season {}", upsetAlerts.size(), season);
 
         } catch (Exception e) {
-            log.error("Error calculating upset alerts: {}", e.getMessage());
+            log.error("Error calculating upset alerts: {}", e.getMessage(), e);
         }
 
         return upsetAlerts.stream().limit(TOP_N_RESULTS).toList();
     }
+
+    /**
+     * Generate upset reason including Elo information.
+     */
+    private String generateUpsetReasonWithElo(MatchFeatures features, String homeTeam, String awayTeam,
+                                               double[] probs, double homeElo, double awayElo, String upsetType) {
+        StringBuilder reason = new StringBuilder();
+        reason.append(upsetType).append(". ");
+
+        double eloDiff = Math.abs(homeElo - awayElo);
+        reason.append(String.format("Elo difference: %.0f points. ", eloDiff));
+
+        if (features != null) {
+            if (features.getAwayFormPoints() > features.getHomeFormPoints() + 0.1) {
+                reason.append(awayTeam).append(" in better form. ");
+            } else if (features.getHomeFormPoints() > features.getAwayFormPoints() + 0.1) {
+                reason.append(homeTeam).append(" in better form. ");
+            }
+
+            if (features.getH2hAwayWinRate() > 0.4) {
+                reason.append("Strong H2H record for ").append(awayTeam).append(". ");
+            } else if (features.getH2hHomeWinRate() > 0.6) {
+                reason.append("Strong H2H record for ").append(homeTeam).append(". ");
+            }
+        }
+
+        return reason.toString().trim();
+    }
+
 
     /**
      * 🎉 Goal Fest Predictions: Matches with highest expected total goals.

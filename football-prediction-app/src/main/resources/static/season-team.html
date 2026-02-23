@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Football Analytics - Season Team Statistics">
+    <title>Season Team Stats | Football Analytics</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/season-stats.css">
+
+    <!-- Page-specific styles -->
+    <style>
+        /* ═══════════════════════════════════════════════════════════════════
+           Page Layout Styles
+           ═══════════════════════════════════════════════════════════════════ */
+
+        :root {
+            --page-bg: #f3f4f6;
+            --page-text: #1f2937;
+            --header-bg: #1f2937;
+            --header-text: #f9fafb;
+            --accent: #3b82f6;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --page-bg: #0f172a;
+                --page-text: #f1f5f9;
+                --header-bg: #1e293b;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                         Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            background: var(--page-bg);
+            color: var(--page-text);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .page-header {
+            background: var(--header-bg);
+            color: var(--header-text);
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+
+        .page-header__container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .page-header__title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-header__icon {
+            font-size: 1.75rem;
+        }
+
+        .page-header__subtitle {
+            font-size: 0.875rem;
+            opacity: 0.8;
+            margin-top: 4px;
+        }
+
+        /* Main Content */
+        .page-main {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 24px;
+        }
+
+        /* Controls Section */
+        .controls {
+            background: var(--header-bg);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 32px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-end;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .control-group label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--header-text);
+            opacity: 0.8;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 10px 14px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--header-text);
+            font-size: 0.9rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .control-group input:focus,
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .control-group input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .btn {
+            padding: 10px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn--primary {
+            background: var(--accent);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn--primary:hover {
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+        }
+
+        /* Cards Grid */
+        .cards-section {
+            margin-bottom: 32px;
+        }
+
+        .cards-section__title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 24px;
+        }
+
+        /* Demo Info */
+        .demo-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+            font-size: 0.875rem;
+        }
+
+        .demo-info code {
+            background: rgba(59, 130, 246, 0.15);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'SF Mono', 'Monaco', 'Consolas', monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Footer */
+        .page-footer {
+            text-align: center;
+            padding: 24px;
+            color: var(--page-text);
+            opacity: 0.6;
+            font-size: 0.8rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+
+            .control-group {
+                width: 100%;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="page-header">
+        <div class="page-header__container">
+            <h1 class="page-header__title">
+                <span class="page-header__icon">⚽</span>
+                Season Team Statistics
+            </h1>
+            <p class="page-header__subtitle">View comprehensive team performance metrics and Elo ratings</p>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="page-main">
+        <!-- Demo Info -->
+        <div class="demo-info">
+            <strong>💡 Demo Mode:</strong> Use the controls below to fetch team statistics, or view the demo cards with sample data.
+            API endpoint: <code>GET /api/season/{seasonId}/team/{teamId}/stats</code>
+        </div>
+
+        <!-- Controls -->
+        <section class="controls" aria-label="Fetch controls">
+            <div class="control-group">
+                <label for="seasonId">Season ID</label>
+                <input type="text" id="seasonId" placeholder="e.g., 2025-26" value="2025-26">
+            </div>
+            <div class="control-group">
+                <label for="teamId">Team ID</label>
+                <input type="number" id="teamId" placeholder="e.g., 1" value="1" min="1">
+            </div>
+            <div class="control-group">
+                <label for="teamName">Team Name</label>
+                <input type="text" id="teamName" placeholder="e.g., Arsenal" value="Arsenal">
+            </div>
+            <button type="button" class="btn btn--primary" id="fetchBtn">
+                Fetch Stats
+            </button>
+        </section>
+
+        <!-- Live Stats Card -->
+        <section class="cards-section">
+            <h2 class="cards-section__title">
+                📊 Live Stats
+            </h2>
+            <div class="cards-grid">
+                <div id="liveStatsCard"></div>
+            </div>
+        </section>
+
+        <!-- Demo Cards -->
+        <section class="cards-section">
+            <h2 class="cards-section__title">
+                🎯 Demo Cards (Sample Data)
+            </h2>
+            <div class="cards-grid">
+                <div id="demoCard1"></div>
+                <div id="demoCard2"></div>
+                <div id="demoCard3"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="page-footer">
+        <p>Football Analytics Dashboard &copy; 2026</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/season-stats.js"></script>
+    <script>
+        /**
+         * Page Initialization
+         * Demonstrates various ways to use the SeasonTeamStats component
+         */
+        document.addEventListener('DOMContentLoaded', () => {
+            'use strict';
+
+            // ═══════════════════════════════════════════════════════════════════
+            // Demo Data
+            // ═══════════════════════════════════════════════════════════════════
+
+            const demoData = {
+                elite: {
+                    teamId: 1,
+                    seasonId: "2025-26",
+                    eloRating: 1782.5,
+                    matchesPlayed: 20,
+                    wins: 15,
+                    draws: 3,
+                    losses: 2,
+                    goalsScored: 48,
+                    goalsConceded: 12,
+                    cleanSheets: 10,
+                    currentStreak: "W5",
+                    formLast5: ["W", "W", "W", "W", "W"]
+                },
+                strong: {
+                    teamId: 2,
+                    seasonId: "2025-26",
+                    eloRating: 1625.4,
+                    matchesPlayed: 14,
+                    wins: 9,
+                    draws: 3,
+                    losses: 2,
+                    goalsScored: 27,
+                    goalsConceded: 11,
+                    cleanSheets: 6,
+                    currentStreak: "W3",
+                    formLast5: ["W", "W", "D", "L", "W"]
+                },
+                competitive: {
+                    teamId: 3,
+                    seasonId: "2025-26",
+                    eloRating: 1523.8,
+                    matchesPlayed: 18,
+                    wins: 7,
+                    draws: 5,
+                    losses: 6,
+                    goalsScored: 22,
+                    goalsConceded: 20,
+                    cleanSheets: 4,
+                    currentStreak: "D2",
+                    formLast5: ["D", "D", "W", "L", "L"]
+                }
+            };
+
+            // ═══════════════════════════════════════════════════════════════════
+            // Initialize Demo Cards (with static data)
+            // ═══════════════════════════════════════════════════════════════════
+
+            // Demo Card 1 - Elite Team
+            const demo1 = SeasonTeamStats.init('#demoCard1', {
+                autoLoad: false,
+                teamName: 'Manchester City'
+            });
+            demo1.setData(demoData.elite);
+
+            // Demo Card 2 - Strong Team
+            const demo2 = SeasonTeamStats.init('#demoCard2', {
+                autoLoad: false,
+                teamName: 'Chelsea'
+            });
+            demo2.setData(demoData.strong);
+
+            // Demo Card 3 - Competitive Team
+            const demo3 = SeasonTeamStats.init('#demoCard3', {
+                autoLoad: false,
+                teamName: 'Newcastle United'
+            });
+            demo3.setData(demoData.competitive);
+
+            // ═══════════════════════════════════════════════════════════════════
+            // Live Stats Card (fetches from API)
+            // ═══════════════════════════════════════════════════════════════════
+
+            let liveCard = null;
+
+            const initLiveCard = () => {
+                const seasonId = document.getElementById('seasonId').value.trim();
+                const teamId = document.getElementById('teamId').value.trim();
+                const teamName = document.getElementById('teamName').value.trim() || 'Team';
+
+                if (!seasonId || !teamId) {
+                    alert('Please enter both Season ID and Team ID');
+                    return;
+                }
+
+                // Destroy previous instance if exists
+                if (liveCard) {
+                    liveCard.destroy();
+                }
+
+                // Create new instance
+                liveCard = new SeasonTeamStats.Card('#liveStatsCard', {
+                    seasonId: seasonId,
+                    teamId: teamId,
+                    teamName: teamName,
+                    autoLoad: true,
+                    onLoad: (data) => {
+                        console.log('✅ Stats loaded:', data);
+                    },
+                    onError: (error) => {
+                        console.error('❌ Error loading stats:', error);
+                    }
+                });
+            };
+
+            // Fetch button handler
+            document.getElementById('fetchBtn').addEventListener('click', initLiveCard);
+
+            // Initialize with skeleton on page load
+            const liveContainer = document.getElementById('liveStatsCard');
+            liveContainer.appendChild(SeasonTeamStats.renderSkeleton());
+
+            // ═══════════════════════════════════════════════════════════════════
+            // Usage Examples (logged to console)
+            // ═══════════════════════════════════════════════════════════════════
+
+            console.log('%c📊 SeasonTeamStats Component Loaded', 'font-weight: bold; font-size: 14px;');
+            console.log('');
+            console.log('%cUsage Examples:', 'font-weight: bold;');
+            console.log('');
+            console.log('1. Quick initialization:');
+            console.log(`   SeasonTeamStats.init('#container', {
+       seasonId: '2025-26',
+       teamId: 1,
+       teamName: 'Arsenal'
+   });`);
+            console.log('');
+            console.log('2. With static data:');
+            console.log(`   const card = SeasonTeamStats.init('#container', { autoLoad: false });
+   card.setData(myData);`);
+            console.log('');
+            console.log('3. Direct API call:');
+            console.log(`   const data = await SeasonTeamStats.fetchStats('2025-26', 1);`);
+            console.log('');
+            console.log('4. Classify Elo:');
+            console.log(`   SeasonTeamStats.classifyEloStrength(1625);
+   // Returns: { label: 'Strong', cssClass: 'sts-strength-badge--strong' }`);
+            console.log('');
+        });
+    </script>
+</body>
+</html>
+

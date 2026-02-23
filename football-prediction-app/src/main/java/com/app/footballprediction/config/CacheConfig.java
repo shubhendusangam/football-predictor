@@ -49,6 +49,7 @@ public class CacheConfig {
     public static final String CACHE_TEAM_ANALYTICS = "teamAnalytics";
     public static final String CACHE_PRE_MATCH_INSIGHTS = "preMatchInsights";
     public static final String CACHE_LEAGUE_STATS = "leagueStats";
+    public static final String CACHE_ELO_RATINGS = "eloRatings";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -83,6 +84,9 @@ public class CacheConfig {
 
     @Value("${cache.seasonStats.ttl:1800}")
     private int seasonStatsTtl;
+
+    @Value("${cache.eloRatings.ttl:600}")
+    private int eloRatingsTtl;
 
 
     @Value("${cache.teamAnalytics.ttl:900}")
@@ -127,6 +131,9 @@ public class CacheConfig {
 
     @Value("${cache.seasonStats.maxSize:100}")
     private int seasonStatsMaxSize;
+
+    @Value("${cache.eloRatings.maxSize:200}")
+    private int eloRatingsMaxSize;
 
 
     @Value("${cache.teamAnalytics.maxSize:100}")
@@ -185,6 +192,9 @@ public class CacheConfig {
 
         // Season stats: moderate TTL (30 min), larger size for pagination
         cacheConfigs.put(CACHE_SEASON_STATS, buildCache(seasonStatsTtl, seasonStatsMaxSize));
+
+        // Elo ratings: moderate TTL (10 min), larger size for rankings and team lookups
+        cacheConfigs.put(CACHE_ELO_RATINGS, buildCache(eloRatingsTtl, eloRatingsMaxSize));
 
 
         // Team analytics: moderate TTL (15 min), larger size for comprehensive team data
@@ -247,6 +257,7 @@ public class CacheConfig {
             case CACHE_API_RESPONSES -> apiTtl;
             case CACHE_SEASONS -> seasonsTtl;
             case CACHE_SEASON_STATS -> seasonStatsTtl;
+            case CACHE_ELO_RATINGS -> eloRatingsTtl;
             case CACHE_TEAM_ANALYTICS -> teamAnalyticsTtl;
             case CACHE_PRE_MATCH_INSIGHTS -> preMatchInsightsTtl;
             case CACHE_LEAGUE_STATS -> leagueStatsTtl;

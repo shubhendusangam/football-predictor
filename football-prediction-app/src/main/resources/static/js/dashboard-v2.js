@@ -201,7 +201,8 @@ class DashboardManager {
                             <div class="team-logo team-logo--sm">
                                 <img src="${homeLogoUrl}"
                                      alt="${match.homeTeam} logo"
-                                     onerror="this.onerror=null; this.src='${defaultLogo}';"
+                                     crossorigin="anonymous"
+                                     onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${defaultLogo}';"
                                      loading="lazy">
                             </div>
                             <span class="upcoming-match-team-name">${match.homeTeam}</span>
@@ -214,7 +215,8 @@ class DashboardManager {
                             <div class="team-logo team-logo--sm">
                                 <img src="${awayLogoUrl}"
                                      alt="${match.awayTeam} logo"
-                                     onerror="this.onerror=null; this.src='${defaultLogo}';"
+                                     crossorigin="anonymous"
+                                     onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${defaultLogo}';"
                                      loading="lazy">
                             </div>
                         </div>

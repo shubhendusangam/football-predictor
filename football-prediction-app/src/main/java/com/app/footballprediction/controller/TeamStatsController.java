@@ -43,14 +43,38 @@ public class TeamStatsController {
      * Get all available teams with logo information.
      *
      * GET /api/teams
+     * GET /api/teams?season=2025-26
      *
-     * @return List of all teams with logos
+     * @param season Optional season filter (e.g., "2025-26"). If not provided, returns all teams.
+     * @return List of teams with logos
      */
     @GetMapping
-    public ResponseEntity<?> getAllTeams() {
+    public ResponseEntity<?> getAllTeams(@RequestParam(required = false) String season) {
         try {
+            List<TeamDTO> teams;
+
+            if (season != null && !season.isBlank()) {
+                log.info("Fetching teams for season: {}", season);
+                teams = teamService.getTeamsBySeason(season);
+
+                if (teams.isEmpty()) {
+                    return ResponseEntity.ok(Map.of(
+                            "teams", teams,
+                            "season", season,
+                            "message", "No teams found for season " + season
+                    ));
+                }
+
+                return ResponseEntity.ok(Map.of(
+                        "teams", teams,
+                        "season", season,
+                        "count", teams.size()
+                ));
+            }
+
+            // No season specified - return all teams
             log.info("Fetching all teams with logos");
-            List<TeamDTO> teams = teamService.getAllTeams();
+            teams = teamService.getAllTeams();
 
             // If no teams in database yet, fall back to legacy method
             if (teams.isEmpty()) {
@@ -66,6 +90,31 @@ public class TeamStatsController {
             log.error("Failed to fetch teams: {}", e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "Failed to fetch teams",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Get all available seasons for the teams filter.
+     *
+     * GET /api/teams/seasons
+     *
+     * @return List of seasons sorted descending (newest first)
+     */
+    @GetMapping("/seasons")
+    public ResponseEntity<?> getAvailableSeasons() {
+        try {
+            log.info("Fetching available seasons for teams filter");
+            List<String> seasons = teamService.getAllSeasons();
+            return ResponseEntity.ok(Map.of(
+                    "seasons", seasons,
+                    "count", seasons.size()
+            ));
+        } catch (Exception e) {
+            log.error("Failed to fetch seasons: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to fetch seasons",
                     "details", e.getMessage()
             ));
         }
@@ -144,6 +193,28 @@ public class TeamStatsController {
             log.error("Failed to fetch team logos: {}", e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "Failed to fetch team logos",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Get logo seeding status - shows when logos were last seeded and for which season.
+     *
+     * GET /api/teams/logo-status
+     *
+     * @return Logo seeding status information
+     */
+    @GetMapping("/logo-status")
+    public ResponseEntity<?> getLogoSeedingStatus() {
+        try {
+            log.info("Fetching logo seeding status");
+            Map<String, Object> status = teamLogoSeeder.getLogoSeedingStatus();
+            return ResponseEntity.ok(status);
+        } catch (Exception e) {
+            log.error("Failed to fetch logo seeding status: {}", e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to fetch logo seeding status",
                     "details", e.getMessage()
             ));
         }
@@ -436,15 +507,20 @@ public class TeamStatsController {
      * Seed team logos from online sources.
      * Admin-only endpoint to populate team logo URLs.
      *
-     * POST /api/teams/seed-logos
+     * By default, only seeds logos if needed for the current season.
+     * Use forceRefresh=true to refresh all logos regardless.
      *
+     * POST /api/teams/seed-logos?forceRefresh=false
+     *
+     * @param forceRefresh if true, refresh all logos regardless of season status
      * @return Seeding statistics
      */
     @PostMapping("/seed-logos")
-    public ResponseEntity<?> seedTeamLogos() {
+    public ResponseEntity<?> seedTeamLogos(
+            @RequestParam(defaultValue = "false") boolean forceRefresh) {
         try {
-            log.info("Manually seeding team logos");
-            Map<String, Object> result = teamLogoSeeder.seedLogos();
+            log.info("Manually seeding team logos (forceRefresh={})", forceRefresh);
+            Map<String, Object> result = teamLogoSeeder.seedLogos(forceRefresh);
             // Clear cache after seeding to ensure fresh data
             teamService.clearCache();
             return ResponseEntity.ok(result);

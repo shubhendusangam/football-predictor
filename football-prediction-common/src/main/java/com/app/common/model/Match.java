@@ -41,6 +41,13 @@ public class Match {
    private Integer halfTimeAwayGoals;   // HTAG
    private String halfTimeResult;      // HTR
 
+   /**
+    * Flag indicating if this match has been processed for season team stats.
+    * Prevents duplicate processing and data corruption.
+    */
+   @Builder.Default
+   private Boolean statsProcessed = false;
+
    // ── Phase 2 stats ──────────────────────────────────────
    private Integer homeShots;           // HS
    private Integer awayShots;           // AS
@@ -122,4 +129,3 @@ public class Match {
       return 0;
    }
 }
-

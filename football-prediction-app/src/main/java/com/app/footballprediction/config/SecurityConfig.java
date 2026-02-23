@@ -68,8 +68,9 @@ public class SecurityConfig {
             // Configure authorization rules
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints - no authentication required
-                .requestMatchers("/", "/index.html", "/components-demo.html", "/css/**", "/js/**", "/assets/**", "/images/**", "/manifest.json", "/README.md").permitAll()
+                .requestMatchers("/", "/index.html", "/components-demo.html", "/season-team.html", "/css/**", "/js/**", "/assets/**", "/images/**", "/manifest.json", "/README.md").permitAll()
                 .requestMatchers("/api/predict", "/api/teams", "/api/teams/**", "/api/model/status").permitAll()
+                .requestMatchers("/api/teams/logo-status").permitAll()
                 .requestMatchers("/api/predictions", "/api/predictions/**").permitAll()
                 .requestMatchers("/api/matches/**").permitAll()
                 .requestMatchers("/api/dashboard/**").permitAll()
@@ -80,6 +81,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/insights/**").permitAll()
                 .requestMatchers("/api/seasons/**").permitAll()
                 .requestMatchers("/h2-console/**").permitAll()
+
+                // Season team stats - public read access
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/season/**").permitAll()
 
                 // Cache status is public (read-only monitoring)
                 .requestMatchers("/api/cache/status", "/api/cache/warmup", "/api/cache/stats", "/api/cache/stats/**").permitAll()
@@ -102,6 +106,9 @@ public class SecurityConfig {
                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/*/analytics/cache").hasRole("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/teams/seed-logos").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
+                // Season stats admin operations (recalculate)
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/season/*/recalculate").hasRole("ADMIN")
 
                 // All other requests require authentication
                 .anyRequest().permitAll()

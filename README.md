@@ -50,7 +50,7 @@ This platform is designed for **football analytics enthusiasts** who want data-d
 
 ### 🤖 Match Prediction Engine
 
-The prediction engine uses a **Stacked Ensemble ML Model**:
+The prediction engine uses a **Stacked Ensemble ML Model** enhanced with **Elo Ratings**:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -63,13 +63,43 @@ The prediction engine uses a **Stacked Ensemble ML Model**:
 │  Meta-Model:                                │
 │  └── Logistic Regression                    │
 │                                             │
+│  Elo Adjustment Layer:                      │
+│  └── Dynamic Elo-based probability tuning   │
+│                                             │
 │  Output: H (Home Win) / D (Draw) / A (Away) │
 └─────────────────────────────────────────────┘
 ```
 
 - **25 Engineered Features** across 3 phases
+- **Elo Rating Integration** for team strength comparison
 - **Confidence Levels**: HIGH / MEDIUM / LOW based on probability distribution
+- **Prediction Explainability**: Breakdown of factors influencing the prediction
 - **Automatic Retraining**: Scheduled bi-monthly (1st & 15th @ 3 AM)
+
+### 📈 Elo Rating System
+
+Dynamic team strength ratings that evolve based on match results:
+
+| Feature | Description |
+|---------|-------------|
+| **Live Elo Ratings** | Updated after each match result |
+| **Elo Rankings** | Season-wise team rankings by Elo |
+| **Upset Detection** | Alerts when lower-rated team is favored |
+| **Probability Adjustment** | Elo difference impacts win probabilities |
+| **Historical Tracking** | Elo progression across seasons |
+
+### 🧠 Prediction Explainability
+
+Every prediction includes a breakdown of contributing factors:
+
+| Factor | Description |
+|--------|-------------|
+| **Elo Impact** | How Elo rating difference affects the prediction (e.g., +6%) |
+| **Form Impact** | Recent form influence (e.g., +3%) |
+| **Goal Trend Impact** | Scoring/conceding trends effect (e.g., +2%) |
+| **H2H Impact** | Head-to-head history influence (e.g., +4%) |
+| **Home Advantage** | Home field advantage boost (e.g., +3%) |
+| **Summary** | Human-readable explanation text |
 
 ### 📊 Pre-Match Insights
 
@@ -123,6 +153,38 @@ All trending insights are calculated **strictly within the selected season**:
 - **Overall Accuracy**: Current model performance
 - **High Confidence Accuracy**: Hit rate for HIGH confidence predictions
 - **Trend Indicator**: Performance trend (UP/DOWN/STABLE)
+
+### 📰 Football News Feed
+
+Aggregated football news from multiple free RSS sources:
+
+| Endpoint | Description |
+|----------|-------------|
+| `/api/news/premier-league` | Premier League specific news |
+| `/api/news/team?name=Arsenal` | Team-specific news |
+| `/api/news/football` | General football news |
+| `/api/news/all` | Aggregated news from all sources |
+
+- **No API Key Required**: Uses free RSS feeds (BBC Sport, Sky Sports, ESPN, The Guardian)
+- **Cached Responses**: 30-minute TTL for optimal performance
+
+### 🔐 Admin Panel
+
+Secure admin dashboard for system management:
+
+| Feature | Description |
+|---------|-------------|
+| **Dashboard Stats** | System overview, match counts, prediction accuracy |
+| **Prediction Engine Toggle** | Enable/disable predictions |
+| **Model Retraining** | Trigger manual model retraining |
+| **Match Override** | Manually correct match results |
+| **League Management** | Enable/disable leagues, update settings |
+| **Team Logo Management** | Update team logos, fix missing logos |
+| **Audit Logs** | Track all admin actions |
+| **System Settings** | Configure system parameters |
+
+- **HTTP Basic Authentication**: Secure admin endpoints
+- **Audit Trail**: All admin actions are logged
 
 ---
 
@@ -238,14 +300,18 @@ Built-in **Caffeine cache** with configurable TTLs:
 
 | Cache | TTL | Max Size | Purpose |
 |-------|-----|----------|---------|
-| `standings` | 5 min | 50 | League table data |
-| `trendingInsights` | 5 min | 20 | Hot/cold teams, alerts |
-| `teamStats` | 10 min | 100 | Team statistics |
-| `preMatchInsights` | 10 min | 200 | Pre-match analysis |
-| `h2hInsights` | 10 min | 200 | H2H historical data |
-| `teamAnalytics` | 15 min | 100 | Full team analytics |
-| `news` | 15 min | 50 | News feed |
-| `teamLogos` | 60 min | 200 | Team logo URLs |
+| `standings` | 30 min | 100 | League table data |
+| `trending` | 10 min | 100 | Hot/cold teams, alerts |
+| `teamStats` | 30 min | 200 | Team statistics |
+| `matches` | 15 min | 500 | Match data |
+| `h2h` | 60 min | 300 | H2H historical data |
+| `predictions` | 5 min | 1000 | Prediction results |
+| `news` | 30 min | 200 | News feed |
+| `api` | 15 min | 200 | External API responses |
+| `teamLogos` | 24 hours | 200 | Team logo URLs |
+| `eloRatings` | 15 min | 100 | Elo rating data |
+
+**Cache Warming**: Caches are pre-populated on startup for optimal first-request performance.
 
 ---
 
@@ -282,6 +348,19 @@ Predict match outcome between two teams.
   "probDraw": 0.28,
   "probAwayWin": 0.20,
   "confidence": "MEDIUM",
+  "homeElo": 1820.5,
+  "awayElo": 1780.2,
+  "eloDifference": 40.3,
+  "upsetAlert": false,
+  "upsetTeam": null,
+  "explanation": {
+    "eloImpact": "+4%",
+    "formImpact": "+3%",
+    "goalTrendImpact": "+2%",
+    "h2hImpact": "+1%",
+    "homeAdvantageImpact": "+3%",
+    "summary": "Arsenal favored due to higher Elo rating (+40 pts) and strong home form"
+  },
   "features": {
     "homeFormPoints": 12,
     "awayFormPoints": 9,
@@ -592,6 +671,135 @@ Get model metadata.
   }
 }
 ```
+
+---
+
+### News Endpoints
+
+#### GET `/api/news/premier-league`
+Get Premier League news from RSS feeds.
+
+#### GET `/api/news/team?name={teamName}`
+Get news for a specific team.
+
+#### GET `/api/news/football`
+Get general football news.
+
+#### GET `/api/news/all`
+Get aggregated news from all sources.
+
+**Response:**
+```json
+{
+  "articles": [
+    {
+      "title": "Arsenal extends winning streak",
+      "description": "...",
+      "url": "https://...",
+      "source": "BBC Sport",
+      "publishedAt": "2026-02-23T10:00:00"
+    }
+  ],
+  "count": 20,
+  "source": "aggregated"
+}
+```
+
+---
+
+### Season Team Stats Endpoints
+
+#### GET `/api/season/{seasonId}/team/{teamId}/stats`
+Get team statistics including Elo rating for a season.
+
+#### GET `/api/season/{seasonId}/team/stats?name={teamName}`
+Get team stats by name.
+
+#### GET `/api/season/{seasonId}/stats`
+Get all team stats for a season ordered by points.
+
+#### GET `/api/season/{seasonId}/elo-rankings`
+Get Elo rankings for a season.
+
+**Response:**
+```json
+[
+  {
+    "teamId": 1,
+    "teamName": "Liverpool",
+    "seasonId": "2025-26",
+    "eloRating": 1850.5,
+    "points": 59,
+    "played": 25,
+    "won": 18,
+    "drawn": 5,
+    "lost": 2,
+    "goalsScored": 55,
+    "goalsConceded": 20,
+    "form": "WWDWW"
+  }
+]
+```
+
+---
+
+### Admin Endpoints (Requires Authentication)
+
+All admin endpoints require HTTP Basic Authentication with admin credentials.
+
+#### GET `/api/admin/verify`
+Verify admin credentials.
+
+#### GET `/api/admin/dashboard`
+Get admin dashboard statistics.
+
+#### POST `/api/admin/toggle-engine`
+Toggle prediction engine on/off.
+
+**Request:**
+```json
+{ "enabled": true }
+```
+
+#### POST `/api/admin/retrain`
+Trigger model retraining.
+
+#### GET `/api/admin/settings`
+Get system settings.
+
+#### PUT `/api/admin/settings`
+Update system settings.
+
+#### POST `/api/admin/match-override`
+Override match result.
+
+**Request:**
+```json
+{
+  "matchId": 12345,
+  "result": "H",
+  "homeGoals": 2,
+  "awayGoals": 1
+}
+```
+
+#### GET `/api/admin/leagues`
+Get all leagues.
+
+#### POST `/api/admin/leagues/{code}/toggle`
+Toggle league enabled status.
+
+#### GET `/api/admin/teams/missing-logos`
+Get teams with missing logos.
+
+#### PUT `/api/admin/teams/{id}/logo`
+Update team logo URL.
+
+#### GET `/api/admin/audit-logs`
+Get admin audit logs (paginated).
+
+#### POST `/api/admin/predictions/update-results`
+Manually trigger prediction results update.
 
 ---
 
@@ -1046,13 +1254,24 @@ for (Match match : matches) {
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| **Elo Rating System** | Dynamic team strength ratings | High |
 | **xG Integration** | Expected goals model | High |
 | **Real-time Retraining** | Model updates after each match | Medium |
 | **Player-level Analytics** | Individual player impact | Medium |
 | **Multi-league Support** | La Liga, Bundesliga, Serie A | Medium |
 | **Deep Learning Models** | LSTM for sequence prediction | Low |
 | **WebSocket Updates** | Live prediction updates | Low |
+| **Mobile App** | Native iOS/Android application | Low |
+
+### ✅ Recently Implemented
+
+| Feature | Description |
+|---------|-------------|
+| **Elo Rating System** | Dynamic team strength ratings with upset detection |
+| **Prediction Explainability** | Breakdown of factors influencing predictions |
+| **Admin Panel** | Full admin dashboard with authentication |
+| **News Feed** | Aggregated football news from RSS sources |
+| **Cache Warming** | Pre-populated cache on startup |
+| **Prediction Tracking** | Track predictions and actual results |
 
 ---
 
@@ -1071,18 +1290,30 @@ football-prediction/
 │   └── src/main/
 │       ├── java/com/app/footballprediction/
 │       │   ├── controller/            # REST endpoints
-│       │   │   ├── PredictionController.java
+│       │   │   ├── AdminController.java         # Admin panel API
 │       │   │   ├── AnalyticsController.java
 │       │   │   ├── DashboardController.java
+│       │   │   ├── NewsController.java          # News feed API
+│       │   │   ├── PredictionController.java
+│       │   │   ├── SeasonTeamStatsController.java  # Elo & stats API
+│       │   │   ├── SeasonsController.java
 │       │   │   ├── TeamStatsController.java
 │       │   │   └── ExternalApiController.java
 │       │   ├── service/               # Business logic
-│       │   │   ├── PreMatchInsightsService.java
-│       │   │   ├── TrendingInsightsService.java
-│       │   │   ├── LeagueStandingService.java
+│       │   │   ├── AdminService.java            # Admin operations
+│       │   │   ├── CacheWarmingService.java     # Cache pre-population
+│       │   │   ├── DashboardService.java
+│       │   │   ├── EloPredictionService.java    # Elo adjustments
 │       │   │   ├── H2HInsightsService.java
-│       │   │   └── DashboardService.java
+│       │   │   ├── LeagueStandingService.java
+│       │   │   ├── NewsService.java             # RSS news aggregation
+│       │   │   ├── PreMatchInsightsService.java
+│       │   │   ├── PredictionTrackingService.java  # Track results
+│       │   │   ├── SeasonTeamStatsService.java  # Season stats & Elo
+│       │   │   └── TrendingInsightsService.java
 │       │   ├── dto/                   # Data transfer objects
+│       │   │   ├── PredictionExplanation.java   # Explainability DTO
+│       │   │   └── ...
 │       │   ├── config/                # Configuration
 │       │   │   └── CacheConfig.java   # Caffeine cache
 │       │   └── scheduler/             # Scheduled tasks
@@ -1095,11 +1326,14 @@ football-prediction/
 │   ├── pom.xml
 │   └── src/main/java/com/app/common/
 │       ├── model/                     # JPA Entities
-│       │   ├── Match.java
-│       │   ├── Team.java
+│       │   ├── AdminAuditLog.java     # Audit trail
 │       │   ├── League.java
 │       │   ├── LeagueStanding.java
-│       │   └── Prediction.java
+│       │   ├── Match.java
+│       │   ├── Prediction.java
+│       │   ├── SeasonTeamStats.java   # Elo ratings & season stats
+│       │   ├── SystemSettings.java    # Admin settings
+│       │   └── Team.java
 │       ├── repository/                # Spring Data JPA
 │       └── service/                   # Shared services
 │           └── FeatureEngineeringService.java

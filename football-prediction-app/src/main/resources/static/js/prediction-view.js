@@ -6,39 +6,42 @@
 (function() {
     'use strict';
 
-    // DOM Elements
-    const predictionForm = document.getElementById('predictionForm');
-    const homeTeamInput = document.getElementById('homeTeam');
-    const awayTeamInput = document.getElementById('awayTeam');
-    const matchDateInput = document.getElementById('matchDate');
-    const predictBtn = document.getElementById('predictBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const retryBtn = document.getElementById('retryBtn');
-    const newPredictionBtn = document.getElementById('newPredictionBtn');
-    const explainToggle = document.getElementById('explainToggle');
-    const expandIcon = document.getElementById('expandIcon');
-    const explainContent = document.getElementById('explainContent');
+    // DOM Elements - wrapped in object for consistent access
+    const elements = {
+        // Form elements
+        predictionForm: document.getElementById('predictionForm'),
+        homeTeamInput: document.getElementById('homeTeam'),
+        awayTeamInput: document.getElementById('awayTeam'),
+        matchDateInput: document.getElementById('matchDate'),
+        predictBtn: document.getElementById('predictBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        retryBtn: document.getElementById('retryBtn'),
+        newPredictionBtn: document.getElementById('newPredictionBtn'),
+        explainToggle: document.getElementById('explainToggle'),
+        expandIcon: document.getElementById('expandIcon'),
+        explainContent: document.getElementById('explainContent'),
 
-    // Sections
-    const loadingSection = document.getElementById('loadingSection');
-    const errorSection = document.getElementById('errorSection');
-    const predictionResults = document.getElementById('predictionResults');
-    const errorMessage = document.getElementById('errorMessage');
+        // Sections
+        loadingSection: document.getElementById('loadingSection'),
+        errorSection: document.getElementById('errorSection'),
+        predictionResults: document.getElementById('predictionResults'),
+        errorMessage: document.getElementById('errorMessage'),
 
-    // Result Elements
-    const homeTeamName = document.getElementById('homeTeamName');
-    const awayTeamName = document.getElementById('awayTeamName');
-    const matchDateDisplay = document.getElementById('matchDateDisplay');
-    const confidenceBadge = document.getElementById('confidenceBadge');
-    const confidenceValue = document.getElementById('confidenceValue');
-    const homeGoals = document.getElementById('homeGoals');
-    const awayGoals = document.getElementById('awayGoals');
-    const homeWinSegment = document.getElementById('homeWinSegment');
-    const drawSegment = document.getElementById('drawSegment');
-    const awayWinSegment = document.getElementById('awayWinSegment');
-    const homeWinValue = document.getElementById('homeWinValue');
-    const drawValue = document.getElementById('drawValue');
-    const awayWinValue = document.getElementById('awayWinValue');
+        // Result Elements
+        homeTeamName: document.getElementById('homeTeamName'),
+        awayTeamName: document.getElementById('awayTeamName'),
+        matchDateDisplay: document.getElementById('matchDateDisplay'),
+        confidenceBadge: document.getElementById('confidenceBadge'),
+        confidenceValue: document.getElementById('confidenceValue'),
+        homeGoals: document.getElementById('homeGoals'),
+        awayGoals: document.getElementById('awayGoals'),
+        homeWinSegment: document.getElementById('homeWinSegment'),
+        drawSegment: document.getElementById('drawSegment'),
+        awayWinSegment: document.getElementById('awayWinSegment'),
+        homeWinValue: document.getElementById('homeWinValue'),
+        drawValue: document.getElementById('drawValue'),
+        awayWinValue: document.getElementById('awayWinValue')
+    };
 
     // State
     let isLoading = false;
@@ -50,14 +53,14 @@
     function init() {
         // Set default date to today
         const today = new Date().toISOString().split('T')[0];
-        matchDateInput.value = today;
+        if (elements.matchDateInput) elements.matchDateInput.value = today;
 
         // Event listeners
-        predictionForm.addEventListener('submit', handleFormSubmit);
-        resetBtn.addEventListener('click', handleReset);
-        retryBtn.addEventListener('click', handleRetry);
-        newPredictionBtn.addEventListener('click', handleNewPrediction);
-        explainToggle.addEventListener('click', toggleExplainSection);
+        if (elements.predictionForm) elements.predictionForm.addEventListener('submit', handleFormSubmit);
+        if (elements.resetBtn) elements.resetBtn.addEventListener('click', handleReset);
+        if (elements.retryBtn) elements.retryBtn.addEventListener('click', handleRetry);
+        if (elements.newPredictionBtn) elements.newPredictionBtn.addEventListener('click', handleNewPrediction);
+        if (elements.explainToggle) elements.explainToggle.addEventListener('click', toggleExplainSection);
     }
 
     // =====================================================
@@ -283,6 +286,14 @@
         if (elements.drawValue) elements.drawValue.textContent = `${drawProb}%`;
         if (elements.awayWinValue) elements.awayWinValue.textContent = `${awayWinProb}%`;
 
+        // Update Elo Rating Display
+        updateEloDisplay(data, homeTeam, awayTeam);
+
+        // Update Upset Alert
+        updateUpsetAlert(data);
+
+        // Update Explainability Section
+        updateExplainSection(data, homeTeam, awayTeam);
 
         // Show results
         if (elements.predictionResults) {
@@ -298,6 +309,148 @@
         if (elements.predictionResults) {
             elements.predictionResults.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+    }
+
+    /**
+     * Update Elo rating display with strength bar visualization
+     */
+    function updateEloDisplay(data, homeTeam, awayTeam) {
+        const eloSection = document.getElementById('eloSection');
+        if (!eloSection) return;
+
+        const homeElo = data.homeElo || 1500;
+        const awayElo = data.awayElo || 1500;
+        const eloDiff = data.eloDifference || 0;
+
+        // Update Elo values
+        const homeEloEl = document.getElementById('homeEloValue');
+        const awayEloEl = document.getElementById('awayEloValue');
+        const eloDiffEl = document.getElementById('eloDifferenceValue');
+
+        if (homeEloEl) homeEloEl.textContent = Math.round(homeElo);
+        if (awayEloEl) awayEloEl.textContent = Math.round(awayElo);
+        if (eloDiffEl) {
+            const sign = eloDiff > 0 ? '+' : '';
+            eloDiffEl.textContent = `${sign}${Math.round(eloDiff)}`;
+            eloDiffEl.className = 'elo-diff-value ' + (eloDiff > 0 ? 'positive' : eloDiff < 0 ? 'negative' : 'neutral');
+        }
+
+        // Update strength bar
+        const homeBar = document.getElementById('homeStrengthBar');
+        const awayBar = document.getElementById('awayStrengthBar');
+
+        if (homeBar && awayBar) {
+            // Calculate bar widths based on Elo (normalize to 0-100%)
+            // Aligned with backend EloRatingService classification:
+            // < 1450 = Weak, 1450-1600 = Competitive, 1600-1750 = Strong, 1750+ = Elite
+            const minElo = 1350, maxElo = 1850; // Extended range for visualization
+            const normalizedHome = Math.min(100, Math.max(0, ((homeElo - minElo) / (maxElo - minElo)) * 100));
+            const normalizedAway = Math.min(100, Math.max(0, ((awayElo - minElo) / (maxElo - minElo)) * 100));
+
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    homeBar.style.width = `${normalizedHome}%`;
+                    awayBar.style.width = `${normalizedAway}%`;
+                }, 100);
+            });
+        }
+
+        eloSection.classList.remove('hidden');
+    }
+
+    /**
+     * Update upset alert badge display
+     */
+    function updateUpsetAlert(data) {
+        const upsetBadge = document.getElementById('upsetAlertBadge');
+        if (!upsetBadge) return;
+
+        if (data.upsetAlert) {
+            const upsetTeam = data.upsetTeam || 'Underdog';
+            upsetBadge.innerHTML = `<span class="upset-icon">⚠️</span> Upset Potential: ${upsetTeam}`;
+            upsetBadge.classList.remove('hidden');
+            upsetBadge.classList.add('show');
+        } else {
+            upsetBadge.classList.add('hidden');
+            upsetBadge.classList.remove('show');
+        }
+    }
+
+    /**
+     * Update explainability section with prediction factors
+     */
+    function updateExplainSection(data, homeTeam, awayTeam) {
+        const explainContent = document.getElementById('explainContent');
+        if (!explainContent) return;
+
+        const explanation = data.explanation || {};
+
+        // Build explanation HTML
+        let html = '<div class="explain-factors">';
+
+        // Elo Impact
+        if (explanation.eloImpact) {
+            const isPositive = explanation.eloImpact.startsWith('+');
+            const icon = isPositive ? '📈' : (explanation.eloImpact.startsWith('-') ? '📉' : '➡️');
+            html += `
+                <div class="explain-factor ${isPositive ? 'positive' : 'negative'}">
+                    <span class="factor-icon">${icon}</span>
+                    <span class="factor-label">Elo Advantage:</span>
+                    <span class="factor-value">${explanation.eloImpact}</span>
+                </div>
+            `;
+        }
+
+        // Form Impact
+        if (explanation.formImpact) {
+            const isPositive = explanation.formImpact.startsWith('+');
+            const icon = isPositive ? '🔥' : (explanation.formImpact.startsWith('-') ? '❄️' : '➡️');
+            html += `
+                <div class="explain-factor ${isPositive ? 'positive' : 'negative'}">
+                    <span class="factor-icon">${icon}</span>
+                    <span class="factor-label">Recent Form:</span>
+                    <span class="factor-value">${explanation.formImpact}</span>
+                </div>
+            `;
+        }
+
+        // Goal Trend Impact
+        if (explanation.goalTrendImpact) {
+            const isPositive = explanation.goalTrendImpact.startsWith('+');
+            const icon = isPositive ? '⚽' : (explanation.goalTrendImpact.startsWith('-') ? '🛡️' : '➡️');
+            html += `
+                <div class="explain-factor ${isPositive ? 'positive' : 'negative'}">
+                    <span class="factor-icon">${icon}</span>
+                    <span class="factor-label">Goal Trend:</span>
+                    <span class="factor-value">${explanation.goalTrendImpact}</span>
+                </div>
+            `;
+        }
+
+        // Home Advantage Impact
+        if (explanation.homeAdvantageImpact) {
+            html += `
+                <div class="explain-factor positive">
+                    <span class="factor-icon">🏟️</span>
+                    <span class="factor-label">Home Advantage:</span>
+                    <span class="factor-value">${explanation.homeAdvantageImpact}</span>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+
+        // Summary
+        if (explanation.summary) {
+            html += `<div class="explain-summary">${explanation.summary}</div>`;
+        }
+
+        // Fallback if no explanation data
+        if (!explanation.eloImpact && !explanation.formImpact && !explanation.goalTrendImpact) {
+            html = '<p class="explain-empty">Prediction based on historical data and team statistics.</p>';
+        }
+
+        explainContent.innerHTML = html;
     }
 
     /**

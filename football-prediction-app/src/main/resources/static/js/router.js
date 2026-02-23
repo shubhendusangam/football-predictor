@@ -364,8 +364,14 @@ class Router {
                     throw new Error('No API client available');
                 }
 
-                // Display results
-                this.displayPredictionResults(resultsDiv, prediction, homeTeam, awayTeam);
+                // Display results - use team names from prediction response if available
+                const normalizedHome = prediction.homeTeam || homeTeam;
+                const normalizedAway = prediction.awayTeam || awayTeam;
+                this.displayPredictionResults(resultsDiv, prediction, normalizedHome, normalizedAway);
+
+                // Also update form inputs with normalized names for consistency
+                document.getElementById('homeTeamInput').value = normalizedHome;
+                document.getElementById('awayTeamInput').value = normalizedAway;
 
             } catch (error) {
                 console.error('Prediction error:', error);
@@ -451,7 +457,7 @@ class Router {
             </div>
         `;
 
-        // Load Pre-Match Insights asynchronously
+        // Load Pre-Match Insights asynchronously (homeTeam/awayTeam are already normalized from caller)
         this.loadPreMatchInsights(homeTeam, awayTeam);
     }
 
@@ -475,8 +481,10 @@ class Router {
                 data = await response.json();
             }
 
-            // Render the Pre-Match Insights UI
-            contentEl.innerHTML = this.renderPreMatchInsightsUI(data, homeTeam, awayTeam);
+            // Render the Pre-Match Insights UI - use team names from API response for consistency
+            const normalizedHomeTeam = data.homeTeam || data.preMatchInsights?.homeTeam || homeTeam;
+            const normalizedAwayTeam = data.awayTeam || data.preMatchInsights?.awayTeam || awayTeam;
+            contentEl.innerHTML = this.renderPreMatchInsightsUI(data, normalizedHomeTeam, normalizedAwayTeam);
 
         } catch (error) {
             console.error('[Router] Failed to load pre-match insights:', error);
@@ -608,12 +616,12 @@ class Router {
                             <td class="away-value">${(goalThreat.awayThreatRating || 0).toFixed(0)}%</td>
                         </tr>
                         <tr>
-                            <td class="metric-name"><span class="metric-icon">⚽</span> Goals Scored Avg</td>
+                            <td class="metric-name"><span class="metric-icon">⚽</span> Goals Scored (Season Avg)</td>
                             <td class="home-value">${(goalThreat.homeTeamAvgScored || 0).toFixed(2)}</td>
                             <td class="away-value">${(goalThreat.awayTeamAvgScored || 0).toFixed(2)}</td>
                         </tr>
                         <tr>
-                            <td class="metric-name"><span class="metric-icon">🛡️</span> Goals Conceded Avg</td>
+                            <td class="metric-name"><span class="metric-icon">🛡️</span> Goals Conceded (Season Avg)</td>
                             <td class="home-value">${(goalThreat.homeTeamAvgConceded || 0).toFixed(2)}</td>
                             <td class="away-value">${(goalThreat.awayTeamAvgConceded || 0).toFixed(2)}</td>
                         </tr>
@@ -1271,60 +1279,210 @@ class Router {
             </div>
             <style>
                 .teams-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-                .team-card { background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid var(--border-color); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+                .team-card { background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid var(--border-color); transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; position: relative; }
                 .team-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
                 .team-card-header { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; }
                 .team-logo { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
                 .team-name { font-size: 1.125rem; font-weight: 600; color: var(--text-primary); }
+                .team-name-container { display: flex; flex-direction: column; gap: 0.25rem; }
                 .team-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; text-align: center; }
                 .team-stat { padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.375rem; }
                 .team-stat-value { font-size: 1.25rem; font-weight: 700; }
                 .team-stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-                .teams-search { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
-                .teams-search input { flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); }
-                .teams-search input:focus { outline: none; border-color: var(--accent-blue); }
+                .teams-filter-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }
+                .teams-filter-bar input { flex: 1; min-width: 200px; padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); }
+                .teams-filter-bar input:focus { outline: none; border-color: var(--accent-blue); }
+                .teams-filter-bar select { padding: 0.75rem 1rem; border-radius: 0.5rem; border: 1px solid var(--border-color); background: var(--bg-secondary); color: var(--text-primary); min-width: 150px; cursor: pointer; }
+                .teams-filter-bar select:focus { outline: none; border-color: var(--accent-blue); }
+                .teams-count { color: var(--text-muted); font-size: 0.875rem; }
+                .season-badge { background: var(--accent-blue); color: white; padding: 0.25rem 0.75rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 600; }
+
+                /* Promoted team styling - Green */
+                .team-card--promoted {
+                    border-left: 4px solid #22c55e;
+                    background: linear-gradient(to right, rgba(34, 197, 94, 0.08), var(--bg-secondary));
+                }
+                .team-card--promoted:hover { box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2); }
+
+                /* Relegation/Relegated styling - Red */
+                .team-card--relegation, .team-card--relegated {
+                    border-left: 4px solid #ef4444;
+                    background: linear-gradient(to right, rgba(239, 68, 68, 0.08), var(--bg-secondary));
+                }
+                .team-card--relegation:hover, .team-card--relegated:hover { box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2); }
+
+                /* Champions League styling - Blue */
+                .team-card--champions-league, .team-card--qualified-ucl {
+                    border-left: 4px solid #3b82f6;
+                    background: linear-gradient(to right, rgba(59, 130, 246, 0.08), var(--bg-secondary));
+                }
+                .team-card--champions-league:hover, .team-card--qualified-ucl:hover { box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2); }
+
+                /* Europa League styling - Orange */
+                .team-card--europa-league, .team-card--qualified-uel {
+                    border-left: 4px solid #f97316;
+                    background: linear-gradient(to right, rgba(249, 115, 22, 0.08), var(--bg-secondary));
+                }
+                .team-card--europa-league:hover, .team-card--qualified-uel:hover { box-shadow: 0 4px 12px rgba(249, 115, 22, 0.2); }
+
+                /* Conference League styling - Teal */
+                .team-card--conference-league, .team-card--qualified-uecl {
+                    border-left: 4px solid #14b8a6;
+                    background: linear-gradient(to right, rgba(20, 184, 166, 0.08), var(--bg-secondary));
+                }
+                .team-card--conference-league:hover, .team-card--qualified-uecl:hover { box-shadow: 0 4px 12px rgba(20, 184, 166, 0.2); }
+
+                /* Status badges */
+                .team-status-badge {
+                    font-size: 0.65rem;
+                    padding: 0.15rem 0.5rem;
+                    border-radius: 0.25rem;
+                    font-weight: 600;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    white-space: nowrap;
+                }
+                .team-status-badge.promoted { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+                .team-status-badge.relegation, .team-status-badge.relegated { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+                .team-status-badge.champions-league, .team-status-badge.qualified-ucl { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+                .team-status-badge.europa-league, .team-status-badge.qualified-uel { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+                .team-status-badge.conference-league, .team-status-badge.qualified-uecl { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+
+                /* Position badge */
+                .team-position-badge {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.75rem;
+                    font-weight: 700;
+                    color: white;
+                    flex-shrink: 0;
+                }
+                .team-position-badge.zone-champions { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+                .team-position-badge.zone-europa { background: linear-gradient(135deg, #f97316, #ea580c); }
+                .team-position-badge.zone-conference { background: linear-gradient(135deg, #14b8a6, #0d9488); }
+                .team-position-badge.zone-mid { background: var(--bg-tertiary); color: var(--text-secondary); }
+                .team-position-badge.zone-relegation { background: linear-gradient(135deg, #ef4444, #dc2626); }
+
+                /* Legend */
+                .teams-legend {
+                    display: flex;
+                    gap: 1rem;
+                    flex-wrap: wrap;
+                    padding: 0.75rem 1rem;
+                    background: var(--bg-tertiary);
+                    border-radius: 0.5rem;
+                    margin-bottom: 1rem;
+                    font-size: 0.75rem;
+                }
+                .teams-legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.4rem;
+                    color: var(--text-secondary);
+                }
+                .legend-indicator {
+                    width: 12px;
+                    height: 12px;
+                    border-radius: 2px;
+                }
+                .legend-indicator.promoted { background: #22c55e; }
+                .legend-indicator.relegation, .legend-indicator.relegated { background: #ef4444; }
+                .legend-indicator.champions { background: #3b82f6; }
+                .legend-indicator.europa { background: #f97316; }
+                .legend-indicator.conference { background: #14b8a6; }
             </style>
         `;
+        this._currentTeamsSeason = null; // Track current season
+        this.loadSeasonsAndTeams();
+    }
+
+    /**
+     * Load seasons first, then load teams
+     */
+    async loadSeasonsAndTeams() {
+        try {
+            // Fetch available seasons
+            const seasonsResponse = await fetch('/api/teams/seasons');
+            if (seasonsResponse.ok) {
+                const seasonsData = await seasonsResponse.json();
+                this._availableSeasons = seasonsData.seasons || [];
+
+                // Default to the most recent season (first in the list)
+                if (this._availableSeasons.length > 0) {
+                    this._currentTeamsSeason = this._availableSeasons[0];
+                }
+            }
+        } catch (error) {
+            console.warn('[Router] Failed to load seasons, will show all teams:', error);
+            this._availableSeasons = [];
+        }
+
+        // Now load teams
         this.loadTeamsData();
     }
 
     /**
      * Load teams data from API
      */
-    async loadTeamsData() {
+    async loadTeamsData(season = null) {
         const container = document.getElementById('teamsContent');
         if (!container) {
             console.error('[Router] teamsContent container not found!');
             return;
         }
 
+        // Use provided season or current selection
+        const selectedSeason = season || this._currentTeamsSeason;
+
+        // Show loading state
+        container.innerHTML = `
+            <div class="teams-loading" style="text-align: center; padding: 3rem;">
+                <div class="loading-spinner" style="width: 40px; height: 40px; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;"></div>
+                <p style="color: var(--text-muted);">Loading teams${selectedSeason ? ' for ' + selectedSeason : ''}...</p>
+            </div>
+        `;
+
         try {
-            console.log('[Router] Fetching teams data...');
-            console.log('[Router] window.api available:', !!window.api);
+            console.log('[Router] Fetching teams data for season:', selectedSeason || 'all');
 
+            // Build URL with season parameter
+            let url = '/api/teams';
+            if (selectedSeason) {
+                url += `?season=${encodeURIComponent(selectedSeason)}`;
+            }
+
+            const fetchResponse = await fetch(url);
+            if (!fetchResponse.ok) {
+                throw new Error(`HTTP error! status: ${fetchResponse.status}`);
+            }
+
+            const response = await fetchResponse.json();
+
+            // Handle both array (legacy) and object (new with season) response formats
             let teams;
-            if (window.api && typeof window.api.getAllTeams === 'function') {
-                teams = await window.api.getAllTeams();
-            } else if (window.api && typeof window.api.get === 'function') {
-                teams = await window.api.get('/teams');
+            if (Array.isArray(response)) {
+                teams = response;
+            } else if (response.teams) {
+                teams = response.teams;
             } else {
-                console.log('[Router] Falling back to native fetch for teams...');
-                const fetchResponse = await fetch('/api/teams');
-                if (!fetchResponse.ok) {
-                    throw new Error(`HTTP error! status: ${fetchResponse.status}`);
-                }
-                teams = await fetchResponse.json();
+                teams = [];
             }
 
-            console.log('[Router] Teams response received:', teams ? 'yes' : 'no');
-            console.log('[Router] Teams count:', Array.isArray(teams) ? teams.length : 'not an array');
+            console.log('[Router] Teams response received, count:', teams.length);
 
-            if (!Array.isArray(teams) || teams.length === 0) {
-                throw new Error('No teams data available');
+            if (teams.length === 0) {
+                container.innerHTML = this.buildNoTeamsHTML(selectedSeason);
+                return;
             }
 
-            container.innerHTML = this.buildTeamsHTML(teams);
+            container.innerHTML = this.buildTeamsHTML(teams, selectedSeason);
             this.initTeamsSearch(teams);
+            this.initSeasonSelector();
             console.log('[Router] Teams loaded and rendered successfully:', teams.length);
 
         } catch (error) {
@@ -1349,16 +1507,28 @@ class Router {
         console.log('[Router] Building teams HTML for', teams.length, 'teams');
         console.log('[Router] First team:', teams[0]);
 
+        // Check if any teams have status info
+        const hasStatusInfo = teams.some(t => typeof t === 'object' && t.status);
+
         const teamCards = teams.map(team => {
             // Handle both string (legacy) and object (new with logoUrl) formats
             const isObject = typeof team === 'object';
             const teamName = isObject ? (team.name || team.teamName || 'Unknown') : team;
             const logoUrl = isObject ? (team.logoUrl || team.logo) : null;
+            const status = isObject ? team.status : null;
+            const position = isObject ? team.position : null;
+            const zone = isObject ? team.zone : null;
 
             // Debug first few teams
             if (teams.indexOf(team) < 3) {
-                console.log('[Router] Team:', teamName, 'Logo URL:', logoUrl);
+                console.log('[Router] Team:', teamName, 'Status:', status, 'Zone:', zone, 'Position:', position);
             }
+
+            // Determine status class and badge based on status
+            const { statusClass, statusBadge } = this.getTeamStatusDisplay(status, zone);
+
+            // Position badge
+            const positionBadge = position ? `<span class="team-position-badge zone-${zone || 'mid'}">${position}</span>` : '';
 
             // Use TeamLogos utility if available, otherwise fallback
             let logoHtml;
@@ -1370,17 +1540,22 @@ class Router {
                     <div class="team-logo team-logo--lg">
                         <img src="${logoSrc}"
                              alt="${this.escapeHtml(teamName)} logo"
-                             onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
+                             crossorigin="anonymous"
+                             onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
                              loading="lazy">
                     </div>
                 `;
             }
 
             return `
-                <div class="team-card" data-team="${this.escapeHtml(teamName)}" onclick="window.router.showTeamDetails('${this.escapeHtml(teamName)}')">
+                <div class="team-card ${statusClass}" data-team="${this.escapeHtml(teamName)}" data-status="${status || ''}" data-zone="${zone || ''}" onclick="window.router.showTeamDetails('${this.escapeHtml(teamName)}')">
                     <div class="team-card-header">
+                        ${positionBadge}
                         ${logoHtml}
-                        <div class="team-name">${this.escapeHtml(teamName)}</div>
+                        <div class="team-name-container">
+                            <div class="team-name">${this.escapeHtml(teamName)}</div>
+                            ${statusBadge}
+                        </div>
                     </div>
                     <div style="display: flex; justify-content: center;">
                         <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.router.showTeamDetails('${this.escapeHtml(teamName)}')">
@@ -1391,13 +1566,161 @@ class Router {
             `;
         }).join('');
 
+        // Build season selector options
+        const seasonOptions = (this._availableSeasons || []).map(s => {
+            const selected = s === this._currentTeamsSeason ? 'selected' : '';
+            return `<option value="${this.escapeHtml(s)}" ${selected}>${this.escapeHtml(s)}</option>`;
+        }).join('');
+
+        const seasonSelector = this._availableSeasons && this._availableSeasons.length > 0 ? `
+            <select id="teamsSeasonSelect" title="Filter teams by season">
+                <option value="">All Seasons</option>
+                ${seasonOptions}
+            </select>
+        ` : '';
+
+        const seasonBadge = this._currentTeamsSeason ?
+            `<span class="season-badge">📅 ${this.escapeHtml(this._currentTeamsSeason)}</span>` : '';
+
+        // Build legend using helper function
+        const legend = this.buildTeamsLegend(teams, hasStatusInfo);
+
         return `
-            <div class="teams-search">
+            <div class="teams-filter-bar">
                 <input type="text" id="teamsSearchInput" placeholder="🔍 Search teams..." />
-                <span style="color: var(--text-muted); align-self: center;">${teams.length} teams</span>
+                ${seasonSelector}
+                <span class="teams-count">${teams.length} teams ${seasonBadge}</span>
             </div>
+            ${legend}
             <div class="teams-grid" id="teamsGrid">
                 ${teamCards}
+            </div>
+        `;
+    }
+
+    /**
+     * Get status display (class and badge) for a team based on their status
+     */
+    getTeamStatusDisplay(status, zone) {
+        const statusConfig = {
+            // Current season statuses
+            'promoted': {
+                class: 'team-card--promoted',
+                badge: '<span class="team-status-badge promoted" title="Newly promoted to the league">⬆️ Promoted</span>'
+            },
+            'relegation': {
+                class: 'team-card--relegation',
+                badge: '<span class="team-status-badge relegation" title="Currently in relegation zone">⬇️ Relegation Zone</span>'
+            },
+            'champions-league': {
+                class: 'team-card--champions-league',
+                badge: '<span class="team-status-badge champions-league" title="Champions League qualification position">🏆 UCL</span>'
+            },
+            'europa-league': {
+                class: 'team-card--europa-league',
+                badge: '<span class="team-status-badge europa-league" title="Europa League qualification position">🥈 UEL</span>'
+            },
+            'conference-league': {
+                class: 'team-card--conference-league',
+                badge: '<span class="team-status-badge conference-league" title="Conference League qualification position">🥉 UECL</span>'
+            },
+            // Previous season statuses (final)
+            'relegated': {
+                class: 'team-card--relegated',
+                badge: '<span class="team-status-badge relegated" title="Relegated at end of season">⬇️ Relegated</span>'
+            },
+            'qualified-ucl': {
+                class: 'team-card--qualified-ucl',
+                badge: '<span class="team-status-badge qualified-ucl" title="Qualified for Champions League">🏆 UCL Qualified</span>'
+            },
+            'qualified-uel': {
+                class: 'team-card--qualified-uel',
+                badge: '<span class="team-status-badge qualified-uel" title="Qualified for Europa League">🥈 UEL Qualified</span>'
+            },
+            'qualified-uecl': {
+                class: 'team-card--qualified-uecl',
+                badge: '<span class="team-status-badge qualified-uecl" title="Qualified for Conference League">🥉 UECL Qualified</span>'
+            },
+            'mid-table': {
+                class: '',
+                badge: ''
+            }
+        };
+
+        const config = statusConfig[status] || { class: '', badge: '' };
+        return { statusClass: config.class, statusBadge: config.badge };
+    }
+
+    /**
+     * Build legend HTML based on teams data
+     */
+    buildTeamsLegend(teams, hasStatusInfo) {
+        if (!hasStatusInfo) return '';
+
+        // Count teams by status
+        const statusCounts = {};
+        teams.forEach(t => {
+            if (typeof t === 'object' && t.status) {
+                statusCounts[t.status] = (statusCounts[t.status] || 0) + 1;
+            }
+        });
+
+        // Build legend items
+        let legendItems = '';
+
+        // Champions League
+        if (statusCounts['champions-league'] || statusCounts['qualified-ucl']) {
+            const count = statusCounts['champions-league'] || statusCounts['qualified-ucl'];
+            const label = statusCounts['qualified-ucl'] ? 'UCL Qualified' : 'Champions League';
+            legendItems += `<div class="teams-legend-item"><span class="legend-indicator champions"></span><span>🏆 ${label} (${count})</span></div>`;
+        }
+
+        // Europa League
+        if (statusCounts['europa-league'] || statusCounts['qualified-uel']) {
+            const count = statusCounts['europa-league'] || statusCounts['qualified-uel'];
+            const label = statusCounts['qualified-uel'] ? 'UEL Qualified' : 'Europa League';
+            legendItems += `<div class="teams-legend-item"><span class="legend-indicator europa"></span><span>🥈 ${label} (${count})</span></div>`;
+        }
+
+        // Conference League
+        if (statusCounts['conference-league'] || statusCounts['qualified-uecl']) {
+            const count = statusCounts['conference-league'] || statusCounts['qualified-uecl'];
+            const label = statusCounts['qualified-uecl'] ? 'UECL Qualified' : 'Conference League';
+            legendItems += `<div class="teams-legend-item"><span class="legend-indicator conference"></span><span>🥉 ${label} (${count})</span></div>`;
+        }
+
+        // Promoted
+        if (statusCounts['promoted']) {
+            legendItems += `<div class="teams-legend-item"><span class="legend-indicator promoted"></span><span>⬆️ Promoted (${statusCounts['promoted']})</span></div>`;
+        }
+
+        // Relegation / Relegated
+        if (statusCounts['relegation'] || statusCounts['relegated']) {
+            const count = statusCounts['relegation'] || statusCounts['relegated'];
+            const label = statusCounts['relegated'] ? 'Relegated' : 'Relegation Zone';
+            legendItems += `<div class="teams-legend-item"><span class="legend-indicator relegation"></span><span>⬇️ ${label} (${count})</span></div>`;
+        }
+
+        if (!legendItems) return '';
+
+        return `<div class="teams-legend">${legendItems}</div>`;
+    }
+
+    /**
+     * Build HTML for no teams found state
+     */
+    buildNoTeamsHTML(season) {
+        const seasonText = season ? ` for season ${season}` : '';
+        return `
+            <div class="card" style="max-width: 600px; margin: 2rem auto;">
+                <div class="card-body text-center" style="padding: 2rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🏟️</div>
+                    <h3 style="margin-bottom: 0.5rem;">No Teams Found${seasonText}</h3>
+                    <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                        ${season ? `There are no teams recorded for the ${season} season.` : 'No teams data available.'}
+                    </p>
+                    ${season ? `<button class="btn btn-outline" onclick="window.router._currentTeamsSeason = null; window.router.loadTeamsData();">Show All Teams</button>` : ''}
+                </div>
             </div>
         `;
     }
@@ -1418,6 +1741,21 @@ class Router {
                 const teamName = card.dataset.team?.toLowerCase() || '';
                 card.style.display = teamName.includes(query) ? '' : 'none';
             });
+        });
+    }
+
+    /**
+     * Initialize season selector event listener
+     */
+    initSeasonSelector() {
+        const seasonSelect = document.getElementById('teamsSeasonSelect');
+        if (!seasonSelect) return;
+
+        seasonSelect.addEventListener('change', (e) => {
+            const selectedSeason = e.target.value;
+            this._currentTeamsSeason = selectedSeason || null;
+            console.log('[Router] Season changed to:', selectedSeason || 'All');
+            this.loadTeamsData(selectedSeason || null);
         });
     }
 
@@ -2321,8 +2659,8 @@ class Router {
                     <h3>No Upcoming Fixtures</h3>
                     <p>No scheduled matches found for ${this.escapeHtml(teamName)}.</p>
                     <p class="empty-state-hint">
-                        This could mean the season has ended, or no fixtures are scheduled yet.
-                        Check back later or make a prediction manually.
+                        This team may not be in the Premier League, or the season has ended.
+                        You can still make manual predictions using the prediction page.
                     </p>
                     <div class="empty-state-actions">
                         <a href="#predictions" class="btn btn-primary btn-sm">
@@ -2337,18 +2675,21 @@ class Router {
         }
 
         const matches = analytics.upcomingMatches;
+        const hasSimulated = matches.some(m => m.simulated);
 
         const matchCards = matches.map(m => {
             const confClass = (m.confidence || 0) >= 0.6 ? 'high-conf' :
                              (m.confidence || 0) >= 0.4 ? 'med-conf' : 'low-conf';
             const predClass = m.predictedResult === 'WIN' ? 'pred-win' :
                              m.predictedResult === 'DRAW' ? 'pred-draw' : 'pred-loss';
+            const simulatedBadge = m.simulated ? '<span class="simulated-badge" title="Projected fixture based on historical data">📊 Projected</span>' : '';
 
             return `
-                <div class="upcoming-match-card">
+                <div class="upcoming-match-card ${m.simulated ? 'simulated' : ''}">
                     <div class="match-date">
                         <span class="date-day">${m.matchDate ? new Date(m.matchDate).toLocaleDateString('en-US', {weekday: 'short'}) : ''}</span>
                         <span class="date-full">${m.matchDate ? new Date(m.matchDate).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : 'TBD'}</span>
+                        ${simulatedBadge}
                     </div>
                     <div class="match-details">
                         <div class="match-opponent">
@@ -2376,10 +2717,18 @@ class Router {
             `;
         }).join('');
 
+        const simulatedNote = hasSimulated ? `
+            <div class="simulated-fixtures-note">
+                <span class="note-icon">ℹ️</span>
+                <span>Some fixtures are projected based on historical league patterns. Actual fixture dates may vary.</span>
+            </div>
+        ` : '';
+
         return `
             <div class="upcoming-matches-container">
                 <div class="stats-section">
                     <h3 class="stats-section-title">Upcoming Fixtures & Predictions</h3>
+                    ${simulatedNote}
                     <div class="upcoming-matches-grid">
                         ${matchCards}
                     </div>
@@ -3602,7 +3951,8 @@ class Router {
                 <div class="team-logo team-logo--sm">
                     <img src="${logoSrc}"
                          alt="${escapedName} logo"
-                         onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
+                         crossorigin="anonymous"
+                         onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
                          loading="lazy">
                 </div>
                 <span class="team-name" style="font-weight: 500;">${escapedName}</span>

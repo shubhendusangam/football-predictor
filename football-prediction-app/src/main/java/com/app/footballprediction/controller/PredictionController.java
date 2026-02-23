@@ -21,11 +21,13 @@ import com.app.common.model.MatchFeatures;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.TeamRepository;
 import com.app.common.util.PredictionUtils;
+import com.app.common.util.TeamNameNormalizer;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.scheduler.DataUpdateScheduler;
 import com.app.footballprediction.service.CacheStatisticsService;
 import com.app.footballprediction.service.CacheWarmingService;
 import com.app.footballprediction.service.CsvIngestionService;
+import com.app.footballprediction.service.EloPredictionService;
 import com.app.footballprediction.service.FootballDataApiService;
 import com.app.footballprediction.service.H2HInsightsService;
 import com.app.footballprediction.service.NewsService;
@@ -47,6 +49,7 @@ public class PredictionController {
    private final NewsService newsService;
    private final H2HInsightsService h2hInsightsService;
    private final TrendingInsightsService trendingInsightsService;
+   private final EloPredictionService eloPredictionService;
    private final CacheManager cacheManager;
    private final CacheStatisticsService cacheStatisticsService;
    private final CacheWarmingService cacheWarmingService;
@@ -93,12 +96,21 @@ public class PredictionController {
          ));
       }
 
+      // ── Normalize team names to match database format ─────────
+      String homeTeam = TeamNameNormalizer.normalize(request.getHomeTeam());
+      String awayTeam = TeamNameNormalizer.normalize(request.getAwayTeam());
+
+      if (!homeTeam.equals(request.getHomeTeam()) || !awayTeam.equals(request.getAwayTeam())) {
+         log.info("Normalized team names: '{}' -> '{}', '{}' -> '{}'",
+                  request.getHomeTeam(), homeTeam, request.getAwayTeam(), awayTeam);
+      }
+
       try {
          // ── Build features from DB history ─────────────────────
          MatchFeatures features = featureEngineeringService
                .buildFeaturesForPrediction(
-                     request.getHomeTeam(),
-                     request.getAwayTeam()
+                     homeTeam,
+                     awayTeam
                );
 
          log.debug("Features built → homeForm:{} awayForm:{} h2h:{}/{}/{}",
@@ -108,13 +120,31 @@ public class PredictionController {
                PredictionUtils.round(features.getH2hDrawRate()),
                PredictionUtils.round(features.getH2hAwayWinRate()));
 
-         // ── Run model ──────────────────────────────────────────
-         double[] probes = modelTrainingService.predict(features);
-         String label   = modelTrainingService.getPredictedLabel(probes);
+         // ── Run base model ─────────────────────────────────────
+         double[] baseProbs = modelTrainingService.predict(features);
+
+         // ── Get current season for Elo lookup ──────────────────
+         String currentSeason = trendingInsightsService.getCurrentSeason();
+
+         // ── Apply Elo adjustments ──────────────────────────────
+         EloPredictionService.EloPredictionResult eloResult = eloPredictionService
+               .calculateEloPrediction(homeTeam, awayTeam, currentSeason, baseProbs, features);
+
+         // Use Elo-adjusted probabilities
+         double[] probes = new double[] {
+               eloResult.getHomeWinProbability(),
+               eloResult.getDrawProbability(),
+               eloResult.getAwayWinProbability()
+         };
+         String label = modelTrainingService.getPredictedLabel(probes);
+
+         log.debug("Elo adjusted → Home Elo:{} Away Elo:{} Diff:{} Upset:{}",
+               eloResult.getHomeElo(), eloResult.getAwayElo(),
+               eloResult.getEloDifference(), eloResult.isUpsetAlert());
 
          // ── Get enhanced H2H insights ──────────────────────────
          H2HInsightsResponse h2hFull = h2hInsightsService.getH2HInsights(
-               request.getHomeTeam(), request.getAwayTeam());
+               homeTeam, awayTeam);
          PredictResponse.H2HSummary h2hSummary = buildH2HSummary(h2hFull);
 
          // ── Calculate Pre-Match Insights ───────────────────────
@@ -123,16 +153,23 @@ public class PredictionController {
          double awayGoalThreat = Math.min(100, Math.max(0,
                (features.getAwayGoalsScoredAvg() * 30) + (features.getHomeGoalsConcededAvg() * 20)));
 
-         // ── Build response ─────────────────────────────────────
+         // ── Build response with Elo data ───────────────────────
          PredictResponse response = PredictResponse.builder()
-               .homeTeam(request.getHomeTeam())
-               .awayTeam(request.getAwayTeam())
+               .homeTeam(homeTeam)
+               .awayTeam(awayTeam)
                .prediction(PredictionUtils.labelToText(label))
                .predictionCode(label)
                .probHomeWin(PredictionUtils.round(probes[0]))
                .probDraw(PredictionUtils.round(probes[1]))
                .probAwayWin(PredictionUtils.round(probes[2]))
                .confidence(PredictionUtils.getConfidence(probes))
+               // Elo Rating Fields
+               .homeElo(PredictionUtils.round(eloResult.getHomeElo()))
+               .awayElo(PredictionUtils.round(eloResult.getAwayElo()))
+               .eloDifference(PredictionUtils.round(eloResult.getEloDifference()))
+               .upsetAlert(eloResult.isUpsetAlert())
+               .upsetTeam(eloResult.getUpsetTeam())
+               .explanation(eloResult.getExplanation())
                .features(PredictResponse.FeatureSummary.builder()
                      .homeFormPoints(PredictionUtils.round(features.getHomeFormPoints()))
                      .awayFormPoints(PredictionUtils.round(features.getAwayFormPoints()))
@@ -156,13 +193,14 @@ public class PredictionController {
                .h2hInsights(h2hSummary)
                .build();
 
-         log.info("Predicted: {} vs {} → {} (H:{} D:{} A:{})",
-               request.getHomeTeam(),
-               request.getAwayTeam(),
+         log.info("Predicted: {} vs {} → {} (H:{} D:{} A:{}) Elo diff:{}",
+               homeTeam,
+               awayTeam,
                response.getPrediction(),
                PredictionUtils.round(probes[0]),
                PredictionUtils.round(probes[1]),
-               PredictionUtils.round(probes[2]));
+               PredictionUtils.round(probes[2]),
+               eloResult.getEloDifference());
 
          return ResponseEntity.ok(response);
 
@@ -174,8 +212,8 @@ public class PredictionController {
          ));
       } catch (Exception e) {
          log.error("Prediction failed for {} vs {}: {}",
-               request.getHomeTeam(),
-               request.getAwayTeam(),
+               homeTeam,
+               awayTeam,
                e.getMessage());
          return ResponseEntity.internalServerError().body(Map.of(
                "error", e.getMessage()

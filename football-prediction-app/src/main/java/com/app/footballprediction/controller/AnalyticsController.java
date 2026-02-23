@@ -218,9 +218,10 @@ public class AnalyticsController {
             PreMatchInsightsResponse preMatch = preMatchInsightsService.getPreMatchInsights(homeTeam, awayTeam);
             H2HInsightsResponse h2h = h2hInsightsService.getH2HInsights(homeTeam, awayTeam);
 
+            // Use normalized team names from preMatch response for consistency
             return ResponseEntity.ok(Map.of(
-                    "homeTeam", homeTeam,
-                    "awayTeam", awayTeam,
+                    "homeTeam", preMatch.getHomeTeam(),
+                    "awayTeam", preMatch.getAwayTeam(),
                     "preMatchInsights", preMatch,
                     "h2hInsights", h2h
             ));

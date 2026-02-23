@@ -649,6 +649,296 @@
 }
 
 /* ==========================================
+   ELO RATING SECTION
+   ========================================== */
+
+.elo-section {
+    margin-top: 1.5rem;
+    padding: 1.25rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+}
+
+.elo-section.hidden {
+    display: none;
+}
+
+.elo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.elo-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.elo-values {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.elo-team {
+    text-align: center;
+}
+
+.elo-team-name {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.elo-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.elo-diff-container {
+    text-align: center;
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 0.5rem;
+}
+
+.elo-diff-label {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.elo-diff-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.elo-diff-value.positive {
+    color: var(--accent-green);
+}
+
+.elo-diff-value.negative {
+    color: var(--accent-red, #ef4444);
+}
+
+.elo-diff-value.neutral {
+    color: var(--text-secondary);
+}
+
+/* Elo Strength Bar */
+.elo-strength-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 32px;
+}
+
+.strength-bar-container {
+    flex: 1;
+    height: 8px;
+    background-color: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+}
+
+.strength-bar-home {
+    transform: scaleX(-1);
+}
+
+.strength-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease-out;
+    width: 0;
+}
+
+.strength-bar-home .strength-bar {
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-green-light, #4ade80));
+}
+
+.strength-bar-away .strength-bar {
+    background: linear-gradient(90deg, var(--accent-blue, #3b82f6), var(--accent-blue-light, #60a5fa));
+}
+
+.strength-divider {
+    width: 2px;
+    height: 20px;
+    background-color: var(--border-color);
+}
+
+/* ==========================================
+   UPSET ALERT BADGE
+   ========================================== */
+
+.upset-alert-badge {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    margin-top: 1rem;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(239, 68, 68, 0.05));
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 0.5rem;
+    color: #ef4444;
+    font-weight: 600;
+    font-size: 0.9375rem;
+    animation: pulse-alert 2s ease-in-out infinite;
+}
+
+.upset-alert-badge.show {
+    display: flex;
+}
+
+.upset-alert-badge.hidden {
+    display: none;
+}
+
+.upset-icon {
+    font-size: 1.25rem;
+}
+
+@keyframes pulse-alert {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.9;
+        transform: scale(1.01);
+    }
+}
+
+/* ==========================================
+   EXPLAINABILITY SECTION
+   ========================================== */
+
+.explain-section {
+    margin-top: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+
+.explain-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    background-color: var(--bg-tertiary);
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.explain-toggle:hover {
+    background-color: var(--bg-secondary);
+}
+
+.explain-toggle-text {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.expand-icon {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+.expand-icon.rotated {
+    transform: rotate(180deg);
+}
+
+.explain-content {
+    padding: 1.25rem;
+    background-color: var(--bg-secondary);
+    border-top: 1px solid var(--border-color);
+}
+
+.explain-content.hidden {
+    display: none;
+}
+
+.explain-factors {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.explain-factor {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    border-left: 3px solid var(--border-color);
+}
+
+.explain-factor.positive {
+    border-left-color: var(--accent-green);
+}
+
+.explain-factor.negative {
+    border-left-color: var(--accent-red, #ef4444);
+}
+
+.factor-icon {
+    font-size: 1.125rem;
+}
+
+.factor-label {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.factor-value {
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.explain-factor.positive .factor-value {
+    color: var(--accent-green);
+}
+
+.explain-factor.negative .factor-value {
+    color: var(--accent-red, #ef4444);
+}
+
+.explain-summary {
+    margin-top: 1rem;
+    padding: 0.875rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    border-left: 3px solid var(--accent-blue, #3b82f6);
+}
+
+.explain-empty {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem;
+}
+
+/* ==========================================
    RESPONSIVE DESIGN
    ========================================== */
 
@@ -721,6 +1011,30 @@
     .error-card {
         padding: 2rem;
     }
+
+    /* Elo section responsive */
+    .elo-values {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .elo-strength-bar {
+        flex-direction: column;
+        height: auto;
+        gap: 0.25rem;
+    }
+
+    .strength-bar-container {
+        width: 100%;
+    }
+
+    .strength-bar-home {
+        transform: none;
+    }
+
+    .strength-divider {
+        display: none;
+    }
 }
 
 @media (max-width: 480px) {
@@ -747,6 +1061,25 @@
         flex-direction: column;
         align-items: center;
         gap: 0.5rem;
+    }
+
+    .explain-factor {
+        flex-wrap: wrap;
+    }
+
+    .factor-label {
+        flex-basis: 100%;
+        order: 2;
+        margin-top: 0.25rem;
+    }
+
+    .factor-icon {
+        order: 1;
+    }
+
+    .factor-value {
+        order: 1;
+        margin-left: auto;
     }
 }
 

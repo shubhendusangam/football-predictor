@@ -1,0 +1,77 @@
+{
+  "homeTeam": "Arsenal",
+  "awayTeam": "Southampton",
+  "prediction": "Home Win",
+  "predictionCode": "H",
+  "probHomeWin": 0.52,
+  "probDraw": 0.25,
+  "probAwayWin": 0.23,
+  "confidence": "HIGH",
+  "homeElo": 1650.0,
+  "awayElo": 1480.0,
+  "eloDifference": 170.0,
+  "upsetAlert": false,
+  "upsetTeam": null,
+  "explanation": {
+    "eloImpact": "+8%",
+    "formImpact": "+3%",
+    "goalTrendImpact": "-2%",
+    "homeAdvantageImpact": "+3%",
+    "h2hImpact": null,
+    "summary": "Arsenal has a significant Elo advantage (170 points). Arsenal is in better recent form."
+  },
+  "features": {
+    "homeFormPoints": 0.85,
+    "awayFormPoints": 0.45,
+    "homeGoalsScoredAvg": 2.1,
+    "awayGoalsScoredAvg": 1.2,
+    "h2hHomeWinRate": 0.55,
+    "h2hDrawRate": 0.25,
+    "h2hAwayWinRate": 0.20,
+    "homeGoalsConcededAvg": 0.8,
+    "awayGoalsConcededAvg": 1.6,
+    "homeWinStreak": 4,
+    "awayWinStreak": 0,
+    "homeUnbeatenStreak": 7,
+    "awayUnbeatenStreak": 2,
+    "homeDaysSinceLastMatch": 4,
+    "awayDaysSinceLastMatch": 3,
+    "homeGoalThreat": 75.0,
+    "awayGoalThreat": 42.0
+  },
+  "h2hInsights": {
+    "historicalRecord": "Arsenal leads 12-5-3 vs Southampton",
+    "totalMeetings": 20,
+    "homeTeamWins": 12,
+    "draws": 5,
+    "awayTeamWins": 3,
+    "dominantTeam": "HOME",
+    "recentMeetings": [
+      {
+        "date": "2025-10-15",
+        "homeTeamInMatch": "Arsenal",
+        "awayTeamInMatch": "Southampton",
+        "score": "3-1",
+        "winner": "Arsenal",
+        "season": "2025-26"
+      },
+      {
+        "date": "2025-04-22",
+        "homeTeamInMatch": "Southampton",
+        "awayTeamInMatch": "Arsenal",
+        "score": "0-2",
+        "winner": "Arsenal",
+        "season": "2024-25"
+      }
+    ],
+    "avgGoalsPerMatch": 3.2,
+    "avgHomeTeamGoals": 2.1,
+    "avgAwayTeamGoals": 1.1,
+    "mostCommonScore": "2-1",
+    "mostCommonOutcome": "HOME_WIN",
+    "homeTeamHomeWinPct": 70.0,
+    "awayTeamHomeWinPct": 40.0,
+    "venueAdvantageNote": "Arsenal has a strong home record against Southampton"
+  }
+}
+

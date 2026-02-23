@@ -26,6 +26,14 @@ public class PredictResponse {
    // Enhanced H2H Insights
    private H2HSummary h2hInsights;
 
+   // Elo Rating Fields
+   private Double homeElo;
+   private Double awayElo;
+   private Double eloDifference;
+   private Boolean upsetAlert;
+   private String upsetTeam;
+   private PredictionExplanation explanation;
+
    @Data
    @Builder
    public static class FeatureSummary {

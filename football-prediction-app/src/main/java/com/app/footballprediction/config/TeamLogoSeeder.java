@@ -1,21 +1,30 @@
 package com.app.footballprediction.config;
 
 import com.app.common.model.Team;
+import com.app.common.model.SystemSettings;
 import com.app.common.repository.TeamRepository;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SystemSettingsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 
 /**
  * Seeds the database with EPL team logos from official online sources.
  * Uses football-data.org API crest URLs which are CORS-friendly.
+ *
+ * OPTIMIZATION: Only seeds logos once per season, not on every startup.
+ * Logos are stored in the database and cached for efficient retrieval.
+ *
  * Runs on application startup AFTER data ingestion to ensure teams exist.
  */
 @Component
@@ -26,160 +35,162 @@ public class TeamLogoSeeder implements ApplicationRunner {
 
     private final TeamRepository teamRepository;
     private final MatchRepository matchRepository;
+    private final SystemSettingsRepository systemSettingsRepository;
 
     // Default fallback logo - a generic football icon from a CDN
     private static final String DEFAULT_LOGO_URL = "https://cdn-icons-png.flaticon.com/512/861/861512.png";
 
     // EPL team configurations with official online logo URLs
-    // Using Premier League resources CDN (reliable and publicly accessible)
-    private static final String PL_LOGO_BASE = "https://resources.premierleague.com/premierleague/badges/50/";
+    // Using API-Football media CDN (CORS-friendly and publicly accessible)
+    // Alternative: football-data.org crests which also support CORS
+    private static final String LOGO_BASE = "https://media.api-sports.io/football/teams/";
     private static final Map<String, TeamLogoConfig> EPL_TEAMS = new LinkedHashMap<>();
 
     static {
         // Current Premier League teams (2025-26 season)
-        // Logo URLs from Premier League official resources
+        // Logo URLs from API-Football media CDN (CORS enabled)
         EPL_TEAMS.put("Arsenal", new TeamLogoConfig("ARS", "#EF0107",
-                PL_LOGO_BASE + "t3.png"));
+                LOGO_BASE + "42.png"));
         EPL_TEAMS.put("Aston Villa", new TeamLogoConfig("AVL", "#670E36",
-                PL_LOGO_BASE + "t7.png"));
+                LOGO_BASE + "66.png"));
         EPL_TEAMS.put("Bournemouth", new TeamLogoConfig("BOU", "#DA291C",
-                PL_LOGO_BASE + "t91.png"));
+                LOGO_BASE + "35.png"));
         EPL_TEAMS.put("Brentford", new TeamLogoConfig("BRE", "#E30613",
-                PL_LOGO_BASE + "t94.png"));
+                LOGO_BASE + "55.png"));
         EPL_TEAMS.put("Brighton", new TeamLogoConfig("BHA", "#0057B8",
-                PL_LOGO_BASE + "t36.png"));
+                LOGO_BASE + "51.png"));
         EPL_TEAMS.put("Chelsea", new TeamLogoConfig("CHE", "#034694",
-                PL_LOGO_BASE + "t8.png"));
+                LOGO_BASE + "49.png"));
         EPL_TEAMS.put("Crystal Palace", new TeamLogoConfig("CRY", "#1B458F",
-                PL_LOGO_BASE + "t31.png"));
+                LOGO_BASE + "52.png"));
         EPL_TEAMS.put("Everton", new TeamLogoConfig("EVE", "#003399",
-                PL_LOGO_BASE + "t11.png"));
+                LOGO_BASE + "45.png"));
         EPL_TEAMS.put("Fulham", new TeamLogoConfig("FUL", "#000000",
-                PL_LOGO_BASE + "t54.png"));
+                LOGO_BASE + "36.png"));
         EPL_TEAMS.put("Ipswich", new TeamLogoConfig("IPS", "#0044AA",
-                PL_LOGO_BASE + "t40.png"));
+                LOGO_BASE + "57.png"));
         EPL_TEAMS.put("Ipswich Town", new TeamLogoConfig("IPS", "#0044AA",
-                PL_LOGO_BASE + "t40.png"));
+                LOGO_BASE + "57.png"));
         EPL_TEAMS.put("Leicester", new TeamLogoConfig("LEI", "#003090",
-                PL_LOGO_BASE + "t13.png"));
+                LOGO_BASE + "46.png"));
         EPL_TEAMS.put("Leicester City", new TeamLogoConfig("LEI", "#003090",
-                PL_LOGO_BASE + "t13.png"));
+                LOGO_BASE + "46.png"));
         EPL_TEAMS.put("Liverpool", new TeamLogoConfig("LIV", "#C8102E",
-                PL_LOGO_BASE + "t14.png"));
+                LOGO_BASE + "40.png"));
         EPL_TEAMS.put("Man City", new TeamLogoConfig("MCI", "#6CABDD",
-                PL_LOGO_BASE + "t43.png"));
+                LOGO_BASE + "50.png"));
         EPL_TEAMS.put("Manchester City", new TeamLogoConfig("MCI", "#6CABDD",
-                PL_LOGO_BASE + "t43.png"));
+                LOGO_BASE + "50.png"));
         EPL_TEAMS.put("Man United", new TeamLogoConfig("MUN", "#DA291C",
-                PL_LOGO_BASE + "t1.png"));
+                LOGO_BASE + "33.png"));
         EPL_TEAMS.put("Manchester United", new TeamLogoConfig("MUN", "#DA291C",
-                PL_LOGO_BASE + "t1.png"));
+                LOGO_BASE + "33.png"));
         EPL_TEAMS.put("Newcastle", new TeamLogoConfig("NEW", "#241F20",
-                PL_LOGO_BASE + "t4.png"));
+                LOGO_BASE + "34.png"));
         EPL_TEAMS.put("Newcastle United", new TeamLogoConfig("NEW", "#241F20",
-                PL_LOGO_BASE + "t4.png"));
+                LOGO_BASE + "34.png"));
         EPL_TEAMS.put("Nott'm Forest", new TeamLogoConfig("NFO", "#DD0000",
-                PL_LOGO_BASE + "t17.png"));
+                LOGO_BASE + "65.png"));
         EPL_TEAMS.put("Nottingham Forest", new TeamLogoConfig("NFO", "#DD0000",
-                PL_LOGO_BASE + "t17.png"));
+                LOGO_BASE + "65.png"));
         EPL_TEAMS.put("Southampton", new TeamLogoConfig("SOU", "#D71920",
-                PL_LOGO_BASE + "t20.png"));
+                LOGO_BASE + "41.png"));
         EPL_TEAMS.put("Tottenham", new TeamLogoConfig("TOT", "#132257",
-                PL_LOGO_BASE + "t6.png"));
+                LOGO_BASE + "47.png"));
         EPL_TEAMS.put("Spurs", new TeamLogoConfig("TOT", "#132257",
-                PL_LOGO_BASE + "t6.png"));
+                LOGO_BASE + "47.png"));
         EPL_TEAMS.put("West Ham", new TeamLogoConfig("WHU", "#7A263A",
-                PL_LOGO_BASE + "t21.png"));
+                LOGO_BASE + "48.png"));
         EPL_TEAMS.put("West Ham United", new TeamLogoConfig("WHU", "#7A263A",
-                PL_LOGO_BASE + "t21.png"));
+                LOGO_BASE + "48.png"));
         EPL_TEAMS.put("Wolves", new TeamLogoConfig("WOL", "#FDB913",
-                PL_LOGO_BASE + "t39.png"));
+                LOGO_BASE + "39.png"));
         EPL_TEAMS.put("Wolverhampton", new TeamLogoConfig("WOL", "#FDB913",
-                PL_LOGO_BASE + "t39.png"));
+                LOGO_BASE + "39.png"));
 
         // Recently relegated/promoted teams
         EPL_TEAMS.put("Burnley", new TeamLogoConfig("BUR", "#6C1D45",
-                PL_LOGO_BASE + "t90.png"));
+                LOGO_BASE + "44.png"));
         EPL_TEAMS.put("Luton", new TeamLogoConfig("LUT", "#F78F1E",
-                PL_LOGO_BASE + "t163.png"));
+                LOGO_BASE + "1359.png"));
         EPL_TEAMS.put("Luton Town", new TeamLogoConfig("LUT", "#F78F1E",
-                PL_LOGO_BASE + "t163.png"));
+                LOGO_BASE + "1359.png"));
         EPL_TEAMS.put("Sheffield United", new TeamLogoConfig("SHU", "#EE2737",
-                PL_LOGO_BASE + "t49.png"));
+                LOGO_BASE + "62.png"));
         EPL_TEAMS.put("Sheffield Utd", new TeamLogoConfig("SHU", "#EE2737",
-                PL_LOGO_BASE + "t49.png"));
+                LOGO_BASE + "62.png"));
         EPL_TEAMS.put("Leeds", new TeamLogoConfig("LEE", "#FFCD00",
-                PL_LOGO_BASE + "t2.png"));
+                LOGO_BASE + "63.png"));
         EPL_TEAMS.put("Leeds United", new TeamLogoConfig("LEE", "#FFCD00",
-                PL_LOGO_BASE + "t2.png"));
+                LOGO_BASE + "63.png"));
 
-        // Historic EPL teams - use default logo for non-PL teams
+        // Historic EPL teams
         EPL_TEAMS.put("Watford", new TeamLogoConfig("WAT", "#FBEE23",
-                PL_LOGO_BASE + "t57.png"));
+                LOGO_BASE + "38.png"));
         EPL_TEAMS.put("Norwich", new TeamLogoConfig("NOR", "#00A650",
-                PL_LOGO_BASE + "t45.png"));
+                LOGO_BASE + "71.png"));
         EPL_TEAMS.put("Norwich City", new TeamLogoConfig("NOR", "#00A650",
-                PL_LOGO_BASE + "t45.png"));
+                LOGO_BASE + "71.png"));
         EPL_TEAMS.put("West Brom", new TeamLogoConfig("WBA", "#122F67",
-                PL_LOGO_BASE + "t35.png"));
+                LOGO_BASE + "60.png"));
         EPL_TEAMS.put("West Bromwich", new TeamLogoConfig("WBA", "#122F67",
-                PL_LOGO_BASE + "t35.png"));
+                LOGO_BASE + "60.png"));
         EPL_TEAMS.put("Stoke", new TeamLogoConfig("STK", "#E03A3E",
-                PL_LOGO_BASE + "t110.png"));
+                LOGO_BASE + "75.png"));
         EPL_TEAMS.put("Stoke City", new TeamLogoConfig("STK", "#E03A3E",
-                PL_LOGO_BASE + "t110.png"));
+                LOGO_BASE + "75.png"));
         EPL_TEAMS.put("Swansea", new TeamLogoConfig("SWA", "#000000",
-                PL_LOGO_BASE + "t80.png"));
+                LOGO_BASE + "72.png"));
         EPL_TEAMS.put("Swansea City", new TeamLogoConfig("SWA", "#000000",
-                PL_LOGO_BASE + "t80.png"));
+                LOGO_BASE + "72.png"));
         EPL_TEAMS.put("Sunderland", new TeamLogoConfig("SUN", "#FF0000",
-                PL_LOGO_BASE + "t56.png"));
+                LOGO_BASE + "74.png"));
         EPL_TEAMS.put("Hull", new TeamLogoConfig("HUL", "#F5A12D",
-                PL_LOGO_BASE + "t88.png"));
+                LOGO_BASE + "64.png"));
         EPL_TEAMS.put("Hull City", new TeamLogoConfig("HUL", "#F5A12D",
-                PL_LOGO_BASE + "t88.png"));
+                LOGO_BASE + "64.png"));
         EPL_TEAMS.put("Middlesbrough", new TeamLogoConfig("MID", "#E21E26",
-                PL_LOGO_BASE + "t25.png"));
+                LOGO_BASE + "59.png"));
         EPL_TEAMS.put("Cardiff", new TeamLogoConfig("CAR", "#0070B5",
-                PL_LOGO_BASE + "t97.png"));
+                LOGO_BASE + "43.png"));
         EPL_TEAMS.put("Cardiff City", new TeamLogoConfig("CAR", "#0070B5",
-                PL_LOGO_BASE + "t97.png"));
+                LOGO_BASE + "43.png"));
         EPL_TEAMS.put("QPR", new TeamLogoConfig("QPR", "#1D5BA4",
-                PL_LOGO_BASE + "t69.png"));
+                LOGO_BASE + "69.png"));
         EPL_TEAMS.put("Blackburn", new TeamLogoConfig("BLB", "#009EE0",
-                PL_LOGO_BASE + "t5.png"));
+                LOGO_BASE + "56.png"));
         EPL_TEAMS.put("Blackburn Rovers", new TeamLogoConfig("BLB", "#009EE0",
-                PL_LOGO_BASE + "t5.png"));
+                LOGO_BASE + "56.png"));
         EPL_TEAMS.put("Bolton", new TeamLogoConfig("BOL", "#263C7F",
-                PL_LOGO_BASE + "t30.png"));
+                LOGO_BASE + "58.png"));
         EPL_TEAMS.put("Bolton Wanderers", new TeamLogoConfig("BOL", "#263C7F",
-                PL_LOGO_BASE + "t30.png"));
+                LOGO_BASE + "58.png"));
         EPL_TEAMS.put("Wigan", new TeamLogoConfig("WIG", "#1D428A",
-                PL_LOGO_BASE + "t44.png"));
+                LOGO_BASE + "68.png"));
         EPL_TEAMS.put("Wigan Athletic", new TeamLogoConfig("WIG", "#1D428A",
-                PL_LOGO_BASE + "t44.png"));
+                LOGO_BASE + "68.png"));
         EPL_TEAMS.put("Reading", new TeamLogoConfig("REA", "#004494",
-                PL_LOGO_BASE + "t68.png"));
+                LOGO_BASE + "53.png"));
         EPL_TEAMS.put("Birmingham", new TeamLogoConfig("BIR", "#0000FF",
-                PL_LOGO_BASE + "t10.png"));
+                LOGO_BASE + "54.png"));
         EPL_TEAMS.put("Birmingham City", new TeamLogoConfig("BIR", "#0000FF",
-                PL_LOGO_BASE + "t10.png"));
+                LOGO_BASE + "54.png"));
         EPL_TEAMS.put("Portsmouth", new TeamLogoConfig("POR", "#001489",
-                PL_LOGO_BASE + "t15.png"));
+                LOGO_BASE + "73.png"));
         EPL_TEAMS.put("Charlton", new TeamLogoConfig("CHA", "#D4021D",
-                PL_LOGO_BASE + "t9.png"));
+                LOGO_BASE + "70.png"));
         EPL_TEAMS.put("Charlton Athletic", new TeamLogoConfig("CHA", "#D4021D",
-                PL_LOGO_BASE + "t9.png"));
+                LOGO_BASE + "70.png"));
         EPL_TEAMS.put("Derby", new TeamLogoConfig("DER", "#000000",
-                PL_LOGO_BASE + "t26.png"));
+                LOGO_BASE + "61.png"));
         EPL_TEAMS.put("Derby County", new TeamLogoConfig("DER", "#000000",
-                PL_LOGO_BASE + "t26.png"));
+                LOGO_BASE + "61.png"));
         EPL_TEAMS.put("Coventry", new TeamLogoConfig("COV", "#87CEEB",
-                PL_LOGO_BASE + "t46.png"));
+                LOGO_BASE + "1415.png"));
         EPL_TEAMS.put("Coventry City", new TeamLogoConfig("COV", "#87CEEB",
-                PL_LOGO_BASE + "t46.png"));
+                LOGO_BASE + "1415.png"));
         EPL_TEAMS.put("Blackpool", new TeamLogoConfig("BPL", "#F68712",
-                PL_LOGO_BASE + "t92.png"));
+                LOGO_BASE + "38.png"));
         EPL_TEAMS.put("Bradford", new TeamLogoConfig("BRA", "#7B1E1E",
                 DEFAULT_LOGO_URL));
         EPL_TEAMS.put("Bradford City", new TeamLogoConfig("BRA", "#7B1E1E",
@@ -189,13 +200,13 @@ public class TeamLogoSeeder implements ApplicationRunner {
         EPL_TEAMS.put("Oldham Athletic", new TeamLogoConfig("OLD", "#003399",
                 DEFAULT_LOGO_URL));
         EPL_TEAMS.put("Sheffield Wednesday", new TeamLogoConfig("SHW", "#0000FF",
-                PL_LOGO_BASE + "t48.png"));
+                LOGO_BASE + "67.png"));
         EPL_TEAMS.put("Sheffield Weds", new TeamLogoConfig("SHW", "#0000FF",
-                PL_LOGO_BASE + "t48.png"));
+                LOGO_BASE + "67.png"));
         EPL_TEAMS.put("Wimbledon", new TeamLogoConfig("WIM", "#00008B",
                 DEFAULT_LOGO_URL));
         EPL_TEAMS.put("Barnsley", new TeamLogoConfig("BAR", "#FF0000",
-                PL_LOGO_BASE + "t112.png"));
+                LOGO_BASE + "77.png"));
         EPL_TEAMS.put("Swindon", new TeamLogoConfig("SWI", "#FF0000",
                 DEFAULT_LOGO_URL));
         EPL_TEAMS.put("Swindon Town", new TeamLogoConfig("SWI", "#FF0000",
@@ -206,8 +217,60 @@ public class TeamLogoSeeder implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) {
-        log.info("🎨 Starting team logo seeding with online URLs...");
+        String currentSeason = getCurrentSeason();
 
+        // Check if logos have already been seeded for this season
+        if (isLogoSeedingRequired(currentSeason)) {
+            log.info("🎨 Starting team logo seeding for season {}...", currentSeason);
+            performLogoSeeding(currentSeason);
+        } else {
+            log.info("✓ Team logos already seeded for season {}. Skipping startup seeding.", currentSeason);
+        }
+    }
+
+    /**
+     * Determine if logo seeding is required for the current season.
+     * Returns true if:
+     * - No previous seeding record exists
+     * - Previous seeding was for a different season
+     * - There are teams without logos
+     */
+    private boolean isLogoSeedingRequired(String currentSeason) {
+        Optional<SystemSettings> settingsOpt = systemSettingsRepository.findById(1L);
+
+        if (settingsOpt.isEmpty()) {
+            log.debug("No system settings found - logo seeding required");
+            return true;
+        }
+
+        SystemSettings settings = settingsOpt.get();
+        String lastSeededSeason = settings.getLogoSeedingSeason();
+
+        if (lastSeededSeason == null || !lastSeededSeason.equals(currentSeason)) {
+            log.debug("Logo seeding required: last seeded season={}, current={}", lastSeededSeason, currentSeason);
+            return true;
+        }
+
+        // Check if there are teams without logos (new teams added)
+        long teamsWithoutLogos = teamRepository.findAll().stream()
+                .filter(t -> t.getLogoUrl() == null || t.getLogoUrl().isEmpty()
+                        || t.getLogoSeededSeason() == null
+                        || !t.getLogoSeededSeason().equals(currentSeason))
+                .count();
+
+        if (teamsWithoutLogos > 0) {
+            log.debug("Found {} teams without logos for current season", teamsWithoutLogos);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Perform the actual logo seeding operation.
+     */
+    @CacheEvict(value = CacheConfig.CACHE_TEAM_LOGOS, allEntries = true)
+    private void performLogoSeeding(String currentSeason) {
         // Get all unique team names from matches
         Set<String> allTeamNames = new HashSet<>();
         matchRepository.findAll().forEach(match -> {
@@ -222,29 +285,41 @@ public class TeamLogoSeeder implements ApplicationRunner {
 
         int created = 0;
         int updated = 0;
+        int skipped = 0;
+        LocalDateTime now = LocalDateTime.now();
 
         for (String teamName : allTeamNames) {
             Optional<Team> existingTeamOpt = teamRepository.findByName(teamName);
             TeamLogoConfig config = EPL_TEAMS.get(teamName);
 
             if (config != null) {
-                // Team has known logo config - always update to ensure latest
                 Team team = existingTeamOpt.orElse(Team.builder().name(teamName).build());
-                team.setLogoUrl(config.logoUrl);
-                team.setShortName(config.shortName);
-                team.setPrimaryColor(config.primaryColor);
-                teamRepository.save(team);
 
-                if (existingTeamOpt.isPresent()) {
-                    updated++;
+                // Only update if logo has changed or not set for current season
+                if (!currentSeason.equals(team.getLogoSeededSeason())
+                        || !config.logoUrl.equals(team.getLogoUrl())) {
+                    team.setLogoUrl(config.logoUrl);
+                    team.setShortName(config.shortName);
+                    team.setPrimaryColor(config.primaryColor);
+                    team.setLogoLastUpdated(now);
+                    team.setLogoSeededSeason(currentSeason);
+                    teamRepository.save(team);
+
+                    if (existingTeamOpt.isPresent()) {
+                        updated++;
+                    } else {
+                        created++;
+                    }
                 } else {
-                    created++;
+                    skipped++;
                 }
             } else if (existingTeamOpt.isEmpty()) {
                 // Unknown team - create with default logo
                 Team team = Team.builder()
                         .name(teamName)
                         .logoUrl(DEFAULT_LOGO_URL)
+                        .logoLastUpdated(now)
+                        .logoSeededSeason(currentSeason)
                         .build();
                 teamRepository.save(team);
                 created++;
@@ -253,25 +328,77 @@ public class TeamLogoSeeder implements ApplicationRunner {
                 Team team = existingTeamOpt.get();
                 if (team.getLogoUrl() == null ||
                     team.getLogoUrl().isEmpty() ||
-                    team.getLogoUrl().startsWith("/images/")) {
+                    team.getLogoUrl().startsWith("/images/") ||
+                    !currentSeason.equals(team.getLogoSeededSeason())) {
                     team.setLogoUrl(DEFAULT_LOGO_URL);
+                    team.setLogoLastUpdated(now);
+                    team.setLogoSeededSeason(currentSeason);
                     teamRepository.save(team);
                     updated++;
+                } else {
+                    skipped++;
                 }
             }
         }
 
-        log.info("   ✓ Team logo seeding complete. Created: {}, Updated: {}, Total teams: {}",
-                created, updated, teamRepository.count());
+        // Update system settings with seeding info
+        updateSystemSettings(currentSeason, now);
+
+        log.info("   ✓ Team logo seeding complete. Created: {}, Updated: {}, Skipped: {}, Total teams: {}",
+                created, updated, skipped, teamRepository.count());
+    }
+
+    /**
+     * Update system settings to record logo seeding completion.
+     */
+    private void updateSystemSettings(String season, LocalDateTime timestamp) {
+        SystemSettings settings = systemSettingsRepository.findById(1L)
+                .orElse(SystemSettings.builder().build());
+        settings.setLogoSeedingSeason(season);
+        settings.setLogoSeedingTimestamp(timestamp);
+        systemSettingsRepository.save(settings);
+    }
+
+    /**
+     * Get the current football season string (e.g., "2025-26").
+     * Season runs from August to May, so:
+     * - Jan-Jul: previous year to current year (e.g., 2025-26 in Jan 2026)
+     * - Aug-Dec: current year to next year (e.g., 2025-26 in Sep 2025)
+     */
+    private String getCurrentSeason() {
+        LocalDate today = LocalDate.now();
+        int year = today.getYear();
+        int month = today.getMonthValue();
+
+        if (month >= 8) {
+            // Aug-Dec: season is currentYear-nextYear
+            return year + "-" + String.format("%02d", (year + 1) % 100);
+        } else {
+            // Jan-Jul: season is previousYear-currentYear
+            return (year - 1) + "-" + String.format("%02d", year % 100);
+        }
     }
 
     /**
      * Manually trigger logo seeding (for API endpoint use).
+     * Forces refresh regardless of current season status.
+     * @param forceRefresh if true, refresh all logos regardless of season
      * @return Map with seeding statistics
      */
     @Transactional
-    public Map<String, Object> seedLogos() {
-        log.info("Manual team logo seeding triggered...");
+    @CacheEvict(value = CacheConfig.CACHE_TEAM_LOGOS, allEntries = true)
+    public Map<String, Object> seedLogos(boolean forceRefresh) {
+        log.info("Manual team logo seeding triggered (forceRefresh={})...", forceRefresh);
+        String currentSeason = getCurrentSeason();
+
+        if (!forceRefresh && !isLogoSeedingRequired(currentSeason)) {
+            return Map.of(
+                    "success", true,
+                    "message", "Logos already seeded for season " + currentSeason,
+                    "skipped", true,
+                    "season", currentSeason
+            );
+        }
 
         Set<String> allTeamNames = new HashSet<>();
         matchRepository.findAll().forEach(match -> {
@@ -285,6 +412,8 @@ public class TeamLogoSeeder implements ApplicationRunner {
 
         int created = 0;
         int updated = 0;
+        int skipped = 0;
+        LocalDateTime now = LocalDateTime.now();
 
         for (String teamName : allTeamNames) {
             Optional<Team> existingTeamOpt = teamRepository.findByName(teamName);
@@ -292,44 +421,109 @@ public class TeamLogoSeeder implements ApplicationRunner {
 
             if (config != null) {
                 Team team = existingTeamOpt.orElse(Team.builder().name(teamName).build());
-                team.setLogoUrl(config.logoUrl);
-                team.setShortName(config.shortName);
-                team.setPrimaryColor(config.primaryColor);
-                teamRepository.save(team);
 
-                if (existingTeamOpt.isPresent()) {
-                    updated++;
+                // Force refresh or check if update needed
+                if (forceRefresh || !currentSeason.equals(team.getLogoSeededSeason())
+                        || !config.logoUrl.equals(team.getLogoUrl())) {
+                    team.setLogoUrl(config.logoUrl);
+                    team.setShortName(config.shortName);
+                    team.setPrimaryColor(config.primaryColor);
+                    team.setLogoLastUpdated(now);
+                    team.setLogoSeededSeason(currentSeason);
+                    teamRepository.save(team);
+
+                    if (existingTeamOpt.isPresent()) {
+                        updated++;
+                    } else {
+                        created++;
+                    }
                 } else {
-                    created++;
+                    skipped++;
                 }
             } else if (existingTeamOpt.isEmpty()) {
                 Team team = Team.builder()
                         .name(teamName)
                         .logoUrl(DEFAULT_LOGO_URL)
+                        .logoLastUpdated(now)
+                        .logoSeededSeason(currentSeason)
                         .build();
                 teamRepository.save(team);
                 created++;
             } else {
-                // Existing team without known config - update if logo is missing or local
                 Team team = existingTeamOpt.get();
-                if (team.getLogoUrl() == null ||
+                if (forceRefresh || team.getLogoUrl() == null ||
                     team.getLogoUrl().isEmpty() ||
-                    team.getLogoUrl().startsWith("/images/")) {
+                    team.getLogoUrl().startsWith("/images/") ||
+                    !currentSeason.equals(team.getLogoSeededSeason())) {
                     team.setLogoUrl(DEFAULT_LOGO_URL);
+                    team.setLogoLastUpdated(now);
+                    team.setLogoSeededSeason(currentSeason);
                     teamRepository.save(team);
                     updated++;
+                } else {
+                    skipped++;
                 }
             }
         }
 
-        log.info("   ✓ Logo seeding complete. Created: {}, Updated: {}", created, updated);
+        // Update system settings
+        updateSystemSettings(currentSeason, now);
+
+        log.info("   ✓ Logo seeding complete. Created: {}, Updated: {}, Skipped: {}", created, updated, skipped);
 
         return Map.of(
                 "success", true,
                 "created", created,
                 "updated", updated,
-                "totalTeams", teamRepository.count()
+                "skipped", skipped,
+                "totalTeams", teamRepository.count(),
+                "season", currentSeason
         );
+    }
+
+    /**
+     * Manually trigger logo seeding (for API endpoint use).
+     * @return Map with seeding statistics
+     */
+    @Transactional
+    public Map<String, Object> seedLogos() {
+        return seedLogos(false);
+    }
+
+    /**
+     * Get the current logo seeding status.
+     * @return Map with status information
+     */
+    public Map<String, Object> getLogoSeedingStatus() {
+        String currentSeason = getCurrentSeason();
+        Optional<SystemSettings> settingsOpt = systemSettingsRepository.findById(1L);
+
+        long totalTeams = teamRepository.count();
+        long teamsWithLogos = teamRepository.findAll().stream()
+                .filter(t -> t.getLogoUrl() != null && !t.getLogoUrl().isEmpty())
+                .count();
+        long teamsForCurrentSeason = teamRepository.findAll().stream()
+                .filter(t -> currentSeason.equals(t.getLogoSeededSeason()))
+                .count();
+
+        Map<String, Object> status = new HashMap<>();
+        status.put("currentSeason", currentSeason);
+        status.put("totalTeams", totalTeams);
+        status.put("teamsWithLogos", teamsWithLogos);
+        status.put("teamsSeededForCurrentSeason", teamsForCurrentSeason);
+        status.put("seedingRequired", isLogoSeedingRequired(currentSeason));
+
+        if (settingsOpt.isPresent()) {
+            SystemSettings settings = settingsOpt.get();
+            status.put("lastSeededSeason", settings.getLogoSeedingSeason());
+            status.put("lastSeededTimestamp", settings.getLogoSeedingTimestamp() != null
+                    ? settings.getLogoSeedingTimestamp().toString() : null);
+        } else {
+            status.put("lastSeededSeason", null);
+            status.put("lastSeededTimestamp", null);
+        }
+
+        return status;
     }
 
     /**

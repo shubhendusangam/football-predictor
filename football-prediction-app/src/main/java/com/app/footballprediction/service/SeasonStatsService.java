@@ -177,17 +177,15 @@ public class SeasonStatsService {
                 points = 0;
             }
 
-            // Add to recent form (first 10 matches)
-            if (recentForm.size() < 10) {
-                recentForm.add(MatchResult.builder()
-                        .date(match.getMatchDate().format(DATE_FORMATTER))
-                        .opponent(opponent)
-                        .goalsScored(teamGoals)
-                        .goalsConceded(oppGoals)
-                        .result(result)
-                        .points(points)
-                        .build());
-            }
+            // Add to match history (all matches in season)
+            recentForm.add(MatchResult.builder()
+                    .date(match.getMatchDate().format(DATE_FORMATTER))
+                    .opponent(opponent)
+                    .goalsScored(teamGoals)
+                    .goalsConceded(oppGoals)
+                    .result(result)
+                    .points(points)
+                    .build());
         }
 
         int totalPoints = (wins * 3) + draws;

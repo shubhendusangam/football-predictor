@@ -100,6 +100,19 @@ public class SystemSettings {
     private Double modelAccuracy;
 
     /**
+     * Season for which team logos were last seeded (e.g., "2025-26").
+     * Prevents redundant logo seeding on every startup.
+     */
+    @Column(name = "logo_seeding_season")
+    private String logoSeedingSeason;
+
+    /**
+     * Timestamp when logos were last seeded.
+     */
+    @Column(name = "logo_seeding_timestamp")
+    private LocalDateTime logoSeedingTimestamp;
+
+    /**
      * Total number of predictions made.
      */
     @Column(name = "total_predictions")

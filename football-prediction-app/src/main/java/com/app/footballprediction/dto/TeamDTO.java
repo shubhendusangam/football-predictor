@@ -37,6 +37,28 @@ public class TeamDTO {
     private String primaryColor;
 
     /**
+     * Current league position (1-20 for Premier League).
+     * Only populated for current season.
+     */
+    private Integer position;
+
+    /**
+     * Team status based on league standing.
+     * Values: "promoted", "relegation", "safe", null
+     * - "promoted": Team was promoted from lower division this season (new to the league)
+     * - "relegation": Team is in relegation zone (bottom 3)
+     * - "safe": Team is safe from relegation
+     * - null: Status unknown or historical season
+     */
+    private String status;
+
+    /**
+     * Zone classification for current season.
+     * Values: "champions", "europa", "conference", "mid", "relegation"
+     */
+    private String zone;
+
+    /**
      * Default fallback logo - online CDN football icon
      */
     public static final String DEFAULT_LOGO = "https://cdn-icons-png.flaticon.com/512/861/861512.png";

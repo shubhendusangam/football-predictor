@@ -1,0 +1,530 @@
+/**
+ * Season Team Stats Component Styles
+ *
+ * Features:
+ * - Dark mode friendly
+ * - Responsive layout
+ * - Smooth animations
+ * - Loading skeleton
+ * - Error states
+ */
+
+/* ═══════════════════════════════════════════════════════════════════
+   CSS Custom Properties (Dark Mode Friendly)
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Card Colors */
+    --sts-card-bg: #ffffff;
+    --sts-card-bg-hover: #fafafa;
+    --sts-card-border: #e5e7eb;
+    --sts-card-shadow: rgba(0, 0, 0, 0.08);
+    --sts-card-shadow-hover: rgba(0, 0, 0, 0.15);
+
+    /* Text Colors */
+    --sts-text-primary: #1f2937;
+    --sts-text-secondary: #6b7280;
+    --sts-text-muted: #9ca3af;
+
+    /* Elo Strength Colors */
+    --sts-elo-weak: #ef4444;
+    --sts-elo-competitive: #f59e0b;
+    --sts-elo-strong: #10b981;
+    --sts-elo-elite: #8b5cf6;
+
+    /* Form/Streak Colors */
+    --sts-win: #22c55e;
+    --sts-draw: #eab308;
+    --sts-loss: #ef4444;
+
+    /* Stats Grid */
+    --sts-stat-bg: #f9fafb;
+    --sts-stat-border: #e5e7eb;
+
+    /* Skeleton */
+    --sts-skeleton-bg: #e5e7eb;
+    --sts-skeleton-shine: #f3f4f6;
+
+    /* Transitions */
+    --sts-transition-fast: 150ms ease;
+    --sts-transition-normal: 250ms ease;
+    --sts-transition-slow: 350ms ease;
+
+    /* Spacing */
+    --sts-radius-sm: 6px;
+    --sts-radius-md: 10px;
+    --sts-radius-lg: 16px;
+}
+
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --sts-card-bg: #1f2937;
+        --sts-card-bg-hover: #273449;
+        --sts-card-border: #374151;
+        --sts-card-shadow: rgba(0, 0, 0, 0.3);
+        --sts-card-shadow-hover: rgba(0, 0, 0, 0.5);
+
+        --sts-text-primary: #f9fafb;
+        --sts-text-secondary: #d1d5db;
+        --sts-text-muted: #9ca3af;
+
+        --sts-stat-bg: #111827;
+        --sts-stat-border: #374151;
+
+        --sts-skeleton-bg: #374151;
+        --sts-skeleton-shine: #4b5563;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Stats Card Container
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-card {
+    background: var(--sts-card-bg);
+    border: 1px solid var(--sts-card-border);
+    border-radius: var(--sts-radius-lg);
+    padding: 24px;
+    box-shadow: 0 4px 12px var(--sts-card-shadow);
+    transition:
+        transform var(--sts-transition-normal),
+        box-shadow var(--sts-transition-normal),
+        background var(--sts-transition-fast);
+    max-width: 400px;
+    width: 100%;
+}
+
+.sts-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px var(--sts-card-shadow-hover);
+    background: var(--sts-card-bg-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Card Header
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    gap: 16px;
+}
+
+.sts-team-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.sts-team-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sts-text-primary);
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sts-season-label {
+    font-size: 0.8rem;
+    color: var(--sts-text-muted);
+    margin: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Elo Rating Section
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-elo-section {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: var(--sts-stat-bg);
+    border-radius: var(--sts-radius-md);
+    border: 1px solid var(--sts-stat-border);
+}
+
+.sts-elo-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: var(--sts-text-primary);
+    line-height: 1;
+    margin-bottom: 8px;
+    font-variant-numeric: tabular-nums;
+}
+
+.sts-elo-label {
+    font-size: 0.75rem;
+    color: var(--sts-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
+
+/* Strength Badge */
+.sts-strength-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sts-strength-badge--weak {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--sts-elo-weak);
+}
+
+.sts-strength-badge--competitive {
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--sts-elo-competitive);
+}
+
+.sts-strength-badge--strong {
+    background: rgba(16, 185, 129, 0.15);
+    color: var(--sts-elo-strong);
+}
+
+.sts-strength-badge--elite {
+    background: rgba(139, 92, 246, 0.15);
+    color: var(--sts-elo-elite);
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Streak & Form Section
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-form-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 16px;
+}
+
+/* Current Streak Badge */
+.sts-streak-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: var(--sts-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.sts-streak-badge--win {
+    background: rgba(34, 197, 94, 0.15);
+    color: var(--sts-win);
+}
+
+.sts-streak-badge--draw {
+    background: rgba(234, 179, 8, 0.15);
+    color: var(--sts-draw);
+}
+
+.sts-streak-badge--loss {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--sts-loss);
+}
+
+.sts-streak-label {
+    font-size: 0.7rem;
+    color: var(--sts-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Form Dots */
+.sts-form-container {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+}
+
+.sts-form-dots {
+    display: flex;
+    gap: 6px;
+}
+
+.sts-form-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    transition: transform var(--sts-transition-fast);
+}
+
+.sts-form-dot:hover {
+    transform: scale(1.3);
+}
+
+.sts-form-dot--win {
+    background: var(--sts-win);
+    box-shadow: 0 0 6px rgba(34, 197, 94, 0.4);
+}
+
+.sts-form-dot--draw {
+    background: var(--sts-draw);
+    box-shadow: 0 0 6px rgba(234, 179, 8, 0.4);
+}
+
+.sts-form-dot--loss {
+    background: var(--sts-loss);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.sts-form-label {
+    font-size: 0.7rem;
+    color: var(--sts-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Stats Grid
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+
+.sts-stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    background: var(--sts-stat-bg);
+    border: 1px solid var(--sts-stat-border);
+    border-radius: var(--sts-radius-sm);
+    transition: background var(--sts-transition-fast);
+}
+
+.sts-stat-item:hover {
+    background: var(--sts-card-bg-hover);
+}
+
+.sts-stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--sts-text-primary);
+    line-height: 1;
+    margin-bottom: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.sts-stat-label {
+    font-size: 0.65rem;
+    color: var(--sts-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    text-align: center;
+}
+
+/* Special stat highlights */
+.sts-stat-item--wins .sts-stat-value {
+    color: var(--sts-win);
+}
+
+.sts-stat-item--losses .sts-stat-value {
+    color: var(--sts-loss);
+}
+
+/* Responsive grid for smaller screens */
+@media (max-width: 380px) {
+    .sts-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Loading Skeleton
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-card--loading {
+    pointer-events: none;
+}
+
+.sts-skeleton {
+    background: var(--sts-skeleton-bg);
+    border-radius: var(--sts-radius-sm);
+    position: relative;
+    overflow: hidden;
+}
+
+.sts-skeleton::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        var(--sts-skeleton-shine),
+        transparent
+    );
+    animation: sts-skeleton-shimmer 1.5s infinite;
+}
+
+@keyframes sts-skeleton-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+.sts-skeleton--text {
+    height: 16px;
+    width: 60%;
+}
+
+.sts-skeleton--text-sm {
+    height: 12px;
+    width: 40%;
+}
+
+.sts-skeleton--elo {
+    height: 48px;
+    width: 120px;
+    margin: 0 auto 8px;
+}
+
+.sts-skeleton--badge {
+    height: 24px;
+    width: 80px;
+    margin: 0 auto;
+    border-radius: 20px;
+}
+
+.sts-skeleton--dots {
+    height: 12px;
+    width: 84px;
+}
+
+.sts-skeleton--stat {
+    height: 50px;
+    width: 100%;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Error State
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 16px;
+    text-align: center;
+}
+
+.sts-error-icon {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    color: var(--sts-loss);
+}
+
+.sts-error-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--sts-text-primary);
+    margin: 0 0 8px 0;
+}
+
+.sts-error-message {
+    font-size: 0.875rem;
+    color: var(--sts-text-secondary);
+    margin: 0 0 16px 0;
+}
+
+.sts-error-retry {
+    padding: 8px 20px;
+    background: var(--sts-text-primary);
+    color: var(--sts-card-bg);
+    border: none;
+    border-radius: var(--sts-radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity var(--sts-transition-fast);
+}
+
+.sts-error-retry:hover {
+    opacity: 0.85;
+}
+
+.sts-error-retry:focus {
+    outline: 2px solid var(--sts-elo-strong);
+    outline-offset: 2px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Accessibility
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Focus styles */
+.sts-card:focus-within {
+    outline: 2px solid var(--sts-elo-strong);
+    outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .sts-card,
+    .sts-form-dot,
+    .sts-stat-item,
+    .sts-error-retry {
+        transition: none;
+    }
+
+    .sts-skeleton::after {
+        animation: none;
+    }
+
+    .sts-card:hover {
+        transform: none;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   Container Layout (Optional)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.sts-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding: 24px;
+}
+
+.sts-container--centered {
+    justify-content: center;
+}
+

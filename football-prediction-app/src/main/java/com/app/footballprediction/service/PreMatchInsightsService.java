@@ -1,7 +1,9 @@
 package com.app.footballprediction.service;
 
 import com.app.common.model.Match;
+import com.app.common.model.SeasonTeamStats;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.common.util.PredictionUtils;
 import com.app.common.util.TeamNameNormalizer;
 import com.app.footballprediction.dto.PreMatchInsightsResponse;
@@ -27,6 +29,7 @@ import java.util.stream.Collectors;
 public class PreMatchInsightsService {
 
     private final MatchRepository matchRepository;
+    private final SeasonTeamStatsRepository seasonTeamStatsRepository;
     private final TeamStatsService teamStatsService;
     private final H2HInsightsService h2hInsightsService;
 
@@ -341,36 +344,64 @@ public class PreMatchInsightsService {
 
     /**
      * Calculate goal threat meter based on scoring/conceding averages.
+     * Uses SEASON stats for accurate averages (not just last 10 matches).
      */
     private GoalThreatMeter calculateGoalThreatMeter(List<Match> homeMatches, List<Match> awayMatches,
                                                       String homeTeam, String awayTeam) {
-        List<Match> homeLast10 = homeMatches.stream().limit(10).toList();
-        List<Match> awayLast10 = awayMatches.stream().limit(10).toList();
+        // Get current season
+        String currentSeason = getCurrentSeason();
 
-        // Home team attacking/defending
-        double homeAvgScored = homeLast10.stream()
-                .mapToInt(m -> m.getGoalsScoredByTeam(homeTeam))
-                .average().orElse(0);
-        double homeAvgConceded = homeLast10.stream()
-                .mapToInt(m -> m.getGoalsConcededByTeam(homeTeam))
-                .average().orElse(0);
+        // Try to get season stats for accurate averages
+        Optional<SeasonTeamStats> homeSeasonStats = seasonTeamStatsRepository
+                .findBySeasonIdAndTeamNameIgnoreCase(currentSeason, homeTeam);
+        Optional<SeasonTeamStats> awaySeasonStats = seasonTeamStatsRepository
+                .findBySeasonIdAndTeamNameIgnoreCase(currentSeason, awayTeam);
 
-        // Away team attacking/defending
-        double awayAvgScored = awayLast10.stream()
-                .mapToInt(m -> m.getGoalsScoredByTeam(awayTeam))
-                .average().orElse(0);
-        double awayAvgConceded = awayLast10.stream()
-                .mapToInt(m -> m.getGoalsConcededByTeam(awayTeam))
-                .average().orElse(0);
+        double homeAvgScored, homeAvgConceded, awayAvgScored, awayAvgConceded;
+
+        // Use season stats if available for accurate full-season averages
+        if (homeSeasonStats.isPresent() && homeSeasonStats.get().getMatchesPlayed() > 0) {
+            SeasonTeamStats stats = homeSeasonStats.get();
+            homeAvgScored = (double) stats.getGoalsScored() / stats.getMatchesPlayed();
+            homeAvgConceded = (double) stats.getGoalsConceded() / stats.getMatchesPlayed();
+            log.debug("Using season stats for {}: {} matches, scored={}, conceded={}",
+                    homeTeam, stats.getMatchesPlayed(), stats.getGoalsScored(), stats.getGoalsConceded());
+        } else {
+            // Fallback to calculating from ALL available matches (not just last 10)
+            homeAvgScored = homeMatches.stream()
+                    .mapToInt(m -> m.getGoalsScoredByTeam(homeTeam))
+                    .average().orElse(0);
+            homeAvgConceded = homeMatches.stream()
+                    .mapToInt(m -> m.getGoalsConcededByTeam(homeTeam))
+                    .average().orElse(0);
+            log.debug("Using match-based stats for {}: {} matches", homeTeam, homeMatches.size());
+        }
+
+        if (awaySeasonStats.isPresent() && awaySeasonStats.get().getMatchesPlayed() > 0) {
+            SeasonTeamStats stats = awaySeasonStats.get();
+            awayAvgScored = (double) stats.getGoalsScored() / stats.getMatchesPlayed();
+            awayAvgConceded = (double) stats.getGoalsConceded() / stats.getMatchesPlayed();
+            log.debug("Using season stats for {}: {} matches, scored={}, conceded={}",
+                    awayTeam, stats.getMatchesPlayed(), stats.getGoalsScored(), stats.getGoalsConceded());
+        } else {
+            // Fallback to calculating from ALL available matches (not just last 10)
+            awayAvgScored = awayMatches.stream()
+                    .mapToInt(m -> m.getGoalsScoredByTeam(awayTeam))
+                    .average().orElse(0);
+            awayAvgConceded = awayMatches.stream()
+                    .mapToInt(m -> m.getGoalsConcededByTeam(awayTeam))
+                    .average().orElse(0);
+            log.debug("Using match-based stats for {}: {} matches", awayTeam, awayMatches.size());
+        }
 
         // Expected goals in this match
         double homeExpectedGoals = (homeAvgScored + awayAvgConceded) / 2;
         double awayExpectedGoals = (awayAvgScored + homeAvgConceded) / 2;
         double totalExpectedGoals = homeExpectedGoals + awayExpectedGoals;
 
-        // Threat ratings (0-100)
-        double homeThreatRating = Math.min(100, homeExpectedGoals / 3 * 100);
-        double awayThreatRating = Math.min(100, awayExpectedGoals / 3 * 100);
+        // Threat ratings (0-100) - based on expected goals relative to league average (~1.5 goals per team)
+        double homeThreatRating = Math.min(100, (homeExpectedGoals / 2.0) * 100);
+        double awayThreatRating = Math.min(100, (awayExpectedGoals / 2.0) * 100);
 
         return GoalThreatMeter.builder()
                 .homeTeamAvgScored(PredictionUtils.round(homeAvgScored))
@@ -386,24 +417,58 @@ public class PreMatchInsightsService {
     }
 
     /**
+     * Get current football season string.
+     */
+    private String getCurrentSeason() {
+        LocalDate today = LocalDate.now();
+        int year = today.getYear();
+        int month = today.getMonthValue();
+
+        if (month >= 8) {
+            return year + "-" + String.format("%02d", (year + 1) % 100);
+        } else {
+            return (year - 1) + "-" + String.format("%02d", year % 100);
+        }
+    }
+
+    /**
      * Calculate market predictions based on goal expectations.
-     * Uses team-specific goal calculations to correctly handle home/away matches.
+     * Uses SEASON stats for accurate expected goals.
      */
     private MarketPredictions calculateMarketPredictions(List<Match> homeMatches, List<Match> awayMatches,
                                                           String homeTeam, String awayTeam) {
-        // Calculate expected goals from recent matches using team-specific method
-        // This correctly handles when the team played as home vs away
-        double homeAvgScored = homeMatches.stream()
-                .limit(10)
-                .mapToDouble(m -> safeGetGoalsScored(m, homeTeam))
-                .average()
-                .orElse(1.0);
+        // Get current season
+        String currentSeason = getCurrentSeason();
 
-        double awayAvgScored = awayMatches.stream()
-                .limit(10)
-                .mapToDouble(m -> safeGetGoalsScored(m, awayTeam))
-                .average()
-                .orElse(1.0);
+        // Try to get season stats for accurate expected goals
+        Optional<SeasonTeamStats> homeSeasonStats = seasonTeamStatsRepository
+                .findBySeasonIdAndTeamNameIgnoreCase(currentSeason, homeTeam);
+        Optional<SeasonTeamStats> awaySeasonStats = seasonTeamStatsRepository
+                .findBySeasonIdAndTeamNameIgnoreCase(currentSeason, awayTeam);
+
+        double homeAvgScored, awayAvgScored;
+
+        if (homeSeasonStats.isPresent() && homeSeasonStats.get().getMatchesPlayed() > 0) {
+            SeasonTeamStats stats = homeSeasonStats.get();
+            homeAvgScored = (double) stats.getGoalsScored() / stats.getMatchesPlayed();
+        } else {
+            // Fallback to ALL matches (not limited)
+            homeAvgScored = homeMatches.stream()
+                    .mapToDouble(m -> safeGetGoalsScored(m, homeTeam))
+                    .average()
+                    .orElse(1.0);
+        }
+
+        if (awaySeasonStats.isPresent() && awaySeasonStats.get().getMatchesPlayed() > 0) {
+            SeasonTeamStats stats = awaySeasonStats.get();
+            awayAvgScored = (double) stats.getGoalsScored() / stats.getMatchesPlayed();
+        } else {
+            // Fallback to ALL matches (not limited)
+            awayAvgScored = awayMatches.stream()
+                    .mapToDouble(m -> safeGetGoalsScored(m, awayTeam))
+                    .average()
+                    .orElse(1.0);
+        }
 
         double expectedHomeGoals = PredictionUtils.round(homeAvgScored);
         double expectedAwayGoals = PredictionUtils.round(awayAvgScored);
