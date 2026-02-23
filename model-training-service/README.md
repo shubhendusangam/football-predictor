@@ -142,7 +142,7 @@ com.app.modeltraining/
 │  Step 1: Data Loading                                                    │
 │  ┌────────────────────┐                                                  │
 │  │ MatchRepository    │                                                  │
-│  │ .findAllByOrder    │──► ~8,000 matches (chronological)                │
+│  │ .findAllByOrder    │──► ~12,500 matches (chronological)               │
 │  │  ByMatchDateAsc()  │                                                  │
 │  └────────────────────┘                                                  │
 │            │                                                             │
@@ -300,8 +300,8 @@ try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(modelF
 | Metric | Value |
 |--------|-------|
 | Training time | 5-10 seconds |
-| Dataset size | ~8,000 matches |
-| Feature vectors | ~7,000 (after filtering) |
+| Dataset size | ~12,500 matches |
+| Feature vectors | ~11,000 (after filtering) |
 | Model file size | 1-2 MB |
 | Memory usage | 512 MB - 1 GB |
 
