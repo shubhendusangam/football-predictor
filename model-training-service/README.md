@@ -18,13 +18,13 @@ The `model-training-service` is a **dedicated microservice** for training, evalu
 │  │    • Web UI                   │                                      │
 │  │    • Model Consumption        │◄─────────────────┐                   │
 │  └───────────────────────────────┘                  │                   │
-│                                                      │                   │
-│  ┌───────────────────────────────┐         ┌────────┴────────┐         │
-│  │   Training Service (8081)    │  ◄──    │ Shared Storage  │         │
-│  │   • Model Training           │──────►  │ • H2 Database   │         │
-│  │   • Model Evaluation         │         │ • ML Model File │         │
-│  │   • Scheduled Retraining     │         └─────────────────┘         │
-│  │   ◄── THIS MODULE            │                                      │
+│                                                     │                   │
+│  ┌───────────────────────────────┐         ┌────────┴────────┐          │
+│  │   Training Service (8081)     │  ◄──    │ Shared Storage  │          │
+│  │   • Model Training            │──────►  │ • H2 Database   │          │
+│  │   • Model Evaluation          │         │ • ML Model File │          │
+│  │   • Scheduled Retraining      │         └─────────────────┘          │
+│  │   ◄── THIS MODULE             │                                      │
 │  └───────────────────────────────┘                                      │
 │                                                                         │
 │  ┌───────────────────────────────┐                                      │
@@ -96,27 +96,27 @@ com.app.modeltraining/
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                     STACKED ENSEMBLE MODEL                       │
+│                     STACKED ENSEMBLE MODEL                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │   Input: MatchFeatures (25 features)                            │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │              BASE CLASSIFIERS (Level 1)                  │   │
+│   │              BASE CLASSIFIERS (Level 1)                 │   │
 │   │                                                         │   │
-│   │   ┌─────────────────┐     ┌─────────────────┐          │   │
-│   │   │  RandomForest   │     │   AdaBoostM1    │          │   │
-│   │   │  • 100 trees    │     │  • 100 iters    │          │   │
-│   │   │  • 5 features   │     │  • REPTree base │          │   │
-│   │   │  • Seed: 42     │     │                 │          │   │
-│   │   └────────┬────────┘     └────────┬────────┘          │   │
+│   │   ┌─────────────────┐     ┌─────────────────┐           │   │
+│   │   │  RandomForest   │     │   AdaBoostM1    │           │   │
+│   │   │  • 100 trees    │     │  • 100 iters    │           │   │
+│   │   │  • 5 features   │     │  • REPTree base │           │   │
+│   │   │  • Seed: 42     │     │                 │           │   │
+│   │   └────────┬────────┘     └────────┬────────┘           │   │
 │   │            │                       │                    │   │
 │   │            └───────────┬───────────┘                    │   │
 │   │                        ▼                                │   │
 │   └─────────────────────────────────────────────────────────┘   │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐   │
-│   │              META CLASSIFIER (Level 2)                   │   │
+│   │              META CLASSIFIER (Level 2)                  │   │
 │   │                                                         │   │
 │   │              ┌─────────────────────┐                    │   │
 │   │              │ Logistic Regression │                    │   │
@@ -126,8 +126,8 @@ com.app.modeltraining/
 │   └─────────────────────────┼───────────────────────────────┘   │
 │                             ▼                                   │
 │                                                                 │
-│   Output: Probabilities [P(H), P(D), P(A)]                     │
-│   Label: "H" (Home Win) | "D" (Draw) | "A" (Away Win)          │
+│   Output: Probabilities [P(H), P(D), P(A)]                      │
+│   Label: "H" (Home Win) | "D" (Draw) | "A" (Away Win)           │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -136,7 +136,7 @@ com.app.modeltraining/
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────┐
-│                         TRAINING PIPELINE                                 │
+│                         TRAINING PIPELINE                                │
 ├──────────────────────────────────────────────────────────────────────────┤
 │                                                                          │
 │  Step 1: Data Loading                                                    │
@@ -162,7 +162,7 @@ com.app.modeltraining/
 │  Step 3: Temporal Split                                                  │
 │  ┌──────────────────────────────────────────────────────────┐            │
 │  │                                                          │            │
-│  │   ◄─────────── 80% Train ───────────►│◄── 20% Test ──►  │            │
+│  │   ◄─────────── 80% Train ───────────►│◄── 20% Test ──►   │            │
 │  │   [Older matches]                     │ [Recent matches] │            │
 │  │                                       │                  │            │
 │  │   No future data leakage!             │ Held-out eval    │            │
