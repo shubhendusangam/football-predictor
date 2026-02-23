@@ -130,10 +130,10 @@ All trending insights are calculated **strictly within the selected season**:
 ### System Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                        FOOTBALL PREDICTION PLATFORM                          │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        FOOTBALL PREDICTION PLATFORM                         │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
 │  ┌─────────────────────────────────────┐   ┌────────────────────────────┐   │
 │  │      Main Application (8080)        │   │  Training Service (8081)   │   │
 │  │                                     │   │                            │   │
@@ -176,16 +176,16 @@ All trending insights are calculated **strictly within the selected season**:
 │  │  │  • h2hInsights (10 min)       │  │                                    │
 │  │  └───────────────────────────────┘  │                                    │
 │  └─────────────────────────────────────┘                                    │
-│                                                                              │
+│                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
-│  │                    Common Module (Shared Library)                     │   │
+│  │                    Common Module (Shared Library)                    │   │
 │  │  • Match Entity           • MatchFeatures DTO                        │   │
 │  │  • Team Entity            • FeatureEngineeringService                │   │
 │  │  • League Entity          • Prediction Entity                        │   │
 │  │  • LeagueStanding Entity  • Shared Repositories                      │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Module Structure
@@ -603,7 +603,7 @@ Get model metadata.
 │     leagues     │       │   league_standings   │       │      teams      │
 ├─────────────────┤       ├──────────────────────┤       ├─────────────────┤
 │ id (PK)         │◄──────│ league_id (FK)       │       │ id (PK)         │
-│ code            │       │ season               │───────►│ name (UNIQUE)   │
+│ code            │       │ season               │───────►│ name (UNIQUE)  │
 │ name            │       │ team_name            │       │ logo_url        │
 │ country_code    │       │ position             │       │ short_name      │
 │ current_season  │       │ played/won/drawn/lost│       │ primary_color   │
@@ -611,21 +611,21 @@ Get model metadata.
                           │ points/form          │
                           └──────────────────────┘
 
-┌──────────────────────────────────────────────────────────────────┐
-│                           matches                                 │
-├──────────────────────────────────────────────────────────────────┤
-│ id (PK)                                                          │
-│ match_date, home_team, away_team, season, referee                │
-│ full_time_home_goals, full_time_away_goals, full_time_result     │
-│ half_time_home_goals, half_time_away_goals                       │
-│ home_shots, away_shots, home_shots_on_target, away_shots_on_target│
-│ home_corners, away_corners                                        │
+┌─────────────────────────────────────────────────────────────────────┐
+│                           matches                                   │
+├─────────────────────────────────────────────────────────────────────┤
+│ id (PK)                                                             │
+│ match_date, home_team, away_team, season, referee                   │
+│ full_time_home_goals, full_time_away_goals, full_time_result        │
+│ half_time_home_goals, half_time_away_goals                          │
+│ home_shots, away_shots, home_shots_on_target, away_shots_on_target  │
+│ home_corners, away_corners                                          │
 │ home_yellow_cards, away_yellow_cards, home_red_cards, away_red_cards│
-│ b365h, b365d, b365a, bwh, bwd, bwa, iwh, iwd, iwa, psh, psd, psa  │
-└──────────────────────────────────────────────────────────────────┘
+│ b365h, b365d, b365a, bwh, bwd, bwa, iwh, iwd, iwa, psh, psd, psa    │
+└─────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────┐
-│                          predictions                              │
+│                          predictions                             │
 ├──────────────────────────────────────────────────────────────────┤
 │ id (PK)                                                          │
 │ match_id (FK), team_id, team_name, opponent_name                 │
@@ -735,7 +735,7 @@ MatchFeatures (25 features)
               │
               ▼
 ┌─────────────────────────────────────────────────┐
-│            ModelTrainingService                  │
+│            ModelTrainingService                 │
 ├─────────────────────────────────────────────────┤
 │                                                 │
 │  Stacked Ensemble:                              │
@@ -770,7 +770,7 @@ MatchFeatures (25 features)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                Season-aware Insight Engine                       │
+│                Season-aware Insight Engine                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  Input: season = "2025-26"                                      │
