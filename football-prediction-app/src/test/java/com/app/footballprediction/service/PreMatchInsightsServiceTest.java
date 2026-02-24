@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.within;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * Comprehensive unit tests for PreMatchInsightsService.
@@ -46,6 +47,9 @@ class PreMatchInsightsServiceTest {
     @Mock
     private H2HInsightsService h2hInsightsService;
 
+    @Mock
+    private InsightsValidationService validationService;
+
     @InjectMocks
     private PreMatchInsightsService preMatchInsightsService;
 
@@ -54,6 +58,10 @@ class PreMatchInsightsServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Setup validation service to return no errors by default (lenient for tests that don't reach validation)
+        lenient().when(validationService.validatePreMatchInsights(any()))
+                .thenReturn(Collections.emptyList());
+
         // Create sample match data for Arsenal (5 recent matches)
         arsenalMatches = Arrays.asList(
                 createMatch("Arsenal", "Liverpool", 2, 1, "H", LocalDate.now().minusDays(3)),
@@ -743,6 +751,121 @@ class PreMatchInsightsServiceTest {
             GoalThreatMeter threat = response.getGoalThreatMeter();
             // Arsenal scored: 3 (home), 2 (home), 3 (away), 2 (home), 3 (away) = 13 goals in 5 matches = 2.6 avg
             assertThat(threat.getHomeTeamAvgScored()).isCloseTo(2.6, within(0.1));
+        }
+    }
+
+    @Nested
+    @DisplayName("CurrentStreak Calculation (STEP 1-6 Implementation)")
+    class CurrentStreakTests {
+
+        @Test
+        @DisplayName("should calculate winless streak correctly")
+        void currentStreak_winlessStreak_calculatedCorrectly() {
+            // Given - 6 consecutive matches without a win (L, D, L, D, L, L)
+            List<Match> winlessMatches = Arrays.asList(
+                    createMatch("Arsenal", "Liverpool", 0, 2, "A", LocalDate.now().minusDays(3)),   // L
+                    createMatch("Arsenal", "Man City", 1, 1, "D", LocalDate.now().minusDays(10)),  // D
+                    createMatch("Tottenham", "Arsenal", 2, 0, "H", LocalDate.now().minusDays(17)), // L
+                    createMatch("Arsenal", "Chelsea", 0, 0, "D", LocalDate.now().minusDays(24)),   // D
+                    createMatch("Newcastle", "Arsenal", 3, 1, "H", LocalDate.now().minusDays(31)), // L
+                    createMatch("Arsenal", "West Ham", 0, 1, "A", LocalDate.now().minusDays(38))   // L
+            );
+
+            when(matchRepository.findByTeamBeforeDate(eq("Arsenal"), any()))
+                    .thenReturn(winlessMatches);
+            when(matchRepository.findByTeamBeforeDate(eq("Chelsea"), any()))
+                    .thenReturn(chelseaMatches);
+
+            // When
+            PreMatchInsightsResponse response = preMatchInsightsService.getPreMatchInsights("Arsenal", "Chelsea");
+
+            // Then
+            CurrentStreak homeStreak = response.getHomeCurrentStreak();
+            assertThat(homeStreak).isNotNull();
+            assertThat(homeStreak.getTeamName()).isEqualTo("Arsenal");
+            assertThat(homeStreak.getWinlessStreak()).isEqualTo(6);
+            assertThat(homeStreak.getPrimaryStreakType()).isEqualTo("LOSS");  // Primary is LOSS (consecutive losses at start)
+            assertThat(homeStreak.getRecentResults()).hasSize(6);
+        }
+
+        @Test
+        @DisplayName("should show 'No active streak' when last match was a win followed by losses")
+        void currentStreak_displayText_showsNoActiveStreak_whenMixedResults() {
+            // Given - Last match is a win, winless/loss streak should be 0
+            List<Match> mixedMatches = Arrays.asList(
+                    createMatch("Arsenal", "Liverpool", 2, 1, "H", LocalDate.now().minusDays(3)),   // W
+                    createMatch("Arsenal", "Man City", 0, 2, "A", LocalDate.now().minusDays(10)),   // L
+                    createMatch("Tottenham", "Arsenal", 3, 0, "H", LocalDate.now().minusDays(17))   // L
+            );
+
+            when(matchRepository.findByTeamBeforeDate(eq("Arsenal"), any()))
+                    .thenReturn(mixedMatches);
+            when(matchRepository.findByTeamBeforeDate(eq("Chelsea"), any()))
+                    .thenReturn(chelseaMatches);
+
+            // When
+            PreMatchInsightsResponse response = preMatchInsightsService.getPreMatchInsights("Arsenal", "Chelsea");
+
+            // Then
+            CurrentStreak homeStreak = response.getHomeCurrentStreak();
+            assertThat(homeStreak).isNotNull();
+            assertThat(homeStreak.getWinStreak()).isEqualTo(1);
+            assertThat(homeStreak.getWinlessStreak()).isEqualTo(0);
+            assertThat(homeStreak.getPrimaryStreakType()).isEqualTo("WIN");
+        }
+
+        @Test
+        @DisplayName("should ensure key insight consistency with current streak")
+        void currentStreak_keyInsight_consistency() {
+            // Given - 6 consecutive matches without a win
+            List<Match> winlessMatches = Arrays.asList(
+                    createMatch("Arsenal", "Liverpool", 0, 2, "A", LocalDate.now().minusDays(3)),
+                    createMatch("Arsenal", "Man City", 1, 1, "D", LocalDate.now().minusDays(10)),
+                    createMatch("Tottenham", "Arsenal", 2, 0, "H", LocalDate.now().minusDays(17)),
+                    createMatch("Arsenal", "Chelsea", 0, 0, "D", LocalDate.now().minusDays(24)),
+                    createMatch("Newcastle", "Arsenal", 3, 1, "H", LocalDate.now().minusDays(31)),
+                    createMatch("Arsenal", "West Ham", 0, 1, "A", LocalDate.now().minusDays(38))
+            );
+
+            when(matchRepository.findByTeamBeforeDate(eq("Arsenal"), any()))
+                    .thenReturn(winlessMatches);
+            when(matchRepository.findByTeamBeforeDate(eq("Chelsea"), any()))
+                    .thenReturn(chelseaMatches);
+
+            // When
+            PreMatchInsightsResponse response = preMatchInsightsService.getPreMatchInsights("Arsenal", "Chelsea");
+
+            // Then - Key insight should mention winless streak AND match the CurrentStreak data
+            CurrentStreak homeStreak = response.getHomeCurrentStreak();
+            List<String> keyInsights = response.getKeyInsights();
+
+            // If winless streak >= 5 (threshold), key insight should mention it
+            if (homeStreak.getWinlessStreak() >= 5) {
+                boolean hasWinlessInsight = keyInsights.stream()
+                        .anyMatch(insight -> insight.contains("Arsenal") && insight.contains("without a win"));
+                // Only assert if the streak exceeds threshold
+                assertThat(hasWinlessInsight)
+                        .as("Key insight should mention Arsenal's winless streak of " + homeStreak.getWinlessStreak())
+                        .isTrue();
+            }
+        }
+
+        @Test
+        @DisplayName("should populate recentResults with last 6 match outcomes")
+        void currentStreak_recentResults_populated() {
+            // Given
+            when(matchRepository.findByTeamBeforeDate(eq("Arsenal"), any()))
+                    .thenReturn(arsenalMatches);
+            when(matchRepository.findByTeamBeforeDate(eq("Chelsea"), any()))
+                    .thenReturn(chelseaMatches);
+
+            // When
+            PreMatchInsightsResponse response = preMatchInsightsService.getPreMatchInsights("Arsenal", "Chelsea");
+
+            // Then
+            CurrentStreak homeStreak = response.getHomeCurrentStreak();
+            assertThat(homeStreak.getRecentResults()).isNotEmpty();
+            assertThat(homeStreak.getRecentResults()).containsPattern("[WDL]+");
         }
     }
 }

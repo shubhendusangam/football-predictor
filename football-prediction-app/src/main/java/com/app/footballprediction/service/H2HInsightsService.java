@@ -25,9 +25,12 @@ import java.util.stream.Collectors;
 public class H2HInsightsService {
 
     private final MatchRepository matchRepository;
+    private final InsightsValidationService validationService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int RECENT_MATCHES_COUNT = 5;
+    private static final String DATA_SCOPE_ALL_H2H = "All Historical Meetings";
+    private static final String DATA_SCOPE_H2H_ONLY = "H2H Only (All Meetings)";
 
     /**
      * Get comprehensive H2H insights for two teams.
@@ -68,7 +71,7 @@ public class H2HInsightsService {
 
         log.debug("Found {} H2H matches between {} and {}", h2hMatches.size(), normalizedHome, normalizedAway);
 
-        return H2HInsightsResponse.builder()
+        H2HInsightsResponse response = H2HInsightsResponse.builder()
                 .homeTeam(normalizedHome)
                 .awayTeam(normalizedAway)
                 .historicalRecord(calculateHistoricalRecord(h2hMatches, normalizedHome, normalizedAway))
@@ -77,6 +80,14 @@ public class H2HInsightsService {
                 .commonResults(calculateCommonResults(h2hMatches, normalizedHome, normalizedAway))
                 .venueAdvantage(calculateVenueAdvantage(h2hMatches, normalizedHome, normalizedAway))
                 .build();
+
+        // Validate H2H insights for consistency
+        List<String> validationErrors = validationService.validateH2HInsights(response);
+        if (!validationErrors.isEmpty()) {
+            log.error("H2H validation errors for {} vs {}: {}", normalizedHome, normalizedAway, validationErrors);
+        }
+
+        return response;
     }
 
     /**
@@ -121,6 +132,8 @@ public class H2HInsightsService {
                         .homeTeamWinPercentage(0)
                         .awayTeamWinPercentage(0)
                         .drawPercentage(0)
+                        .dataScope(DATA_SCOPE_ALL_H2H)
+                        .isConsistent(true)
                         .build())
                 .recentMeetings(Collections.emptyList())
                 .goalStats(H2HGoalStats.builder()
@@ -132,6 +145,7 @@ public class H2HInsightsService {
                         .highestScoringMatchDetails("N/A")
                         .cleanSheetsHomeTeam(0)
                         .cleanSheetsAwayTeam(0)
+                        .dataScope(DATA_SCOPE_H2H_ONLY)
                         .build())
                 .commonResults(CommonResultStats.builder()
                         .mostCommonResult("N/A")
@@ -141,6 +155,7 @@ public class H2HInsightsService {
                         .drawCount(0)
                         .awayWinCount(0)
                         .topScorelines(Collections.emptyList())
+                        .dataScope(DATA_SCOPE_H2H_ONLY)
                         .build())
                 .venueAdvantage(VenueAdvantageStats.builder()
                         .homeTeamHomeMatches(0)
@@ -160,6 +175,7 @@ public class H2HInsightsService {
 
     /**
      * Calculate historical record: "Arsenal leads 15-8-7 vs Chelsea" format.
+     * Scope: All historical H2H meetings.
      */
     private HistoricalRecord calculateHistoricalRecord(List<Match> h2hMatches, String homeTeam, String awayTeam) {
         int homeTeamWins = 0;
@@ -196,6 +212,9 @@ public class H2HInsightsService {
             summary = String.format("Series tied %d-%d-%d between %s and %s", homeTeamWins, draws, awayTeamWins, homeTeam, awayTeam);
         }
 
+        // Validate consistency: wins + draws + losses = totalMatches
+        boolean isConsistent = (homeTeamWins + draws + awayTeamWins) == totalMatches;
+
         return HistoricalRecord.builder()
                 .totalMatches(totalMatches)
                 .homeTeamWins(homeTeamWins)
@@ -206,6 +225,8 @@ public class H2HInsightsService {
                 .homeTeamWinPercentage(homeTeamWinPct)
                 .awayTeamWinPercentage(awayTeamWinPct)
                 .drawPercentage(drawPct)
+                .dataScope(DATA_SCOPE_ALL_H2H)
+                .isConsistent(isConsistent)
                 .build();
     }
 
@@ -299,6 +320,7 @@ public class H2HInsightsService {
                 .highestScoringMatchDetails(highestDetails)
                 .cleanSheetsHomeTeam(cleanSheetsHome)
                 .cleanSheetsAwayTeam(cleanSheetsAway)
+                .dataScope(DATA_SCOPE_H2H_ONLY)
                 .build();
     }
 
@@ -373,6 +395,7 @@ public class H2HInsightsService {
                 .drawCount(drawCount)
                 .awayWinCount(awayWinCount)
                 .topScorelines(topScorelines)
+                .dataScope(DATA_SCOPE_H2H_ONLY)
                 .build();
     }
 

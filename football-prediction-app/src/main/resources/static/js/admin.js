@@ -490,6 +490,9 @@ class AdminManager {
                     </div>
                 </div>
 
+                <!-- System Status Panel (Read-Only) -->
+                <div id="systemStatusContainer"></div>
+
                 <div class="admin-grid">
                     <!-- System Controls Card -->
                     <div class="admin-card">
@@ -696,6 +699,28 @@ class AdminManager {
 
         // Attach event listeners
         this.attachEventListeners(settings);
+
+        // Initialize system status panel (read-only)
+        this.initSystemStatusPanel();
+    }
+
+    /**
+     * Initialize the system status panel with auto-refresh
+     */
+    initSystemStatusPanel() {
+        const container = document.getElementById('systemStatusContainer');
+        if (container && window.systemStatusManager) {
+            window.systemStatusManager.startAutoRefresh(container);
+        }
+    }
+
+    /**
+     * Cleanup when leaving admin page
+     */
+    cleanup() {
+        if (window.systemStatusManager) {
+            window.systemStatusManager.stopAutoRefresh();
+        }
     }
 
     /**

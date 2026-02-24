@@ -194,6 +194,12 @@
     color: var(--accent-yellow);
 }
 
+.streak-badge.no-streak {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
 /* ==========================================
    SECTION 2: Form Comparison Bar
    ========================================== */

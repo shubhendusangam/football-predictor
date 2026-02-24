@@ -1,0 +1,503 @@
+/**
+ * System Status Panel Styles
+ * For the Data Sync & Model Status dashboard component
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS PANEL CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.system-status-panel {
+    background: var(--card-bg, #1a1a2e);
+    border-radius: 12px;
+    border: 1px solid var(--border-color, #2d2d44);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.system-status-panel .status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.1));
+    border-bottom: 1px solid var(--border-color, #2d2d44);
+}
+
+.system-status-panel .status-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary, #fff);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.system-status-panel .status-header .icon {
+    font-size: 1.25rem;
+}
+
+/* Auto-refresh indicator */
+.auto-refresh-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #a0a0b0);
+    padding: 0.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+}
+
+.auto-refresh-indicator.active .pulse-dot {
+    background: #22c55e;
+}
+
+.auto-refresh-indicator.training .pulse-dot {
+    background: #f59e0b;
+}
+
+.auto-refresh-indicator.syncing .pulse-dot {
+    background: #3b82f6;
+}
+
+.auto-refresh-indicator.matchday .pulse-dot {
+    background: #8b5cf6;
+}
+
+.auto-refresh-indicator.paused {
+    background: rgba(100, 100, 100, 0.1);
+    color: var(--text-tertiary, #6b7280);
+}
+
+.auto-refresh-indicator .pause-icon {
+    font-size: 0.7rem;
+}
+
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #22c55e;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.auto-refresh-indicator.paused .pulse-dot {
+    display: none;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS GRID
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1px;
+    background: var(--border-color, #2d2d44);
+}
+
+.status-section {
+    background: var(--card-bg, #1a1a2e);
+    padding: 1.25rem;
+}
+
+.status-section h4 {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary, #a0a0b0);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.status-section h4 .icon {
+    font-size: 1rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS ITEMS
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-items {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.status-item:last-child {
+    border-bottom: none;
+}
+
+.status-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0b0);
+}
+
+.status-value {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-primary, #fff);
+}
+
+.status-value.highlight-success {
+    color: #22c55e;
+    font-weight: 600;
+}
+
+.status-value.highlight-info {
+    color: #3b82f6;
+    font-weight: 600;
+}
+
+.status-value.highlight-warning {
+    color: #f59e0b;
+    font-weight: 600;
+}
+
+.status-value.version-tag {
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.8rem;
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS BADGES
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.status-badge-success {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.status-badge-error {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.status-badge-progress {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.status-badge-warning {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.status-badge-pending {
+    background: rgba(156, 163, 175, 0.15);
+    color: #9ca3af;
+    border: 1px solid rgba(156, 163, 175, 0.3);
+}
+
+/* Mini spinner for in-progress states */
+.mini-spinner {
+    width: 12px;
+    height: 12px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RETRAIN DECISION MESSAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+.retrain-decision {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #a0a0b0);
+    border-left: 3px solid rgba(139, 92, 246, 0.5);
+}
+
+.retrain-reason {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(59, 130, 246, 0.1);
+    border-radius: 6px;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #a0a0b0);
+}
+
+.retrain-reason .reason-label {
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ERROR DISPLAY
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-error {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.status-error .error-icon {
+    font-size: 1rem;
+}
+
+.status-error .error-text {
+    font-size: 0.85rem;
+    color: #ef4444;
+    line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   STATUS FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+
+.status-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1.25rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid var(--border-color, #2d2d44);
+    gap: 1rem;
+}
+
+.status-footer .last-updated {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, #6b7280);
+}
+
+.status-footer .refresh-btn {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-footer .refresh-btn:hover {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.status-footer .refresh-btn:active {
+    transform: scale(0.95);
+}
+
+.status-footer .system-note {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary, #6b7280);
+}
+
+.status-footer .info-icon {
+    font-size: 0.85rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOADING STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.system-status-panel .status-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary, #a0a0b0);
+}
+
+.system-status-panel .status-loading p {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   COMPACT INDICATOR (for navbar)
+   ═══════════════════════════════════════════════════════════════ */
+
+.sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: default;
+}
+
+.sync-indicator.running {
+    animation: spin 1s linear infinite;
+}
+
+.sync-indicator.error {
+    color: #ef4444;
+}
+
+.sync-indicator.success {
+    color: #22c55e;
+}
+
+.sync-indicator.pending {
+    color: #f59e0b;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MATCH DAY INDICATOR
+   ═══════════════════════════════════════════════════════════════ */
+
+.match-day-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+}
+
+.match-day-indicator.no-matches {
+    background: rgba(100, 100, 100, 0.1);
+    color: var(--text-tertiary, #6b7280);
+}
+
+.match-day-indicator.completed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.match-day-indicator.waiting {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+
+.match-day-indicator .indicator-icon {
+    font-size: 0.9rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MATCH COMPLETION NOTIFICATION
+   ═══════════════════════════════════════════════════════════════ */
+
+.match-completion-notification {
+    position: fixed;
+    top: 80px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.95), rgba(22, 163, 74, 0.95));
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.match-completion-notification span:first-child {
+    font-size: 1.5rem;
+}
+
+.match-completion-notification button {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.match-completion-notification button:hover {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE ADJUSTMENTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+    .status-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .status-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        text-align: center;
+    }
+
+    .status-footer {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+
+    .status-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+}
+

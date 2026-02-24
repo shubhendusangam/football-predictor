@@ -32,6 +32,7 @@ public class H2HInsightsResponse {
 
     /**
      * Historical record display in "Team leads W-D-L vs Opponent" format.
+     * Scope: All historical H2H meetings.
      */
     @Data
     @Builder
@@ -45,6 +46,8 @@ public class H2HInsightsResponse {
         private double homeTeamWinPercentage;
         private double awayTeamWinPercentage;
         private double drawPercentage;
+        private String dataScope;   // "All Historical Meetings" or "Last N Meetings"
+        private boolean isConsistent;  // True if wins + draws + losses = totalMatches
     }
 
     /**
@@ -66,6 +69,7 @@ public class H2HInsightsResponse {
 
     /**
      * Goal statistics when these teams meet.
+     * Scope: All H2H meetings.
      */
     @Data
     @Builder
@@ -78,10 +82,12 @@ public class H2HInsightsResponse {
         private String highestScoringMatchDetails; // e.g., "5-4 (Arsenal vs Chelsea, 2024-10-15)"
         private int cleanSheetsHomeTeam;     // Clean sheets for homeTeam
         private int cleanSheetsAwayTeam;     // Clean sheets for awayTeam
+        private String dataScope;            // "H2H Only (All Meetings)"
     }
 
     /**
      * Most frequent result outcomes in H2H matches.
+     * Scope: All H2H meetings.
      */
     @Data
     @Builder
@@ -93,6 +99,7 @@ public class H2HInsightsResponse {
         private int drawCount;
         private int awayWinCount;
         private List<ScoreFrequency> topScorelines;  // Top 5 most common scores
+        private String dataScope;              // "H2H Only (All Meetings)"
     }
 
     /**

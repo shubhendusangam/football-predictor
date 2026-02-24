@@ -32,11 +32,17 @@ public class PreMatchInsightsService {
     private final SeasonTeamStatsRepository seasonTeamStatsRepository;
     private final TeamStatsService teamStatsService;
     private final H2HInsightsService h2hInsightsService;
+    private final InsightsValidationService validationService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final int FORM_WINDOW = 5;
     private static final int STREAK_THRESHOLD = 3;
     private static final int FATIGUE_DAYS_THRESHOLD = 4;
+    private static final String DATA_SCOPE_LAST_5 = "Last 5 Matches";
+    private static final String DATA_SCOPE_SEASON = "Season Average (All Matches)";
+    private static final String DATA_SCOPE_CONSECUTIVE = "Consecutive from latest match";
+    private static final String DATA_SCOPE_REST = "Days since last match";
+    private static final String THREAT_INDEX_FORMULA = "(Avg Goals Scored / 2.0) * 100";
 
     /**
      * Get comprehensive pre-match insights for a fixture.
@@ -81,7 +87,24 @@ public class PreMatchInsightsService {
         GoalThreatMeter goalThreatMeter = calculateGoalThreatMeter(homeTeamMatches, awayTeamMatches, normalizedHome, normalizedAway);
         MarketPredictions marketPredictions = calculateMarketPredictions(homeTeamMatches, awayTeamMatches, normalizedHome, normalizedAway);
 
-        return PreMatchInsightsResponse.builder()
+        // Calculate dedicated current streak for each team (STEP 1-3: Team-specific streak calculation)
+        CurrentStreak homeCurrentStreak = calculateCurrentStreak(homeTeamMatches, normalizedHome);
+        CurrentStreak awayCurrentStreak = calculateCurrentStreak(awayTeamMatches, normalizedAway);
+
+        // Debug logging for streak verification (STEP 3)
+        log.debug("Streak Debug - Team: {}, Last 6 Results: {}, Winless Streak: {}, Win Streak: {}",
+                normalizedHome, homeCurrentStreak.getRecentResults(),
+                homeCurrentStreak.getWinlessStreak(), homeCurrentStreak.getWinStreak());
+        log.debug("Streak Debug - Team: {}, Last 6 Results: {}, Winless Streak: {}, Win Streak: {}",
+                normalizedAway, awayCurrentStreak.getRecentResults(),
+                awayCurrentStreak.getWinlessStreak(), awayCurrentStreak.getWinStreak());
+
+        // Generate key insights with consistency check (STEP 4)
+        List<String> keyInsights = generateKeyInsightsWithStreakConsistency(
+                formComparison, restAnalysis, goalThreatMeter,
+                homeCurrentStreak, awayCurrentStreak);
+
+        PreMatchInsightsResponse response = PreMatchInsightsResponse.builder()
                 .homeTeam(normalizedHome)
                 .awayTeam(normalizedAway)
                 .formComparison(formComparison)
@@ -89,14 +112,28 @@ public class PreMatchInsightsService {
                 .restAnalysis(restAnalysis)
                 .goalThreatMeter(goalThreatMeter)
                 .marketPredictions(marketPredictions)
-                .keyInsights(generateKeyInsights(formComparison, streakIndicators, restAnalysis, goalThreatMeter))
+                .keyInsights(keyInsights)
+                .homeCurrentStreak(homeCurrentStreak)
+                .awayCurrentStreak(awayCurrentStreak)
                 .generatedAt(LocalDate.now().format(DATE_FORMATTER))
                 .build();
+
+        // STEP 6: Validation layer - verify consistency before returning
+        List<String> validationErrors = validationService.validatePreMatchInsights(response);
+        if (!validationErrors.isEmpty()) {
+            log.error("Validation errors detected for {} vs {}: {}", normalizedHome, normalizedAway, validationErrors);
+            // Log the errors but still return the response - UI can decide how to handle
+            // In production, you might want to throw an exception or return a fallback response
+        }
+
+        return response;
     }
 
 
     /**
      * Calculate form comparison between two teams.
+     * Scope: Last 5 matches only.
+     * PPG = Total points in last 5 / 5
      */
     private FormComparison calculateFormComparison(List<Match> homeMatches, List<Match> awayMatches,
                                                     String homeTeam, String awayTeam) {
@@ -105,12 +142,14 @@ public class PreMatchInsightsService {
         int homeFormPoints = calculateFormPoints(homeLast5, homeTeam);
         String homeFormString = buildFormString(homeLast5, homeTeam);
         double homeFormRating = calculateFormRating(homeLast5, homeTeam);
+        double homePointsPerGame = (double) homeFormPoints / FORM_WINDOW;
 
         // Away team form (last 5)
         List<Match> awayLast5 = awayMatches.stream().limit(FORM_WINDOW).toList();
         int awayFormPoints = calculateFormPoints(awayLast5, awayTeam);
         String awayFormString = buildFormString(awayLast5, awayTeam);
         double awayFormRating = calculateFormRating(awayLast5, awayTeam);
+        double awayPointsPerGame = (double) awayFormPoints / FORM_WINDOW;
 
         // Determine form advantage
         String formAdvantage;
@@ -128,15 +167,18 @@ public class PreMatchInsightsService {
 
         return FormComparison.builder()
                 .homeFormPoints(homeFormPoints)
+                .homePointsPerGame(PredictionUtils.round(homePointsPerGame))
                 .homeFormString(homeFormString)
                 .homeFormRating(homeFormRating)
                 .homeMaxPoints(FORM_WINDOW * 3)
                 .awayFormPoints(awayFormPoints)
+                .awayPointsPerGame(PredictionUtils.round(awayPointsPerGame))
                 .awayFormString(awayFormString)
                 .awayFormRating(awayFormRating)
                 .awayMaxPoints(FORM_WINDOW * 3)
                 .formAdvantage(formAdvantage)
                 .pointsDifference(homeFormPoints - awayFormPoints)
+                .dataScope(DATA_SCOPE_LAST_5)
                 .build();
     }
 
@@ -181,6 +223,7 @@ public class PreMatchInsightsService {
                     .description(teamName + " on " + winStreak + "-match winning streak")
                     .impact("POSITIVE")
                     .isHomeTeam(isHomeTeam)
+                    .dataScope(DATA_SCOPE_CONSECUTIVE)
                     .build());
         }
 
@@ -202,6 +245,7 @@ public class PreMatchInsightsService {
                     .description(teamName + " unbeaten in last " + unbeatenStreak + " matches")
                     .impact("POSITIVE")
                     .isHomeTeam(isHomeTeam)
+                    .dataScope(DATA_SCOPE_CONSECUTIVE)
                     .build());
         }
 
@@ -223,6 +267,7 @@ public class PreMatchInsightsService {
                     .description(teamName + " lost last " + lossStreak + " matches")
                     .impact("NEGATIVE")
                     .isHomeTeam(isHomeTeam)
+                    .dataScope(DATA_SCOPE_CONSECUTIVE)
                     .build());
         }
 
@@ -244,6 +289,7 @@ public class PreMatchInsightsService {
                     .description(teamName + " without a win in " + winlessStreak + " matches")
                     .impact("NEGATIVE")
                     .isHomeTeam(isHomeTeam)
+                    .dataScope(DATA_SCOPE_CONSECUTIVE)
                     .build());
         }
 
@@ -265,6 +311,7 @@ public class PreMatchInsightsService {
                     .description(teamName + " scored in last " + scoringStreak + " matches")
                     .impact("POSITIVE")
                     .isHomeTeam(isHomeTeam)
+                    .dataScope(DATA_SCOPE_CONSECUTIVE)
                     .build());
         }
 
@@ -286,6 +333,7 @@ public class PreMatchInsightsService {
                     .description(teamName + " kept " + cleanSheetStreak + " consecutive clean sheets")
                     .impact("POSITIVE")
                     .isHomeTeam(isHomeTeam)
+                    .dataScope(DATA_SCOPE_CONSECUTIVE)
                     .build());
         }
     }
@@ -339,6 +387,7 @@ public class PreMatchInsightsService {
                 .fatigueWarnings(fatigueWarnings)
                 .homeFatigueRisk(homeRestDays < FATIGUE_DAYS_THRESHOLD)
                 .awayFatigueRisk(awayRestDays < FATIGUE_DAYS_THRESHOLD)
+                .dataScope(DATA_SCOPE_REST)
                 .build();
     }
 
@@ -403,6 +452,11 @@ public class PreMatchInsightsService {
         double homeThreatRating = Math.min(100, (homeExpectedGoals / 2.0) * 100);
         double awayThreatRating = Math.min(100, (awayExpectedGoals / 2.0) * 100);
 
+        // Goal Threat Index: (Avg goals scored / league max avg 2.0) * 100
+        // This measures offensive capability relative to league maximum
+        double homeGoalThreatIndex = Math.min(100, (homeAvgScored / 2.0) * 100);
+        double awayGoalThreatIndex = Math.min(100, (awayAvgScored / 2.0) * 100);
+
         return GoalThreatMeter.builder()
                 .homeTeamAvgScored(PredictionUtils.round(homeAvgScored))
                 .homeTeamAvgConceded(PredictionUtils.round(homeAvgConceded))
@@ -413,6 +467,10 @@ public class PreMatchInsightsService {
                 .totalExpectedGoals(PredictionUtils.round(totalExpectedGoals))
                 .homeThreatRating(PredictionUtils.round(homeThreatRating))
                 .awayThreatRating(PredictionUtils.round(awayThreatRating))
+                .homeGoalThreatIndex(PredictionUtils.round(homeGoalThreatIndex))
+                .awayGoalThreatIndex(PredictionUtils.round(awayGoalThreatIndex))
+                .dataScope(DATA_SCOPE_SEASON)
+                .threatIndexFormula(THREAT_INDEX_FORMULA)
                 .build();
     }
 
@@ -481,14 +539,142 @@ public class PreMatchInsightsService {
                 .expectedAwayGoals(expectedAwayGoals)
                 .expectedTotalGoals(expectedTotalGoals)
                 .recommendation(recommendation)
+                .dataScope(DATA_SCOPE_SEASON)
                 .build();
     }
 
     /**
-     * Generate key insights summary.
+     * Calculate comprehensive current streak for a team (STEP 1 & 2).
+     * Filters matches by team_id and calculates all streak types.
+     *
+     * @param matches List of team's matches sorted DESC by date (most recent first)
+     * @param teamName The team name to calculate streaks for
+     * @return CurrentStreak with all streak counts and display text
      */
-    private List<String> generateKeyInsights(FormComparison form, List<StreakIndicator> streaks,
-                                              RestAnalysis rest, GoalThreatMeter threat) {
+    private CurrentStreak calculateCurrentStreak(List<Match> matches, String teamName) {
+        if (matches == null || matches.isEmpty()) {
+            return CurrentStreak.builder()
+                    .teamName(teamName)
+                    .winlessStreak(0)
+                    .winStreak(0)
+                    .lossStreak(0)
+                    .unbeatenStreak(0)
+                    .primaryStreakType("NONE")
+                    .primaryStreakCount(0)
+                    .displayText("No matches found")
+                    .emoji("")
+                    .recentResults("")
+                    .build();
+        }
+
+        // STEP 1: Calculate all streak types from most recent match backward
+        int winlessStreak = 0;
+        int winStreak = 0;
+        int lossStreak = 0;
+        int unbeatenStreak = 0;
+
+        // Build recent results string (last 6 matches for debug logging)
+        StringBuilder recentResults = new StringBuilder();
+        int resultLimit = Math.min(6, matches.size());
+
+        for (int i = 0; i < resultLimit; i++) {
+            int points = matches.get(i).getPointsForTeam(teamName);
+            recentResults.append(points == 3 ? "W" : points == 1 ? "D" : "L");
+        }
+
+        // Calculate winless streak (consecutive matches without a win)
+        for (Match m : matches) {
+            if (m.getPointsForTeam(teamName) < 3) {
+                winlessStreak++;
+            } else {
+                break;
+            }
+        }
+
+        // Calculate win streak (consecutive wins)
+        for (Match m : matches) {
+            if (m.getPointsForTeam(teamName) == 3) {
+                winStreak++;
+            } else {
+                break;
+            }
+        }
+
+        // Calculate loss streak (consecutive losses)
+        for (Match m : matches) {
+            if (m.getPointsForTeam(teamName) == 0) {
+                lossStreak++;
+            } else {
+                break;
+            }
+        }
+
+        // Calculate unbeaten streak (consecutive matches without a loss)
+        for (Match m : matches) {
+            if (m.getPointsForTeam(teamName) >= 1) {
+                unbeatenStreak++;
+            } else {
+                break;
+            }
+        }
+
+        // Determine primary streak type and display text (STEP 5: Display Rule)
+        String primaryStreakType;
+        int primaryStreakCount;
+        String displayText;
+        String emoji;
+
+        // Priority: WIN > LOSS > WINLESS > UNBEATEN > NONE
+        if (winStreak > 0) {
+            primaryStreakType = "WIN";
+            primaryStreakCount = winStreak;
+            displayText = winStreak + " Win" + (winStreak > 1 ? "s" : "");
+            emoji = "🔥";
+        } else if (lossStreak > 0) {
+            primaryStreakType = "LOSS";
+            primaryStreakCount = lossStreak;
+            displayText = lossStreak + " Loss" + (lossStreak > 1 ? "es" : "");
+            emoji = "❄️";
+        } else if (winlessStreak > 0) {
+            primaryStreakType = "WINLESS";
+            primaryStreakCount = winlessStreak;
+            displayText = winlessStreak + " Winless";
+            emoji = "⚠️";
+        } else if (unbeatenStreak > 0) {
+            primaryStreakType = "UNBEATEN";
+            primaryStreakCount = unbeatenStreak;
+            displayText = unbeatenStreak + " Unbeaten";
+            emoji = "💪";
+        } else {
+            primaryStreakType = "NONE";
+            primaryStreakCount = 0;
+            displayText = "No active streak";
+            emoji = "";
+        }
+
+        return CurrentStreak.builder()
+                .teamName(teamName)
+                .winlessStreak(winlessStreak)
+                .winStreak(winStreak)
+                .lossStreak(lossStreak)
+                .unbeatenStreak(unbeatenStreak)
+                .primaryStreakType(primaryStreakType)
+                .primaryStreakCount(primaryStreakCount)
+                .displayText(displayText)
+                .emoji(emoji)
+                .recentResults(recentResults.toString())
+                .build();
+    }
+
+    /**
+     * Generate key insights with streak consistency check (STEP 4).
+     * Ensures Key Insight only mentions a team's streak if it matches the CurrentStreak data.
+     */
+    private List<String> generateKeyInsightsWithStreakConsistency(
+            FormComparison form,
+            RestAnalysis rest, GoalThreatMeter threat,
+            CurrentStreak homeStreak, CurrentStreak awayStreak) {
+
         List<String> insights = new ArrayList<>();
 
         // Form insight
@@ -500,8 +686,11 @@ public class PreMatchInsightsService {
                     form.getAwayFormPoints() + " vs " + form.getHomeFormPoints() + " pts)");
         }
 
-        // Streak insights (top 2)
-        streaks.stream().limit(2).forEach(s -> insights.add(s.getEmoji() + " " + s.getDescription()));
+        // STEP 4: Streak insights with consistency - only add if streak count > 0
+        // Home team streaks
+        addStreakInsight(insights, homeStreak);
+        // Away team streaks
+        addStreakInsight(insights, awayStreak);
 
         // Rest insight
         if (!rest.getFatigueWarnings().isEmpty()) {
@@ -518,6 +707,49 @@ public class PreMatchInsightsService {
         }
 
         return insights;
+    }
+
+    /**
+     * Add streak insight for a team based on their CurrentStreak data (STEP 4: Consistency Rule).
+     * Only adds insight if streak count is significant (>= threshold).
+     */
+    private void addStreakInsight(List<String> insights, CurrentStreak streak) {
+        if (streak == null) {
+            return;
+        }
+
+        String teamName = streak.getTeamName();
+
+        // Primary streak insights based on type
+        switch (streak.getPrimaryStreakType()) {
+            case "WIN":
+                if (streak.getWinStreak() >= STREAK_THRESHOLD) {
+                    insights.add("🔥 " + teamName + " on " + streak.getWinStreak() + "-match winning streak");
+                }
+                break;
+            case "LOSS":
+                if (streak.getLossStreak() >= STREAK_THRESHOLD) {
+                    insights.add("❄️ " + teamName + " lost last " + streak.getLossStreak() + " matches");
+                }
+                // Also add winless insight if winless streak is significant (LOSS implies winless)
+                if (streak.getWinlessStreak() >= STREAK_THRESHOLD + 2 && streak.getWinlessStreak() > streak.getLossStreak()) {
+                    insights.add("⚠️ " + teamName + " without a win in " + streak.getWinlessStreak() + " matches");
+                }
+                break;
+            case "WINLESS":
+                if (streak.getWinlessStreak() >= STREAK_THRESHOLD + 2) {
+                    insights.add("⚠️ " + teamName + " without a win in " + streak.getWinlessStreak() + " matches");
+                }
+                break;
+            case "UNBEATEN":
+                if (streak.getUnbeatenStreak() >= STREAK_THRESHOLD + 2) {
+                    insights.add("💪 " + teamName + " unbeaten in last " + streak.getUnbeatenStreak() + " matches");
+                }
+                break;
+            default:
+                // NONE - no insight to add
+                break;
+        }
     }
 
     // Helper methods
@@ -591,13 +823,59 @@ public class PreMatchInsightsService {
         return PreMatchInsightsResponse.builder()
                 .homeTeam(homeTeam)
                 .awayTeam(awayTeam)
-                .formComparison(FormComparison.builder().build())
+                .formComparison(FormComparison.builder()
+                        .homeFormPoints(0)
+                        .homePointsPerGame(0.0)
+                        .homeFormString("")
+                        .homeFormRating(0.0)
+                        .homeMaxPoints(FORM_WINDOW * 3)
+                        .awayFormPoints(0)
+                        .awayPointsPerGame(0.0)
+                        .awayFormString("")
+                        .awayFormRating(0.0)
+                        .awayMaxPoints(FORM_WINDOW * 3)
+                        .formAdvantage("N/A")
+                        .pointsDifference(0)
+                        .dataScope(DATA_SCOPE_LAST_5)
+                        .build())
                 .streakIndicators(Collections.emptyList())
                 .restAnalysis(RestAnalysis.builder()
                         .fatigueWarnings(Collections.emptyList())
+                        .dataScope(DATA_SCOPE_REST)
                         .build())
-                .goalThreatMeter(GoalThreatMeter.builder().build())
-                .marketPredictions(MarketPredictions.builder().build())
+                .goalThreatMeter(GoalThreatMeter.builder()
+                        .homeGoalThreatIndex(0.0)
+                        .awayGoalThreatIndex(0.0)
+                        .dataScope(DATA_SCOPE_SEASON)
+                        .threatIndexFormula(THREAT_INDEX_FORMULA)
+                        .build())
+                .marketPredictions(MarketPredictions.builder()
+                        .dataScope(DATA_SCOPE_SEASON)
+                        .build())
+                .homeCurrentStreak(CurrentStreak.builder()
+                        .teamName(homeTeam)
+                        .winlessStreak(0)
+                        .winStreak(0)
+                        .lossStreak(0)
+                        .unbeatenStreak(0)
+                        .primaryStreakType("NONE")
+                        .primaryStreakCount(0)
+                        .displayText("No active streak")
+                        .emoji("")
+                        .recentResults("")
+                        .build())
+                .awayCurrentStreak(CurrentStreak.builder()
+                        .teamName(awayTeam)
+                        .winlessStreak(0)
+                        .winStreak(0)
+                        .lossStreak(0)
+                        .unbeatenStreak(0)
+                        .primaryStreakType("NONE")
+                        .primaryStreakCount(0)
+                        .displayText("No active streak")
+                        .emoji("")
+                        .recentResults("")
+                        .build())
                 .keyInsights(List.of("Insufficient data available"))
                 .generatedAt(LocalDate.now().format(DATE_FORMATTER))
                 .build();

@@ -20,6 +20,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
@@ -32,6 +33,9 @@ class H2HInsightsServiceTest {
     @Mock
     private MatchRepository matchRepository;
 
+    @Mock
+    private InsightsValidationService validationService;
+
     @InjectMocks
     private H2HInsightsService h2hInsightsService;
 
@@ -39,6 +43,10 @@ class H2HInsightsServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Setup validation service to return no errors by default (lenient for tests that don't reach validation)
+        lenient().when(validationService.validateH2HInsights(any()))
+                .thenReturn(Collections.emptyList());
+
         // Create sample H2H match data between Arsenal and Chelsea
         h2hMatches = Arrays.asList(
                 createMatch("Arsenal", "Chelsea", 2, 1, "H", LocalDate.of(2025, 12, 1)),

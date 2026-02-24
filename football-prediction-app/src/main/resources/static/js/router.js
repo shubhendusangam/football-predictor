@@ -515,6 +515,10 @@ class Router {
         const goalThreatMeter = preMatch.goalThreatMeter || {};
         const keyInsights = preMatch.keyInsights || [];
 
+        // Extract dedicated CurrentStreak fields (new unified streak data)
+        const homeCurrentStreak = preMatch.homeCurrentStreak || null;
+        const awayCurrentStreak = preMatch.awayCurrentStreak || null;
+
         const historicalRecord = h2h.historicalRecord || {};
         const recentMeetings = h2h.recentMeetings || [];
         const goalStats = h2h.goalStats || {};
@@ -523,7 +527,7 @@ class Router {
 
         return `
             <!-- SECTION 1: Metrics Comparison Table -->
-            ${this.renderMetricsComparisonTable(homeTeam, awayTeam, formComparison, streakIndicators, restAnalysis, goalThreatMeter)}
+            ${this.renderMetricsComparisonTable(homeTeam, awayTeam, formComparison, streakIndicators, restAnalysis, goalThreatMeter, homeCurrentStreak, awayCurrentStreak)}
 
             <!-- SECTION 2: Form Comparison Bar -->
             ${this.renderFormComparisonBar(homeTeam, awayTeam, formComparison)}
@@ -545,13 +549,37 @@ class Router {
     /**
      * SECTION 1: Metrics Comparison Table
      */
-    renderMetricsComparisonTable(homeTeam, awayTeam, form, streaks, rest, goalThreat) {
-        // Find streaks for each team
-        const homeStreaks = streaks.filter(s => s.isHomeTeam);
-        const awayStreaks = streaks.filter(s => !s.isHomeTeam);
+    renderMetricsComparisonTable(homeTeam, awayTeam, form, streaks, rest, goalThreat, homeCurrentStreak, awayCurrentStreak) {
+        // Use dedicated CurrentStreak fields for accurate display (STEP 5: Display Rule)
+        const getStreakDisplay = (currentStreak, fallbackStreaks, isHome) => {
+            // First try to use the dedicated CurrentStreak object
+            if (currentStreak && currentStreak.primaryStreakType) {
+                const type = currentStreak.primaryStreakType;
+                const count = currentStreak.primaryStreakCount || 0;
+                const emoji = currentStreak.emoji || '';
+                const displayText = currentStreak.displayText || '';
 
-        const getStreakDisplay = (teamStreaks) => {
-            if (!teamStreaks || teamStreaks.length === 0) return '-';
+                // STEP 5: Show "No active streak" if count is 0 or type is NONE
+                if (type === 'NONE' || count === 0) {
+                    return '<span class="streak-badge no-streak">No active streak</span>';
+                }
+
+                let badgeClass = 'unbeaten-streak';
+                if (type === 'WIN') badgeClass = 'win-streak';
+                else if (type === 'LOSS' || type === 'WINLESS') badgeClass = 'loss-streak';
+
+                return `<span class="streak-badge ${badgeClass}">${emoji} ${displayText}</span>`;
+            }
+
+            // Fallback to old streakIndicators if CurrentStreak not available
+            const teamStreaks = isHome
+                ? fallbackStreaks.filter(s => s.isHomeTeam)
+                : fallbackStreaks.filter(s => !s.isHomeTeam);
+
+            if (!teamStreaks || teamStreaks.length === 0) {
+                return '<span class="streak-badge no-streak">No active streak</span>';
+            }
+
             const streak = teamStreaks[0];
             const emoji = streak.emoji || '';
             const type = streak.streakType || '';
@@ -594,8 +622,8 @@ class Router {
                         </tr>
                         <tr>
                             <td class="metric-name"><span class="metric-icon">🔥</span> Current Streak</td>
-                            <td class="home-value">${getStreakDisplay(homeStreaks)}</td>
-                            <td class="away-value">${getStreakDisplay(awayStreaks)}</td>
+                            <td class="home-value">${getStreakDisplay(homeCurrentStreak, streaks, true)}</td>
+                            <td class="away-value">${getStreakDisplay(awayCurrentStreak, streaks, false)}</td>
                         </tr>
                         <tr>
                             <td class="metric-name"><span class="metric-icon">⏱️</span> Rest Days</td>
