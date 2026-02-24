@@ -9,12 +9,28 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * Repository for Match entities.
+ *
+ * <p><strong>IMPORTANT: Ordering Convention</strong></p>
+ * <p>All queries that return matches for form/streak calculation are ordered by
+ * {@code matchDate DESC} (newest first). This is required for:</p>
+ * <ul>
+ *   <li>Streak calculations (must start from most recent match)</li>
+ *   <li>Form calculations (recent matches weighted correctly)</li>
+ *   <li>Days since last match (first element is most recent)</li>
+ * </ul>
+ */
 @Repository
 public interface MatchRepository extends JpaRepository<Match, Long> {
 
    /**
     * All matches involving a team (home or away), ordered by date descending.
-    * Used for general form calculation.
+    * Matches are returned in DESCENDING order (newest first). Required for streak and form logic.
+    *
+    * @param team   Team name to search for
+    * @param before Cutoff date (exclusive)
+    * @return List of matches sorted by date DESC
     */
    @Query("SELECT m FROM Match m WHERE (m.homeTeam = :team OR m.awayTeam = :team) " +
          "AND m.matchDate < :before ORDER BY m.matchDate DESC")
@@ -32,7 +48,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
    /**
     * Home matches only for a team before a given date.
+    * Matches are returned in DESCENDING order (newest first). Required for streak and form logic.
     * Used to compute home-specific form and goal averages.
+    *
+    * @param team   Team name to search for
+    * @param before Cutoff date (exclusive)
+    * @return List of home matches sorted by date DESC
     */
    @Query("SELECT m FROM Match m WHERE m.homeTeam = :team " +
          "AND m.matchDate < :before ORDER BY m.matchDate DESC")
@@ -49,7 +70,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
 
    /**
     * Away matches only for a team before a given date.
+    * Matches are returned in DESCENDING order (newest first). Required for streak and form logic.
     * Used to compute away-specific form and goal averages.
+    *
+    * @param team   Team name to search for
+    * @param before Cutoff date (exclusive)
+    * @return List of away matches sorted by date DESC
     */
    @Query("SELECT m FROM Match m WHERE m.awayTeam = :team " +
          "AND m.matchDate < :before ORDER BY m.matchDate DESC")
@@ -82,6 +108,12 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
    /**
     * Head-to-head history between two specific teams before a given date.
     * Covers both home and away permutations.
+    * Matches are returned in DESCENDING order (newest first). Required for streak and form logic.
+    *
+    * @param homeTeam First team (or home team in upcoming match context)
+    * @param awayTeam Second team (or away team in upcoming match context)
+    * @param before   Cutoff date (exclusive)
+    * @return List of H2H matches sorted by date DESC
     */
    @Query("SELECT m FROM Match m WHERE " +
          "((m.homeTeam = :home AND m.awayTeam = :away) OR " +
@@ -178,4 +210,165 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     */
    @Query("SELECT DISTINCT m.season FROM Match m WHERE m.season IS NOT NULL ORDER BY m.season DESC")
    List<String> findAllSeasons();
+
+   // ══════════════════════════════════════════════════════════════════════
+   // STRICT SEASON-FILTERED QUERIES WITH DB-LEVEL LIMITS
+   // All queries enforce: season + matchDate < beforeDate + ORDER BY DESC + LIMIT
+   // ══════════════════════════════════════════════════════════════════════
+
+   /**
+    * Home matches for a team within a season, before a date, with DB-level limit.
+    * Used for form calculation. Only returns completed matches.
+    *
+    * @param team   Team name
+    * @param season Season identifier (e.g., "2024-25")
+    * @param before Cutoff date (exclusive)
+    * @param limit  Maximum number of matches to return
+    * @return List of home matches sorted by date DESC, limited at DB level
+    */
+   @Query(value = "SELECT * FROM matches m WHERE m.home_team = :team " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findHomeMatchesByTeamSeasonBeforeDateLimited(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Away matches for a team within a season, before a date, with DB-level limit.
+    * Used for form calculation. Only returns completed matches.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE m.away_team = :team " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findAwayMatchesByTeamSeasonBeforeDateLimited(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * All matches (home or away) for a team within a season, before a date, with DB-level limit.
+    * Used for overall form, streaks, and goal difference calculations.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE (m.home_team = :team OR m.away_team = :team) " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findByTeamSeasonBeforeDateLimited(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Head-to-head matches between two teams, before a date, limited to last N.
+    * No season filter - H2H history spans multiple seasons.
+    * Limited to 5 matches as per Premier League convention.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE " +
+         "((m.home_team = :home AND m.away_team = :away) OR " +
+         " (m.home_team = :away AND m.away_team = :home)) " +
+         "AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findH2HBeforeDateLimited(
+         @Param("home") String homeTeam,
+         @Param("away") String awayTeam,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Most recent match for a team within the same season.
+    * Used for days-since-last-match calculation (ignores cross-season gaps).
+    */
+   @Query(value = "SELECT * FROM matches m WHERE (m.home_team = :team OR m.away_team = :team) " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT 1", nativeQuery = true)
+   List<Match> findLastMatchByTeamAndSeasonBeforeDate(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before);
+
+   /**
+    * All completed matches in a season before a given date.
+    * Used for league table calculation at a specific point in time.
+    */
+   @Query("SELECT m FROM Match m WHERE m.season = :season " +
+         "AND m.matchDate < :before AND m.fullTimeResult IS NOT NULL " +
+         "ORDER BY m.matchDate ASC")
+   List<Match> findBySeasonBeforeDateForTable(
+         @Param("season") String season,
+         @Param("before") LocalDate before);
+
+   /**
+    * Home matches with shots data for a team within a season.
+    * Excludes matches where shot data is null.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE m.home_team = :team " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "AND m.home_shots_on_target IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findHomeMatchesWithShotsData(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Away matches with shots data for a team within a season.
+    * Excludes matches where shot data is null.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE m.away_team = :team " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "AND m.away_shots_on_target IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findAwayMatchesWithShotsData(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Home matches with corners data for a team within a season.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE m.home_team = :team " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "AND m.home_corners IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findHomeMatchesWithCornersData(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Away matches with corners data for a team within a season.
+    */
+   @Query(value = "SELECT * FROM matches m WHERE m.away_team = :team " +
+         "AND m.season = :season AND m.match_date < :before " +
+         "AND m.full_time_result IS NOT NULL " +
+         "AND m.away_corners IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT :limit", nativeQuery = true)
+   List<Match> findAwayMatchesWithCornersData(
+         @Param("team") String team,
+         @Param("season") String season,
+         @Param("before") LocalDate before,
+         @Param("limit") int limit);
+
+   /**
+    * Get season for a specific date.
+    * Returns the season that contains matches closest to the given date.
+    */
+   @Query(value = "SELECT m.season FROM matches m WHERE m.match_date <= :date " +
+         "AND m.full_time_result IS NOT NULL " +
+         "ORDER BY m.match_date DESC LIMIT 1", nativeQuery = true)
+   String findSeasonForDate(@Param("date") LocalDate date);
 }

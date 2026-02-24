@@ -399,5 +399,104 @@ public class LeagueStandingService {
         // Convert dash to slash for display
         return season.replace("-", "/");
     }
-}
 
+    // ========== Date-Based Standings (for Feature Engineering) ==========
+
+    /**
+     * Calculate league standings as of a specific date.
+     * Used by feature engineering to get accurate historical positions.
+     *
+     * @param asOfDate The date to calculate standings up to (exclusive)
+     * @return Map of team name to position (1-based)
+     */
+    @Cacheable(value = CacheConfig.CACHE_STANDINGS, key = "'date_' + #asOfDate.toString()")
+    public Map<String, Integer> getStandingsAsOfDate(LocalDate asOfDate) {
+        log.debug("Calculating standings as of date: {}", asOfDate);
+
+        // Get all matches before this date
+        List<Match> matches = matchRepository.findAllByOrderByMatchDateAsc().stream()
+                .filter(m -> m.getMatchDate() != null)
+                .filter(m -> m.getMatchDate().isBefore(asOfDate))
+                .filter(m -> m.getFullTimeResult() != null)
+                .toList();
+
+        if (matches.isEmpty()) {
+            log.debug("No matches found before date: {}", asOfDate);
+            return Collections.emptyMap();
+        }
+
+        // Calculate standings from matches
+        Map<String, TeamStandingData> standingsMap = new HashMap<>();
+
+        for (Match match : matches) {
+            String homeTeam = match.getHomeTeam();
+            String awayTeam = match.getAwayTeam();
+
+            standingsMap.computeIfAbsent(homeTeam, k -> new TeamStandingData());
+            standingsMap.computeIfAbsent(awayTeam, k -> new TeamStandingData());
+
+            TeamStandingData homeSt = standingsMap.get(homeTeam);
+            TeamStandingData awaySt = standingsMap.get(awayTeam);
+
+            int homeGoals = match.getFullTimeHomeGoals() != null ? match.getFullTimeHomeGoals() : 0;
+            int awayGoals = match.getFullTimeAwayGoals() != null ? match.getFullTimeAwayGoals() : 0;
+
+            // Update stats
+            homeSt.update(homeGoals, awayGoals);
+            awaySt.update(awayGoals, homeGoals);
+        }
+
+        // Sort by points, then goal difference, then goals scored
+        List<Map.Entry<String, TeamStandingData>> sortedList = standingsMap.entrySet().stream()
+                .sorted((e1, e2) -> {
+                    int cmp = Integer.compare(e2.getValue().points, e1.getValue().points);
+                    if (cmp != 0) return cmp;
+                    cmp = Integer.compare(e2.getValue().goalDifference, e1.getValue().goalDifference);
+                    if (cmp != 0) return cmp;
+                    return Integer.compare(e2.getValue().goalsFor, e1.getValue().goalsFor);
+                })
+                .toList();
+
+        // Build position map
+        Map<String, Integer> positions = new HashMap<>();
+        for (int i = 0; i < sortedList.size(); i++) {
+            positions.put(sortedList.get(i).getKey(), i + 1);
+        }
+
+        return positions;
+    }
+
+    /**
+     * Get a team's league position as of a specific date.
+     *
+     * @param teamName The team to get position for
+     * @param asOfDate The date to calculate position as of
+     * @return Position (1-based), or 10 (mid-table) if not found
+     */
+    public int getTeamPositionAsOfDate(String teamName, LocalDate asOfDate) {
+        Map<String, Integer> standings = getStandingsAsOfDate(asOfDate);
+        return standings.getOrDefault(teamName, 10);  // Default to mid-table
+    }
+
+    /**
+     * Internal class for calculating standings.
+     */
+    private static class TeamStandingData {
+        int points = 0;
+        int goalsFor = 0;
+        int goalsAgainst = 0;
+        int goalDifference = 0;
+
+        void update(int scored, int conceded) {
+            this.goalsFor += scored;
+            this.goalsAgainst += conceded;
+            this.goalDifference = this.goalsFor - this.goalsAgainst;
+
+            if (scored > conceded) {
+                this.points += 3;
+            } else if (scored == conceded) {
+                this.points += 1;
+            }
+        }
+    }
+}

@@ -3,6 +3,10 @@ package com.app.common.model;
 import lombok.Builder;
 import lombok.Data;
 
+/**
+ * Feature vector for match prediction.
+ * Contains all computed features used for model training and prediction.
+ */
 @Data
 @Builder
 public class MatchFeatures {
@@ -30,7 +34,7 @@ public class MatchFeatures {
    private double homeCornersAvg;
    private double awayCornersAvg;
 
-   // ── Phase 3 features (NEW) ─────────────────────────────
+   // ── Phase 3 features ───────────────────────────────────
    private double homeGoalDifference;     // Goals scored - goals conceded (last N)
    private double awayGoalDifference;
    private double homeOverallFormPoints;  // Form across ALL matches (not just home/away)
@@ -41,6 +45,46 @@ public class MatchFeatures {
    private int awayUnbeatenStreak;
    private int homeDaysSinceLastMatch;    // Rest days (fatigue factor)
    private int awayDaysSinceLastMatch;
+
+   // ── Phase 4 features (Half-Time & League Position) ─────
+   /**
+    * Rate at which home team leads at half-time.
+    * Indicates team's ability to start strong.
+    */
+   @Builder.Default
+   private double homeHalfTimeLeadRate = 0.0;
+
+   /**
+    * Rate at which away team leads at half-time.
+    */
+   @Builder.Default
+   private double awayHalfTimeLeadRate = 0.0;
+
+   /**
+    * Rate at which home team comes back after trailing at half-time.
+    * Indicates mental strength and fitness.
+    */
+   @Builder.Default
+   private double homeComebackRate = 0.0;
+
+   /**
+    * Rate at which away team comes back after trailing at half-time.
+    */
+   @Builder.Default
+   private double awayComebackRate = 0.0;
+
+   /**
+    * Home team's league position (1 = top, 20 = bottom).
+    * Lower is better.
+    */
+   @Builder.Default
+   private int homeLeaguePosition = 10;
+
+   /**
+    * Away team's league position (1 = top, 20 = bottom).
+    */
+   @Builder.Default
+   private int awayLeaguePosition = 10;
 
    // ── Label (training only) ──────────────────────────────
    private String actualResult;        // "H", "D", "A" — null at prediction time

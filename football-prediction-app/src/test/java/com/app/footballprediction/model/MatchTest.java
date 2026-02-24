@@ -106,6 +106,7 @@ class MatchTest {
                     .awayTeam("Chelsea")
                     .fullTimeHomeGoals(3)
                     .fullTimeAwayGoals(1)
+                    .fullTimeResult("H")
                     .build();
 
             assertThat(match.getGoalsScoredByTeam("Arsenal")).isEqualTo(3);
@@ -119,6 +120,7 @@ class MatchTest {
                     .awayTeam("Chelsea")
                     .fullTimeHomeGoals(3)
                     .fullTimeAwayGoals(1)
+                    .fullTimeResult("H")
                     .build();
 
             assertThat(match.getGoalsScoredByTeam("Chelsea")).isEqualTo(1);
@@ -132,9 +134,24 @@ class MatchTest {
                     .awayTeam("Chelsea")
                     .fullTimeHomeGoals(3)
                     .fullTimeAwayGoals(1)
+                    .fullTimeResult("H")
                     .build();
 
             assertThat(match.getGoalsScoredByTeam("Liverpool")).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("returns 0 when fullTimeResult is null (null safety)")
+        void returnsZeroWhenResultIsNull() {
+            Match match = Match.builder()
+                    .homeTeam("Arsenal")
+                    .awayTeam("Chelsea")
+                    .fullTimeHomeGoals(3)
+                    .fullTimeAwayGoals(1)
+                    .fullTimeResult(null)
+                    .build();
+
+            assertThat(match.getGoalsScoredByTeam("Arsenal")).isEqualTo(0);
         }
     }
 
@@ -150,6 +167,7 @@ class MatchTest {
                     .awayTeam("Chelsea")
                     .fullTimeHomeGoals(3)
                     .fullTimeAwayGoals(1)
+                    .fullTimeResult("H")
                     .build();
 
             assertThat(match.getGoalsConcededByTeam("Arsenal")).isEqualTo(1);
@@ -163,9 +181,24 @@ class MatchTest {
                     .awayTeam("Chelsea")
                     .fullTimeHomeGoals(3)
                     .fullTimeAwayGoals(1)
+                    .fullTimeResult("H")
                     .build();
 
             assertThat(match.getGoalsConcededByTeam("Chelsea")).isEqualTo(3);
+        }
+
+        @Test
+        @DisplayName("returns 0 when fullTimeResult is null (null safety)")
+        void returnsZeroWhenResultIsNull() {
+            Match match = Match.builder()
+                    .homeTeam("Arsenal")
+                    .awayTeam("Chelsea")
+                    .fullTimeHomeGoals(3)
+                    .fullTimeAwayGoals(1)
+                    .fullTimeResult(null)
+                    .build();
+
+            assertThat(match.getGoalsConcededByTeam("Arsenal")).isEqualTo(0);
         }
     }
 

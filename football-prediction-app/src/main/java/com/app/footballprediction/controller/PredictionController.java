@@ -21,7 +21,6 @@ import com.app.common.model.MatchFeatures;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.TeamRepository;
 import com.app.common.util.PredictionUtils;
-import com.app.common.util.TeamNameNormalizer;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.scheduler.DataUpdateScheduler;
 import com.app.footballprediction.service.CacheStatisticsService;
@@ -32,6 +31,7 @@ import com.app.footballprediction.service.FootballDataApiService;
 import com.app.footballprediction.service.H2HInsightsService;
 import com.app.footballprediction.service.NewsService;
 import com.app.footballprediction.service.PredictionTrackingService;
+import com.app.footballprediction.service.TeamValidationService;
 import com.app.footballprediction.service.TrendingInsightsService;
 import com.app.footballprediction.service.LeagueStandingService;
 
@@ -57,6 +57,7 @@ public class PredictionController {
    private final TeamRepository teamRepository;
    private final PredictionTrackingService predictionTrackingService;
    private final LeagueStandingService leagueStandingService;
+   private final TeamValidationService teamValidationService;
 
    // ── Prediction ────────────────────────────────────────────────────────
 
@@ -96,9 +97,21 @@ public class PredictionController {
          ));
       }
 
-      // ── Normalize team names to match database format ─────────
-      String homeTeam = TeamNameNormalizer.normalize(request.getHomeTeam());
-      String awayTeam = TeamNameNormalizer.normalize(request.getAwayTeam());
+      // ── Validate and normalize team names ─────────────────────
+      TeamValidationService.ValidationResult homeValidation =
+            teamValidationService.validateTeam(request.getHomeTeam());
+      if (!homeValidation.isValid()) {
+         return ResponseEntity.badRequest().body(homeValidation.toErrorResponse());
+      }
+
+      TeamValidationService.ValidationResult awayValidation =
+            teamValidationService.validateTeam(request.getAwayTeam());
+      if (!awayValidation.isValid()) {
+         return ResponseEntity.badRequest().body(awayValidation.toErrorResponse());
+      }
+
+      String homeTeam = homeValidation.getNormalizedName();
+      String awayTeam = awayValidation.getNormalizedName();
 
       if (!homeTeam.equals(request.getHomeTeam()) || !awayTeam.equals(request.getAwayTeam())) {
          log.info("Normalized team names: '{}' -> '{}', '{}' -> '{}'",

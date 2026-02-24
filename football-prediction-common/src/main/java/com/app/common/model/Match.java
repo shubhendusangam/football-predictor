@@ -86,8 +86,16 @@ public class Match {
    private Double whD;      // William Hill Draw
    private Double whA;      // William Hill Away
 
+   /**
+    * Get points earned by a team in this match.
+    * Returns 3 for win, 1 for draw, 0 for loss.
+    * Null-safe: returns 0 if team name or result is null.
+    *
+    * @param teamName The team name to check
+    * @return Points earned (0, 1, or 3)
+    */
    public int getPointsForTeam(String teamName) {
-      if (teamName == null) return 0;
+      if (teamName == null || fullTimeResult == null) return 0;
       String normalizedName = teamName.trim();
       if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) {
          return switch (fullTimeResult) {
@@ -105,8 +113,15 @@ public class Match {
       return 0;
    }
 
+   /**
+    * Get goals scored by a team in this match.
+    * Null-safe: returns 0 if team name is null or doesn't match.
+    *
+    * @param teamName The team name to check
+    * @return Goals scored by the team
+    */
    public int getGoalsScoredByTeam(String teamName) {
-      if (teamName == null) return 0;
+      if (teamName == null || fullTimeResult == null) return 0;
       String normalizedName = teamName.trim();
       if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) {
          return fullTimeHomeGoals != null ? fullTimeHomeGoals : 0;
@@ -117,8 +132,15 @@ public class Match {
       return 0;
    }
 
+   /**
+    * Get goals conceded by a team in this match.
+    * Null-safe: returns 0 if team name is null or doesn't match.
+    *
+    * @param teamName The team name to check
+    * @return Goals conceded by the team
+    */
    public int getGoalsConcededByTeam(String teamName) {
-      if (teamName == null) return 0;
+      if (teamName == null || fullTimeResult == null) return 0;
       String normalizedName = teamName.trim();
       if (homeTeam != null && homeTeam.trim().equalsIgnoreCase(normalizedName)) {
          return fullTimeAwayGoals != null ? fullTimeAwayGoals : 0;
