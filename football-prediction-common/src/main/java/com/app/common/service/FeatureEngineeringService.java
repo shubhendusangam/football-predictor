@@ -249,6 +249,10 @@ public class FeatureEngineeringService {
             .homeLeaguePosition(calcLeaguePosition(homeTeam, season, beforeDate))
             .awayLeaguePosition(calcLeaguePosition(awayTeam, season, beforeDate))
 
+            // Possession proxy (estimated from shots + corners)
+            .homePossessionProxy(estimatePossession(homeTeamHomeMatches, homeTeam, true))
+            .awayPossessionProxy(estimatePossession(awayTeamAwayMatches, awayTeam, false))
+
             .build();
    }
 
@@ -415,6 +419,78 @@ public class FeatureEngineeringService {
             .mapToInt(m -> m.getGoalsScoredByTeam(teamName) - m.getGoalsConcededByTeam(teamName))
             .average()
             .orElse(0.0);
+   }
+
+   /**
+    * Estimate possession percentage using shots and corners as proxies.
+    *
+    * Formula: possession = (shotRatio × 0.6) + (cornerRatio × 0.4)
+    * Where:
+    * - shotRatio = teamShots / (teamShots + opponentShots)
+    * - cornerRatio = teamCorners / (teamCorners + opponentCorners)
+    *
+    * @param matches List of matches to analyze
+    * @param teamName The team to calculate possession for
+    * @param isHome Whether the team is playing at home in these matches
+    * @return Estimated possession as double (0.0 to 1.0, representing 0% to 100%)
+    */
+   public double estimatePossession(List<Match> matches, String teamName, boolean isHome) {
+      if (matches == null || matches.isEmpty()) {
+         return 0.5; // Default to 50% when no data
+      }
+
+      double totalShotRatio = 0.0;
+      double totalCornerRatio = 0.0;
+      int validShotMatches = 0;
+      int validCornerMatches = 0;
+
+      for (Match match : matches) {
+         // Calculate shot ratio
+         Integer teamShots;
+         Integer opponentShots;
+         Integer teamCorners;
+         Integer opponentCorners;
+
+         if (isHome) {
+            teamShots = match.getHomeShots();
+            opponentShots = match.getAwayShots();
+            teamCorners = match.getHomeCorners();
+            opponentCorners = match.getAwayCorners();
+         } else {
+            teamShots = match.getAwayShots();
+            opponentShots = match.getHomeShots();
+            teamCorners = match.getAwayCorners();
+            opponentCorners = match.getHomeCorners();
+         }
+
+         // Shot ratio calculation (null-safe)
+         if (teamShots != null && opponentShots != null) {
+            int totalShots = teamShots + opponentShots;
+            if (totalShots > 0) {
+               totalShotRatio += (double) teamShots / totalShots;
+               validShotMatches++;
+            }
+         }
+
+         // Corner ratio calculation (null-safe)
+         if (teamCorners != null && opponentCorners != null) {
+            int totalCorners = teamCorners + opponentCorners;
+            if (totalCorners > 0) {
+               totalCornerRatio += (double) teamCorners / totalCorners;
+               validCornerMatches++;
+            }
+         }
+      }
+
+      // Calculate average ratios
+      double avgShotRatio = validShotMatches > 0 ? totalShotRatio / validShotMatches : 0.5;
+      double avgCornerRatio = validCornerMatches > 0 ? totalCornerRatio / validCornerMatches : 0.5;
+
+      // Weighted formula: 60% shots, 40% corners
+      double possession = (avgShotRatio * 0.6) + (avgCornerRatio * 0.4);
+
+      // Clamp to [0.0, 1.0] range
+      return Math.max(0.0, Math.min(1.0, possession));
    }
 
    /**

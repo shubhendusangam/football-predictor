@@ -1,0 +1,433 @@
+/* ==========================================
+   SHOT QUALITY ANALYTICS CARD STYLES
+   Football Forecaster - Shot Quality Component
+   ========================================== */
+
+/* ==========================================
+   SHOT QUALITY CARDS CONTAINER (Side-by-side)
+   ========================================== */
+
+.shot-quality-cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .shot-quality-cards-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================
+   INDIVIDUAL SHOT QUALITY CARD
+   ========================================== */
+
+.shot-quality-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.shot-quality-card:hover {
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5));
+    border-color: var(--accent-green, #22c55e);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.shot-quality-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.shot-quality-card__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.shot-quality-card__venue-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.shot-quality-card__venue-badge--home {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.shot-quality-card__venue-badge--away {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue, #3b82f6);
+}
+
+/* ==========================================
+   CIRCULAR PROGRESS INDICATOR
+   ========================================== */
+
+.shot-quality-card__progress-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.shot-quality-card__circular-progress {
+    position: relative;
+    width: 140px;
+    height: 140px;
+}
+
+.shot-quality-card__circular-progress svg {
+    transform: rotate(-90deg);
+    width: 140px;
+    height: 140px;
+}
+
+.shot-quality-card__progress-bg {
+    fill: none;
+    stroke: var(--bg-tertiary, #334155);
+    stroke-width: 10;
+}
+
+.shot-quality-card__progress-bar {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+    transition: stroke-dasharray 1s ease-out, stroke 0.3s ease;
+}
+
+.shot-quality-card__progress-bar--excellent {
+    stroke: var(--accent-green, #22c55e);
+}
+
+.shot-quality-card__progress-bar--good {
+    stroke: #10b981;
+}
+
+.shot-quality-card__progress-bar--average {
+    stroke: var(--accent-yellow, #fbbf24);
+}
+
+.shot-quality-card__progress-bar--poor {
+    stroke: var(--accent-red, #ef4444);
+}
+
+.shot-quality-card__progress-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.shot-quality-card__progress-value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    line-height: 1;
+}
+
+.shot-quality-card__progress-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 0.25rem;
+}
+
+/* ==========================================
+   STATS GRID
+   ========================================== */
+
+.shot-quality-card__stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.shot-quality-card__stat {
+    background: var(--bg-tertiary, #334155);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    text-align: center;
+}
+
+.shot-quality-card__stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    line-height: 1.2;
+}
+
+.shot-quality-card__stat-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    margin-top: 0.25rem;
+}
+
+/* ==========================================
+   RATING BADGE
+   ========================================== */
+
+.shot-quality-card__rating-container {
+    display: flex;
+    justify-content: center;
+}
+
+.shot-quality-card__rating-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.shot-quality-card__rating-badge--above {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.shot-quality-card__rating-badge--near {
+    background-color: rgba(251, 191, 36, 0.15);
+    color: var(--accent-yellow, #fbbf24);
+}
+
+.shot-quality-card__rating-badge--below {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red, #ef4444);
+}
+
+.shot-quality-card__rating-icon {
+    font-size: 1rem;
+}
+
+/* ==========================================
+   SPARKLINE CHART
+   ========================================== */
+
+.shot-quality-card__sparkline-container {
+    margin-top: 0.5rem;
+}
+
+.shot-quality-card__sparkline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.shot-quality-card__sparkline-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted, #94a3b8);
+}
+
+.shot-quality-card__sparkline-legend {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.625rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.shot-quality-card__legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.shot-quality-card__legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.shot-quality-card__legend-dot--shots {
+    background-color: var(--accent-blue, #3b82f6);
+}
+
+.shot-quality-card__legend-dot--goals {
+    background-color: var(--accent-green, #22c55e);
+}
+
+.shot-quality-card__sparkline-canvas {
+    width: 100%;
+    height: 60px;
+    border-radius: 0.375rem;
+    background: var(--bg-tertiary, #334155);
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+
+.shot-quality-card--loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+}
+
+.shot-quality-card__loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-tertiary, #334155);
+    border-top-color: var(--accent-green, #22c55e);
+    border-radius: 50%;
+    animation: shot-quality-spin 1s linear infinite;
+}
+
+@keyframes shot-quality-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.shot-quality-card__loading-text {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.shot-quality-card--error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+    text-align: center;
+}
+
+.shot-quality-card__error-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.shot-quality-card__error-message {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #cbd5e1);
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+
+@keyframes shot-quality-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.shot-quality-card--animate {
+    animation: shot-quality-fade-in 0.4s ease-out forwards;
+}
+
+/* ==========================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================== */
+
+@media (max-width: 480px) {
+    .shot-quality-card {
+        padding: 1rem;
+    }
+
+    .shot-quality-card__circular-progress {
+        width: 120px;
+        height: 120px;
+    }
+
+    .shot-quality-card__circular-progress svg {
+        width: 120px;
+        height: 120px;
+    }
+
+    .shot-quality-card__progress-value {
+        font-size: 1.5rem;
+    }
+
+    .shot-quality-card__stats {
+        gap: 0.5rem;
+    }
+
+    .shot-quality-card__stat {
+        padding: 0.75rem;
+    }
+
+    .shot-quality-card__stat-value {
+        font-size: 1.25rem;
+    }
+}
+
+/* ==========================================
+   MODAL/TAB CONTEXT ADJUSTMENTS
+   ========================================== */
+
+/* Section styles when used in modal */
+.stats-section .shot-quality-cards-container {
+    margin-top: 1rem;
+}
+
+.stats-section-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted, #94a3b8);
+    margin: 0.25rem 0 0 0;
+}
+
+.stats-section-footer {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    text-align: center;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+/* Card wrapper in modal */
+.shot-quality-card-wrapper {
+    min-height: 280px;
+}
+
+/* Adjust card style in modal */
+.team-stats-modal .shot-quality-card {
+    background: var(--bg-tertiary, #334155);
+}
+
+.team-stats-modal .shot-quality-card:hover {
+    transform: none;
+}
+
+.team-stats-modal .shot-quality-card__stat {
+    background: var(--bg-secondary, #1e293b);
+}
+
+.team-stats-modal .shot-quality-card__sparkline-canvas {
+    background: var(--bg-secondary, #1e293b);
+}

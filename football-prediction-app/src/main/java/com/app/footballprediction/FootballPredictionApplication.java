@@ -54,6 +54,15 @@ public class FootballPredictionApplication implements ApplicationRunner {
       csvIngestionService.ingestAll();
       log.info("   ✓ Match data loaded successfully");
 
+      // ── Step 1.5: Update fouls data for existing matches ───────
+      log.info("📊 Updating fouls/discipline data...");
+      int foulsUpdated = csvIngestionService.updateFoulsData();
+      if (foulsUpdated > 0) {
+         log.info("   ✓ Updated {} matches with fouls data", foulsUpdated);
+      } else {
+         log.info("   ✓ Fouls data already up to date");
+      }
+
       // ── Step 2: Model loading / training ──────────────────────
       log.info("🤖 Initializing ML model...");
 

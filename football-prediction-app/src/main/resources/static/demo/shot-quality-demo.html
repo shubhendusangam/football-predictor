@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shot Quality Card - Demo</title>
+
+    <!-- Include Layout CSS for variables -->
+    <link rel="stylesheet" href="/css/layout.css">
+    <!-- Include Shot Quality Card CSS -->
+    <link rel="stylesheet" href="/css/shot-quality-card.css">
+
+    <style>
+        /* Demo page specific styles */
+        .demo-page {
+            padding: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .demo-header h1 {
+            font-size: 2rem;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-header p {
+            color: var(--text-muted);
+        }
+
+        .demo-section {
+            margin-bottom: 3rem;
+        }
+
+        .demo-section h2 {
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .demo-controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .demo-controls label {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+
+        .demo-controls select,
+        .demo-controls button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            border: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .demo-controls button {
+            background: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .demo-controls button:hover {
+            background: var(--accent-green-hover);
+        }
+
+        .demo-result {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+        }
+
+        .code-example {
+            background: var(--bg-tertiary);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            white-space: pre;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-page">
+        <div class="demo-header">
+            <h1>🎯 Shot Quality Analytics Card</h1>
+            <p>Interactive demo of the Shot Quality Card component</p>
+        </div>
+
+        <!-- Single Card Demo -->
+        <div class="demo-section">
+            <h2>Single Card Demo</h2>
+            <div class="demo-controls">
+                <label for="team-select">Select Team:</label>
+                <select id="team-select">
+                    <option value="Arsenal">Arsenal</option>
+                    <option value="Man City">Manchester City</option>
+                    <option value="Liverpool">Liverpool</option>
+                    <option value="Chelsea">Chelsea</option>
+                    <option value="Southampton">Southampton</option>
+                    <option value="Man Utd">Manchester United</option>
+                    <option value="Tottenham">Tottenham</option>
+                </select>
+                <button id="load-single">Load Card</button>
+            </div>
+            <div class="demo-result">
+                <div id="single-card-container"></div>
+            </div>
+        </div>
+
+        <!-- Home vs Away Pair Demo -->
+        <div class="demo-section">
+            <h2>Home vs Away Comparison</h2>
+            <div class="demo-controls">
+                <label for="team-select-pair">Select Team:</label>
+                <select id="team-select-pair">
+                    <option value="Arsenal">Arsenal</option>
+                    <option value="Man City">Manchester City</option>
+                    <option value="Liverpool">Liverpool</option>
+                    <option value="Chelsea">Chelsea</option>
+                    <option value="Southampton">Southampton</option>
+                </select>
+                <button id="load-pair">Load Home & Away</button>
+            </div>
+            <div class="demo-result">
+                <div id="pair-container"></div>
+            </div>
+        </div>
+
+        <!-- Usage Examples -->
+        <div class="demo-section">
+            <h2>Usage Examples</h2>
+
+            <h3 style="font-size: 1rem; margin: 1rem 0 0.5rem;">1. Basic Usage (IIFE Version)</h3>
+            <div class="code-example">&lt;!-- Include CSS --&gt;
+&lt;link rel="stylesheet" href="/css/shot-quality-card.css"&gt;
+
+&lt;!-- Include JS --&gt;
+&lt;script src="/js/shot-quality-card.js"&gt;&lt;/script&gt;
+
+&lt;!-- Container --&gt;
+&lt;div id="shot-quality-container"&gt;&lt;/div&gt;
+
+&lt;script&gt;
+// Fetch and render a single card
+var container = document.getElementById('shot-quality-container');
+ShotQualityCard.fetchAndRender(container, 'Arsenal', null);
+
+// Or render home/away pair
+ShotQualityCard.renderPair(container, 'Arsenal');
+&lt;/script&gt;</div>
+
+            <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem;">2. ES6 Module Usage</h3>
+            <div class="code-example">import {
+    renderShotQualityCard,
+    fetchAndRenderShotQualityCard
+} from './components/team/ShotQualityCard.js';
+
+// With pre-fetched data
+const teamStats = {
+    teamName: 'Arsenal',
+    isHome: true,
+    qualityScore: 7.5,  // 0-10 scale
+    shotAccuracy: 38.5, // percentage
+    conversionRate: 0.32, // 0-1 scale
+    shotsTrend: [
+        { shots: 15, goals: 3 },
+        { shots: 12, goals: 2 },
+        // ... last 10 matches
+    ]
+};
+
+renderShotQualityCard(container, teamStats);
+
+// Or fetch from API
+await fetchAndRenderShotQualityCard(container, 'Arsenal', true);</div>
+
+            <h3 style="font-size: 1rem; margin: 1.5rem 0 0.5rem;">3. TeamAnalyticsPage Integration</h3>
+            <div class="code-example">import {
+    createTeamAnalyticsPage,
+    renderShotQualitySection
+} from './pages/TeamAnalyticsPage.js';
+
+// Option 1: Full page
+const page = await createTeamAnalyticsPage('analytics-container', 'Arsenal');
+
+// Option 2: Just the shot quality section
+await renderShotQualitySection(container, 'Arsenal');</div>
+        </div>
+
+        <!-- League Averages Reference -->
+        <div class="demo-section">
+            <h2>League Averages Reference</h2>
+            <div class="demo-result" style="display: flex; gap: 2rem; justify-content: center;">
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--accent-green);">32%</div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted);">Shot Accuracy</div>
+                </div>
+                <div style="text-align: center;">
+                    <div style="font-size: 2rem; font-weight: 700; color: var(--accent-blue);">28%</div>
+                    <div style="font-size: 0.875rem; color: var(--text-muted);">Conversion Rate</div>
+                </div>
+            </div>
+            <p style="text-align: center; color: var(--text-muted); font-size: 0.875rem; margin-top: 1rem;">
+                Teams within ±5% of these averages are considered "Near League Average"
+            </p>
+        </div>
+    </div>
+
+    <!-- Include the Shot Quality Card script -->
+    <script src="/js/shot-quality-card.js"></script>
+
+    <script>
+        // Demo functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const singleContainer = document.getElementById('single-card-container');
+            const pairContainer = document.getElementById('pair-container');
+
+            // Load single card
+            document.getElementById('load-single').addEventListener('click', function() {
+                const teamName = document.getElementById('team-select').value;
+                ShotQualityCard.fetchAndRender(singleContainer, teamName, null);
+            });
+
+            // Load home/away pair
+            document.getElementById('load-pair').addEventListener('click', function() {
+                const teamName = document.getElementById('team-select-pair').value;
+                ShotQualityCard.renderPair(pairContainer, teamName);
+            });
+
+            // Load Arsenal by default
+            ShotQualityCard.fetchAndRender(singleContainer, 'Arsenal', null);
+            ShotQualityCard.renderPair(pairContainer, 'Arsenal');
+        });
+    </script>
+</body>
+</html>
+

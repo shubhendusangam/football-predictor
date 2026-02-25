@@ -50,6 +50,8 @@ public class CacheConfig {
     public static final String CACHE_PRE_MATCH_INSIGHTS = "preMatchInsights";
     public static final String CACHE_LEAGUE_STATS = "leagueStats";
     public static final String CACHE_ELO_RATINGS = "eloRatings";
+    public static final String CACHE_SHOT_QUALITY = "shotQuality";
+    public static final String CACHE_FOULS_ANALYSIS = "foulsAnalysis";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -98,6 +100,12 @@ public class CacheConfig {
     @Value("${cache.leagueStats.ttl:1800}")
     private int leagueStatsTtl;
 
+    @Value("${cache.shotQuality.ttl:900}")
+    private int shotQualityTtl;
+
+    @Value("${cache.foulsAnalysis.ttl:900}")
+    private int foulsAnalysisTtl;
+
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
     private int standingsMaxSize;
@@ -144,6 +152,12 @@ public class CacheConfig {
 
     @Value("${cache.leagueStats.maxSize:50}")
     private int leagueStatsMaxSize;
+
+    @Value("${cache.shotQuality.maxSize:100}")
+    private int shotQualityMaxSize;
+
+    @Value("${cache.foulsAnalysis.maxSize:100}")
+    private int foulsAnalysisMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -206,6 +220,12 @@ public class CacheConfig {
         // League stats: longer TTL (30 min), small size (aggregated stats)
         cacheConfigs.put(CACHE_LEAGUE_STATS, buildCache(leagueStatsTtl, leagueStatsMaxSize));
 
+        // Shot quality: moderate TTL (15 min), moderate size for team shot analysis
+        cacheConfigs.put(CACHE_SHOT_QUALITY, buildCache(shotQualityTtl, shotQualityMaxSize));
+
+        // Fouls analysis: moderate TTL (15 min), moderate size for team discipline analysis
+        cacheConfigs.put(CACHE_FOULS_ANALYSIS, buildCache(foulsAnalysisTtl, foulsAnalysisMaxSize));
+
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
 
@@ -261,6 +281,7 @@ public class CacheConfig {
             case CACHE_TEAM_ANALYTICS -> teamAnalyticsTtl;
             case CACHE_PRE_MATCH_INSIGHTS -> preMatchInsightsTtl;
             case CACHE_LEAGUE_STATS -> leagueStatsTtl;
+            case CACHE_SHOT_QUALITY -> shotQualityTtl;
             default -> 300;
         };
     }

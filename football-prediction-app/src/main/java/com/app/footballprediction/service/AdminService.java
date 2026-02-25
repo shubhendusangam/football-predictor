@@ -37,6 +37,7 @@ public class AdminService {
     private final LeagueRepository leagueRepository;
     private final MatchRepository matchRepository;
     private final TeamRepository teamRepository;
+    private final CsvIngestionService csvIngestionService;
 
     /**
      * Initialize default settings and leagues on startup.
@@ -402,6 +403,17 @@ public class AdminService {
      */
     public List<AdminAuditLog> getAuditLogsForUser(String username) {
         return auditLogRepository.findByUsernameOrderByCreatedAtDesc(username);
+    }
+
+    /**
+     * Update existing matches with fouls data from CSV files.
+     * Delegates to CsvIngestionService.
+     *
+     * @return Number of matches updated
+     */
+    public int updateFoulsData() {
+        log.info("Starting fouls data update...");
+        return csvIngestionService.updateFoulsData();
     }
 }
 

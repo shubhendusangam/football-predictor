@@ -1,0 +1,531 @@
+/* ==========================================
+   FOULS & DISCIPLINE ANALYSIS CARD STYLES
+   Football Forecaster - Discipline Component
+   ========================================== */
+
+/* ==========================================
+   FOULS ANALYSIS CARDS CONTAINER (Side-by-side)
+   ========================================== */
+
+.fouls-analysis-cards-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+    .fouls-analysis-cards-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================
+   FOULS PREDICTION SECTION
+   ========================================== */
+
+.fouls-prediction-section {
+    background: linear-gradient(135deg, var(--bg-secondary, #1e293b) 0%, var(--bg-tertiary, #0f172a) 100%);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.fouls-prediction-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.fouls-prediction-section__icon {
+    font-size: 1.25rem;
+}
+
+.fouls-prediction-section__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.fouls-prediction-section__content {
+    font-size: 0.9375rem;
+    color: var(--text-secondary, #94a3b8);
+    line-height: 1.5;
+}
+
+.fouls-prediction-section__highlight {
+    color: var(--accent-green, #22c55e);
+    font-weight: 600;
+}
+
+/* ==========================================
+   INDIVIDUAL FOULS ANALYSIS CARD
+   ========================================== */
+
+.fouls-analysis-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.fouls-analysis-card:hover {
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5));
+    border-color: var(--accent-amber, #f59e0b);
+    transform: translateY(-2px);
+}
+
+/* Card Header */
+.fouls-analysis-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.fouls-analysis-card__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fouls-analysis-card__venue-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.fouls-analysis-card__venue-badge--home {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.fouls-analysis-card__venue-badge--away {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue, #3b82f6);
+}
+
+/* ==========================================
+   DISCIPLINE SCORE INDICATOR
+   ========================================== */
+
+.fouls-analysis-card__score-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem 0;
+}
+
+.fouls-analysis-card__score-indicator {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fouls-analysis-card__score-ring {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 6px solid var(--bg-tertiary, #0f172a);
+}
+
+.fouls-analysis-card__score-fill {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 6px solid transparent;
+    border-top-color: currentColor;
+    border-right-color: currentColor;
+    transform: rotate(-45deg);
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fouls-analysis-card__score-fill--excellent {
+    color: var(--accent-green, #22c55e);
+    border-top-color: var(--accent-green, #22c55e);
+    border-right-color: var(--accent-green, #22c55e);
+    border-bottom-color: var(--accent-green, #22c55e);
+    border-left-color: var(--accent-green, #22c55e);
+}
+
+.fouls-analysis-card__score-fill--good {
+    color: var(--accent-lime, #84cc16);
+    border-top-color: var(--accent-lime, #84cc16);
+    border-right-color: var(--accent-lime, #84cc16);
+    border-bottom-color: var(--accent-lime, #84cc16);
+}
+
+.fouls-analysis-card__score-fill--average {
+    color: var(--accent-amber, #f59e0b);
+    border-top-color: var(--accent-amber, #f59e0b);
+    border-right-color: var(--accent-amber, #f59e0b);
+}
+
+.fouls-analysis-card__score-fill--poor {
+    color: var(--accent-red, #ef4444);
+    border-top-color: var(--accent-red, #ef4444);
+}
+
+.fouls-analysis-card__score-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 1;
+}
+
+.fouls-analysis-card__score-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.fouls-analysis-card__score-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================
+   DISCIPLINE BADGE
+   ========================================== */
+
+.fouls-analysis-card__discipline-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    margin: 0 auto;
+}
+
+.fouls-analysis-card__discipline-badge--excellent {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.fouls-analysis-card__discipline-badge--good {
+    background-color: rgba(132, 204, 22, 0.15);
+    color: var(--accent-lime, #84cc16);
+}
+
+.fouls-analysis-card__discipline-badge--average {
+    background-color: rgba(245, 158, 11, 0.15);
+    color: var(--accent-amber, #f59e0b);
+}
+
+.fouls-analysis-card__discipline-badge--poor {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red, #ef4444);
+}
+
+/* ==========================================
+   FOULS STATISTICS GRID
+   ========================================== */
+
+.fouls-analysis-card__stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.fouls-analysis-card__stat {
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+    padding: 0.875rem;
+    text-align: center;
+}
+
+.fouls-analysis-card__stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin-bottom: 0.25rem;
+}
+
+.fouls-analysis-card__stat-value--positive {
+    color: var(--accent-green, #22c55e);
+}
+
+.fouls-analysis-card__stat-value--negative {
+    color: var(--accent-red, #ef4444);
+}
+
+.fouls-analysis-card__stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+/* ==========================================
+   HORIZONTAL BAR COMPARISON
+   ========================================== */
+
+.fouls-analysis-card__bar-section {
+    margin-top: 0.5rem;
+}
+
+.fouls-analysis-card__bar-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 0.75rem;
+    text-align: center;
+}
+
+.fouls-analysis-card__bar-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.fouls-analysis-card__bar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.fouls-analysis-card__bar-label {
+    flex: 0 0 80px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary, #94a3b8);
+    text-align: right;
+}
+
+.fouls-analysis-card__bar-track {
+    flex: 1;
+    height: 12px;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.fouls-analysis-card__bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.fouls-analysis-card__bar-fill--committed {
+    background: linear-gradient(90deg, var(--accent-amber, #f59e0b), var(--accent-red, #ef4444));
+}
+
+.fouls-analysis-card__bar-fill--drawn {
+    background: linear-gradient(90deg, var(--accent-green, #22c55e), var(--accent-blue, #3b82f6));
+}
+
+.fouls-analysis-card__bar-value {
+    flex: 0 0 40px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    text-align: left;
+}
+
+/* ==========================================
+   WIN RATE INSIGHTS
+   ========================================== */
+
+.fouls-analysis-card__insights {
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.fouls-analysis-card__insights-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.fouls-analysis-card__insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+@media (max-width: 480px) {
+    .fouls-analysis-card__insights-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.fouls-analysis-card__insight-item {
+    text-align: center;
+    padding: 0.5rem;
+    background: var(--bg-secondary, #1e293b);
+    border-radius: 0.375rem;
+}
+
+.fouls-analysis-card__insight-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.fouls-analysis-card__insight-label {
+    font-size: 0.6875rem;
+    font-weight: 500;
+    color: var(--text-tertiary, #64748b);
+    margin-top: 0.125rem;
+}
+
+/* ==========================================
+   DATA SCOPE FOOTER
+   ========================================== */
+
+.fouls-analysis-card__footer {
+    display: flex;
+    justify-content: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.fouls-analysis-card__data-scope {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, #64748b);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.fouls-analysis-card__data-scope-icon {
+    font-size: 0.875rem;
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+
+.fouls-analysis-card--loading {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fouls-analysis-card__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.fouls-analysis-card__loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-tertiary, #0f172a);
+    border-top-color: var(--accent-amber, #f59e0b);
+    border-radius: 50%;
+    animation: fouls-spin 1s linear infinite;
+}
+
+@keyframes fouls-spin {
+    to { transform: rotate(360deg); }
+}
+
+.fouls-analysis-card__loading-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.fouls-analysis-card--error {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fouls-analysis-card__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 1rem;
+}
+
+.fouls-analysis-card__error-icon {
+    font-size: 2rem;
+}
+
+.fouls-analysis-card__error-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.fouls-analysis-card__error-message {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+/* ==========================================
+   NO DATA STATE
+   ========================================== */
+
+.fouls-analysis-card--no-data {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fouls-analysis-card__no-data {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-tertiary, #64748b);
+}
+
+.fouls-analysis-card__no-data-icon {
+    font-size: 2rem;
+    opacity: 0.6;
+}
+
+.fouls-analysis-card__no-data-text {
+    font-size: 0.875rem;
+}
+

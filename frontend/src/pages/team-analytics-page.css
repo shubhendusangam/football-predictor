@@ -1,0 +1,177 @@
+/* ==========================================
+   TEAM ANALYTICS PAGE STYLES
+   Football Forecaster - Analytics Page Component
+   ========================================== */
+
+/* ==========================================
+   PAGE CONTAINER
+   ========================================== */
+
+.team-analytics-page {
+    padding: 1.5rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ==========================================
+   PAGE HEADER
+   ========================================== */
+
+.team-analytics-page__header {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.team-analytics-page__title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0 0 0.5rem 0;
+}
+
+.team-analytics-page__subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary, #cbd5e1);
+    margin: 0;
+}
+
+/* ==========================================
+   PAGE SECTIONS
+   ========================================== */
+
+.team-analytics-page__section {
+    margin-bottom: 2rem;
+}
+
+.team-analytics-page__section-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0 0 1rem 0;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color, #334155);
+}
+
+/* ==========================================
+   PAGE FOOTER
+   ========================================== */
+
+.team-analytics-page__footer {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color, #334155);
+    text-align: center;
+}
+
+.team-analytics-page__note {
+    font-size: 0.875rem;
+    color: var(--text-muted, #94a3b8);
+    margin: 0;
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.team-analytics-page--error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+}
+
+.team-analytics-page__error {
+    text-align: center;
+    padding: 2rem;
+}
+
+.team-analytics-page__error-icon {
+    font-size: 3rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.team-analytics-page__error h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0 0 0.5rem 0;
+}
+
+.team-analytics-page__error p {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #cbd5e1);
+    margin: 0 0 1.5rem 0;
+}
+
+/* ==========================================
+   SHOT QUALITY SECTION
+   ========================================== */
+
+.shot-quality-section {
+    margin-bottom: 2rem;
+}
+
+.shot-quality-section__header {
+    margin-bottom: 1rem;
+}
+
+.shot-quality-section__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.shot-quality-card-wrapper {
+    min-height: 300px;
+}
+
+/* ==========================================
+   BUTTONS
+   ========================================== */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--accent-green, #22c55e);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-green-hover, #16a34a);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* ==========================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================== */
+
+@media (max-width: 768px) {
+    .team-analytics-page {
+        padding: 1rem;
+    }
+
+    .team-analytics-page__title {
+        font-size: 1.5rem;
+    }
+
+    .team-analytics-page__section-title {
+        font-size: 1.125rem;
+    }
+}
+

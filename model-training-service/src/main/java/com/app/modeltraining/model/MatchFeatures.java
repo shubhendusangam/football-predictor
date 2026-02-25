@@ -42,6 +42,12 @@ public class MatchFeatures {
    private int homeDaysSinceLastMatch;    // Rest days (fatigue factor)
    private int awayDaysSinceLastMatch;
 
+   // ── Phase 5 features (Possession Proxy) ────────────────
+   @Builder.Default
+   private double homePossessionProxy = 0.5;  // Estimated possession (0.0 to 1.0)
+   @Builder.Default
+   private double awayPossessionProxy = 0.5;
+
    // ── Label (training only) ──────────────────────────────
    private String actualResult;        // "H", "D", "A" — null at prediction time
 }

@@ -69,7 +69,10 @@ public class ModelTrainingService {
    private static final int IDX_AWAY_UNBEATEN     = 22;
    private static final int IDX_HOME_DAYS_REST    = 23;
    private static final int IDX_AWAY_DAYS_REST    = 24;
-   private static final int IDX_LABEL             = 25;
+   // Phase 5 features (Possession Proxy)
+   private static final int IDX_HOME_POSSESSION   = 25;
+   private static final int IDX_AWAY_POSSESSION   = 26;
+   private static final int IDX_LABEL             = 27;
 
    /**
     * Train model with temporal split and evaluation
@@ -253,6 +256,10 @@ public class ModelTrainingService {
       attrs.add(new Attribute("homeDaysRest"));
       attrs.add(new Attribute("awayDaysRest"));
 
+      // Phase 5: Possession Proxy
+      attrs.add(new Attribute("homePossessionProxy"));
+      attrs.add(new Attribute("awayPossessionProxy"));
+
       ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
       attrs.add(new Attribute("result", labels));
 
@@ -271,7 +278,7 @@ public class ModelTrainingService {
    }
 
    private Instance toWekaInstance(MatchFeatures f, Instances dataset) {
-      Instance inst = new DenseInstance(26);
+      Instance inst = new DenseInstance(28); // 27 features + 1 label
       inst.setDataset(dataset);
 
       inst.setValue(IDX_HOME_FORM,        PredictionUtils.safe(f.getHomeFormPoints()));
@@ -299,6 +306,10 @@ public class ModelTrainingService {
       inst.setValue(IDX_AWAY_UNBEATEN,     PredictionUtils.safe(f.getAwayUnbeatenStreak()));
       inst.setValue(IDX_HOME_DAYS_REST,    PredictionUtils.safe(f.getHomeDaysSinceLastMatch()));
       inst.setValue(IDX_AWAY_DAYS_REST,    PredictionUtils.safe(f.getAwayDaysSinceLastMatch()));
+
+      // Phase 5 features (Possession Proxy)
+      inst.setValue(IDX_HOME_POSSESSION,   PredictionUtils.safe(f.getHomePossessionProxy()));
+      inst.setValue(IDX_AWAY_POSSESSION,   PredictionUtils.safe(f.getAwayPossessionProxy()));
 
       if (f.getActualResult() != null) {
          inst.setValue(IDX_LABEL, f.getActualResult());

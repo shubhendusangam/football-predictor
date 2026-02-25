@@ -52,6 +52,8 @@ public class Match {
    private Integer awayYellowCards;     // AY
    private Integer homeRedCards;        // HR
    private Integer awayRedCards;        // AR
+   private Integer homeFouls;           // HF
+   private Integer awayFouls;           // AF
 
    public int getPointsForTeam(String teamName) {
       if (teamName == null) return 0;

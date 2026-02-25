@@ -103,7 +103,10 @@ public class ModelTrainingService {
    private static final int IDX_AWAY_UNBEATEN     = 22;
    private static final int IDX_HOME_DAYS_REST    = 23;
    private static final int IDX_AWAY_DAYS_REST    = 24;
-   private static final int IDX_LABEL             = 25;
+   // Phase 5 features (Possession Proxy)
+   private static final int IDX_HOME_POSSESSION   = 25;
+   private static final int IDX_AWAY_POSSESSION   = 26;
+   private static final int IDX_LABEL             = 27;
 
    // ── Public API ────────────────────────────────────────────────────────
 
@@ -862,9 +865,13 @@ public class ModelTrainingService {
       attrs.add(new Attribute("homeDaysRest"));          // 23
       attrs.add(new Attribute("awayDaysRest"));          // 24
 
-      // Nominal label (index 25)
+      // Phase 5 numeric features - Possession Proxy (indices 25-26)
+      attrs.add(new Attribute("homePossessionProxy"));   // 25
+      attrs.add(new Attribute("awayPossessionProxy"));   // 26
+
+      // Nominal label (index 27)
       ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
-      attrs.add(new Attribute("result", labels));        // 25
+      attrs.add(new Attribute("result", labels));        // 27
 
       return attrs;
    }
@@ -891,7 +898,7 @@ public class ModelTrainingService {
     * Uses PredictionUtils.safe() to guard against NaN/Infinity from edge cases.
     */
    private Instance toWekaInstance(MatchFeatures f, Instances dataset) {
-      Instance inst = new DenseInstance(26); // 25 features + 1 label
+      Instance inst = new DenseInstance(28); // 27 features + 1 label
       inst.setDataset(dataset);
 
       // Phase 1 & 2 features
@@ -922,6 +929,10 @@ public class ModelTrainingService {
       inst.setValue(IDX_AWAY_UNBEATEN,     PredictionUtils.safe(f.getAwayUnbeatenStreak()));
       inst.setValue(IDX_HOME_DAYS_REST,    PredictionUtils.safe(f.getHomeDaysSinceLastMatch()));
       inst.setValue(IDX_AWAY_DAYS_REST,    PredictionUtils.safe(f.getAwayDaysSinceLastMatch()));
+
+      // Phase 5 features (Possession Proxy)
+      inst.setValue(IDX_HOME_POSSESSION,   PredictionUtils.safe(f.getHomePossessionProxy()));
+      inst.setValue(IDX_AWAY_POSSESSION,   PredictionUtils.safe(f.getAwayPossessionProxy()));
 
       // Label only set during training — null at prediction time
       if (f.getActualResult() != null) {

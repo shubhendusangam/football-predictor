@@ -138,6 +138,105 @@ public class CsvIngestionService {
       return toSave.size();
    }
 
+   /**
+    * Updates existing matches with missing fouls data (HF/AF columns).
+    * This method re-reads CSV files and updates matches that have null fouls values.
+    *
+    * @return Number of matches updated with fouls data
+    */
+   public int updateFoulsData() {
+      String[] paths = csvPaths.split(",");
+      int totalUpdated = 0;
+
+      for (String path : paths) {
+         String trimmed = path.trim();
+         log.info("Updating fouls data from CSV: {}", trimmed);
+         int count = updateFoulsFromFile(trimmed);
+         log.info("  → {} matches updated with fouls data from {}", count, trimmed);
+         totalUpdated += count;
+      }
+
+      log.info("Fouls data update complete. Total updated: {}", totalUpdated);
+      return totalUpdated;
+   }
+
+   /**
+    * Update fouls data for matches from a single CSV file.
+    */
+   private int updateFoulsFromFile(String classpathLocation) {
+      log.info("Updating fouls data from: {}", classpathLocation);
+
+      List<Match> toUpdate = new ArrayList<>();
+
+      try (CSVReader reader = new CSVReader(new InputStreamReader(new ClassPathResource(classpathLocation).getInputStream()))) {
+
+         String[] headers = reader.readNext();
+         if (headers == null) {
+            log.warn("Empty file: {}", classpathLocation);
+            return 0;
+         }
+
+         Map<String, Integer> colIndex = buildColumnIndex(headers);
+
+         // Check if HF/AF columns exist in this CSV
+         if (!colIndex.containsKey("HF") || !colIndex.containsKey("AF")) {
+            log.info("CSV {} does not contain HF/AF columns, skipping", classpathLocation);
+            return 0;
+         }
+
+         String[] row;
+         int lineNum = 1;
+
+         while ((row = reader.readNext()) != null) {
+            lineNum++;
+
+            if (row.length < 8 || row[0].isBlank()) {
+               continue;
+            }
+
+            try {
+               LocalDate date = parseDate(getString(row, colIndex, "Date"));
+               if (date == null) continue;
+
+               String homeTeam = getString(row, colIndex, "HomeTeam");
+               String awayTeam = getString(row, colIndex, "AwayTeam");
+               if (homeTeam == null || awayTeam == null) continue;
+
+               Integer homeFouls = getInt(row, colIndex, "HF");
+               Integer awayFouls = getInt(row, colIndex, "AF");
+
+               // Skip if no fouls data in CSV
+               if (homeFouls == null && awayFouls == null) continue;
+
+               // Find existing match
+               Match existing = matchRepository.findByMatchDateAndHomeTeamAndAwayTeam(date, homeTeam, awayTeam);
+               if (existing == null) continue;
+
+               // Update only if fouls data is missing
+               if (existing.getHomeFouls() == null || existing.getAwayFouls() == null) {
+                  existing.setHomeFouls(homeFouls);
+                  existing.setAwayFouls(awayFouls);
+                  toUpdate.add(existing);
+               }
+
+            } catch (Exception e) {
+               log.warn("Skipping row {} in {}: {}", lineNum, classpathLocation, e.getMessage());
+            }
+         }
+
+      } catch (IOException | CsvValidationException e) {
+         log.error("Failed to read CSV {}: {}", classpathLocation, e.getMessage());
+         return 0;
+      }
+
+      if (!toUpdate.isEmpty()) {
+         matchRepository.saveAll(toUpdate);
+         log.info("Updated {} matches with fouls data from {}", toUpdate.size(), classpathLocation);
+      }
+
+      return toUpdate.size();
+   }
+
 
    // ── Private helpers ───────────────────────────────────────────────────
 
@@ -204,6 +303,8 @@ public class CsvIngestionService {
             .awayYellowCards(getInt(row, col, "AY"))
             .homeRedCards(getInt(row, col, "HR"))
             .awayRedCards(getInt(row, col, "AR"))
+            .homeFouls(getInt(row, col, "HF"))
+            .awayFouls(getInt(row, col, "AF"))
             .build();
    }
 

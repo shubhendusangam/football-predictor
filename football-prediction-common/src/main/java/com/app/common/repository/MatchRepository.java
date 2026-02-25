@@ -144,6 +144,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                                                    String homeTeam,
                                                    String awayTeam);
 
+   /**
+    * Find a specific match by date and teams.
+    * Used for updating existing matches with additional data (e.g., fouls).
+    */
+   Match findByMatchDateAndHomeTeamAndAwayTeam(LocalDate date,
+                                               String homeTeam,
+                                               String awayTeam);
+
    /** Total match count — used for startup logging. */
    long count();
 

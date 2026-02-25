@@ -1,10 +1,14 @@
 package com.app.footballprediction.controller;
 
+import com.app.common.dto.ShotQualityDTO;
 import com.app.footballprediction.config.TeamLogoSeeder;
+import com.app.footballprediction.dto.FoulsAnalysisDTO;
 import com.app.footballprediction.dto.TeamAnalyticsDto;
 import com.app.footballprediction.dto.TeamDTO;
 import com.app.footballprediction.dto.TeamFormResponse;
 import com.app.footballprediction.dto.TeamStatsResponse;
+import com.app.footballprediction.service.FoulsAnalysisService;
+import com.app.footballprediction.service.ShotQualityService;
 import com.app.footballprediction.service.TeamAnalyticsService;
 import com.app.footballprediction.service.TeamService;
 import com.app.footballprediction.service.TeamStatsService;
@@ -38,6 +42,8 @@ public class TeamStatsController {
     private final TeamService teamService;
     private final TeamLogoSeeder teamLogoSeeder;
     private final FeatureEngineeringService featureEngineeringService;
+    private final ShotQualityService shotQualityService;
+    private final FoulsAnalysisService foulsAnalysisService;
 
     /**
      * Get all available teams with logo information.
@@ -400,6 +406,133 @@ public class TeamStatsController {
             log.error("Failed to fetch team analytics for {}: {}", teamName, e.getMessage());
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "Failed to fetch team analytics",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Get fouls and discipline analysis for a team.
+     * Provides comprehensive fouls statistics including averages, discipline score,
+     * and win rates based on foul counts.
+     *
+     * GET /api/teams/{teamName}/fouls-analysis
+     * GET /api/teams/{teamName}/fouls-analysis?isHome=true
+     *
+     * @param teamName The team name (e.g., "Arsenal", "Man City")
+     * @param isHome Whether to analyze home matches only (default: true)
+     * @return FoulsAnalysisDTO with comprehensive fouls metrics
+     */
+    @GetMapping("/{teamName}/fouls-analysis")
+    public ResponseEntity<?> getFoulsAnalysis(
+            @PathVariable String teamName,
+            @RequestParam(defaultValue = "true") boolean isHome) {
+        try {
+            // Validate input
+            if (teamName == null || teamName.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid team name",
+                        "message", "Team name cannot be empty"
+                ));
+            }
+
+            // Sanitize input - remove potentially harmful characters
+            String sanitizedTeamName = teamName.trim()
+                    .replaceAll("[<>\"'&;]", "")
+                    .substring(0, Math.min(teamName.trim().length(), 100));
+
+            if (sanitizedTeamName.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid team name",
+                        "message", "Team name contains invalid characters"
+                ));
+            }
+
+            log.info("Fetching fouls analysis for team: {} (isHome: {})", sanitizedTeamName, isHome);
+            FoulsAnalysisDTO analysis = foulsAnalysisService.analyzeFouls(sanitizedTeamName, isHome);
+            return ResponseEntity.ok(analysis);
+        } catch (IllegalArgumentException e) {
+            log.warn("Team not found for fouls analysis: {} - {}", teamName, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Team not found",
+                    "message", e.getMessage(),
+                    "suggestion", "Use GET /api/teams to see available teams"
+            ));
+        } catch (Exception e) {
+            log.error("Failed to fetch fouls analysis for {}: {}", teamName, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to fetch fouls analysis",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Get shot quality analysis for a team.
+     * Provides comprehensive shot efficiency metrics including accuracy,
+     * conversion rate, quality score, and comparison with league average.
+     *
+     * GET /api/teams/{teamName}/shot-quality
+     * GET /api/teams/{teamName}/shot-quality?split=true (for home/away split)
+     *
+     * @param teamName The team name (e.g., "Arsenal", "Man City")
+     * @param split If true, returns separate home and away analysis
+     * @return ShotQualityDTO or home/away split response
+     */
+    @GetMapping("/{teamName}/shot-quality")
+    public ResponseEntity<?> getShotQuality(
+            @PathVariable String teamName,
+            @RequestParam(defaultValue = "false") boolean split) {
+        try {
+            // Input validation
+            if (teamName == null || teamName.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid team name",
+                        "message", "Team name cannot be empty"
+                ));
+            }
+
+            // Sanitize input
+            String sanitizedTeamName = teamName.trim()
+                    .replaceAll("[<>\"'&;]", "")
+                    .substring(0, Math.min(teamName.trim().length(), 100));
+
+            if (sanitizedTeamName.isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Invalid team name",
+                        "message", "Team name contains invalid characters"
+                ));
+            }
+
+            log.info("Fetching shot quality for team: {} (split={})", sanitizedTeamName, split);
+
+            if (split) {
+                // Return home and away shot quality side by side
+                ShotQualityDTO homeQuality = shotQualityService.calculateShotQuality(sanitizedTeamName, true);
+                ShotQualityDTO awayQuality = shotQualityService.calculateShotQuality(sanitizedTeamName, false);
+
+                return ResponseEntity.ok(Map.of(
+                        "teamName", homeQuality.getTeamName(),
+                        "home", homeQuality,
+                        "away", awayQuality
+                ));
+            } else {
+                // Return combined shot quality
+                ShotQualityDTO quality = shotQualityService.calculateCombinedShotQuality(sanitizedTeamName);
+                return ResponseEntity.ok(quality);
+            }
+
+        } catch (IllegalArgumentException e) {
+            log.warn("Team not found for shot quality: {} - {}", teamName, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Team not found",
+                    "message", e.getMessage(),
+                    "suggestion", "Use GET /api/teams to see available teams"
+            ));
+        } catch (Exception e) {
+            log.error("Failed to fetch shot quality for {}: {}", teamName, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to fetch shot quality analysis",
                     "details", e.getMessage()
             ));
         }

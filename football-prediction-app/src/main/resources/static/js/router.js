@@ -486,6 +486,9 @@ class Router {
             const normalizedAwayTeam = data.awayTeam || data.preMatchInsights?.awayTeam || awayTeam;
             contentEl.innerHTML = this.renderPreMatchInsightsUI(data, normalizedHomeTeam, normalizedAwayTeam);
 
+            // Load fouls analysis after main UI is rendered
+            this.loadFoulsAnalysis(normalizedHomeTeam, normalizedAwayTeam);
+
         } catch (error) {
             console.error('[Router] Failed to load pre-match insights:', error);
             contentEl.innerHTML = `
@@ -499,6 +502,252 @@ class Router {
                 </div>
             `;
         }
+    }
+
+    /**
+     * Load Fouls & Discipline Analysis for both teams
+     */
+    async loadFoulsAnalysis(homeTeam, awayTeam) {
+        const container = document.getElementById('foulsAnalysisContainer');
+        if (!container) return;
+
+        try {
+            // Fetch fouls analysis for both teams in parallel
+            const [homeData, awayData] = await Promise.all([
+                this.fetchFoulsAnalysisData(homeTeam, true),
+                this.fetchFoulsAnalysisData(awayTeam, false)
+            ]);
+
+            // Render fouls analysis cards
+            container.innerHTML = this.renderFoulsAnalysisCards(homeData, awayData);
+
+        } catch (error) {
+            console.error('[Router] Failed to load fouls analysis:', error);
+            container.innerHTML = `
+                <div class="fouls-analysis-error">
+                    <span class="error-icon">⚠️</span>
+                    <p>Unable to load discipline analysis. ${this.escapeHtml(error.message || '')}</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Fetch fouls analysis data from API
+     */
+    async fetchFoulsAnalysisData(teamName, isHome) {
+        try {
+            const response = await fetch(
+                `/api/teams/${encodeURIComponent(teamName)}/fouls-analysis?isHome=${isHome}`
+            );
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || `HTTP ${response.status}`);
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.warn(`[Router] Fouls analysis unavailable for ${teamName}:`, error.message);
+            return {
+                teamName,
+                isHome,
+                matchesAnalyzed: 0,
+                error: true,
+                message: error.message
+            };
+        }
+    }
+
+    /**
+     * Render fouls analysis cards for both teams
+     */
+    renderFoulsAnalysisCards(homeData, awayData) {
+        const homeCard = this.renderSingleFoulsCard(homeData);
+        const awayCard = this.renderSingleFoulsCard(awayData);
+        const prediction = this.renderDisciplinePrediction(homeData, awayData);
+
+        return `
+            <div class="fouls-analysis-cards-container">
+                ${homeCard}
+                ${awayCard}
+            </div>
+            ${prediction}
+        `;
+    }
+
+    /**
+     * Render a single fouls analysis card
+     */
+    renderSingleFoulsCard(data) {
+        if (!data || data.error || data.matchesAnalyzed === 0) {
+            return `
+                <div class="fouls-analysis-card fouls-analysis-card--no-data">
+                    <div class="fouls-analysis-card__no-data">
+                        <span class="fouls-analysis-card__no-data-icon">📋</span>
+                        <p class="fouls-analysis-card__no-data-text">No fouls data for ${this.escapeHtml(data?.teamName || 'Team')}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        const disciplineLevel = this.getDisciplineLevel(data.disciplineScore || 5);
+        const differential = data.foulsDifferential || 0;
+        const diffClass = differential > 0 ? 'positive' : differential < 0 ? 'negative' : '';
+        const diffSign = differential > 0 ? '+' : '';
+
+        // Calculate bar widths (max 20 fouls = 100%)
+        const maxFouls = 20;
+        const committedWidth = Math.min((data.avgFoulsCommitted || 0) / maxFouls * 100, 100);
+        const drawnWidth = Math.min((data.avgFoulsDrawn || 0) / maxFouls * 100, 100);
+
+        return `
+            <div class="fouls-analysis-card">
+                <div class="fouls-analysis-card__header">
+                    <h3 class="fouls-analysis-card__title">
+                        <span>⚖️</span> ${this.escapeHtml(data.teamName)}
+                    </h3>
+                    <span class="fouls-analysis-card__venue-badge fouls-analysis-card__venue-badge--${data.isHome ? 'home' : 'away'}">
+                        ${data.isHome ? 'HOME' : 'AWAY'}
+                    </span>
+                </div>
+
+                <div class="fouls-analysis-card__score-container">
+                    <div class="fouls-analysis-card__score-indicator">
+                        <div class="fouls-analysis-card__score-ring"></div>
+                        <div class="fouls-analysis-card__score-fill fouls-analysis-card__score-fill--${disciplineLevel.class}"></div>
+                        <div class="fouls-analysis-card__score-content">
+                            <div class="fouls-analysis-card__score-value">${(data.disciplineScore || 0).toFixed(1)}</div>
+                            <div class="fouls-analysis-card__score-label">Discipline</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fouls-analysis-card__discipline-badge fouls-analysis-card__discipline-badge--${disciplineLevel.class}">
+                    ${this.escapeHtml(data.disciplineRating || disciplineLevel.label)}
+                </div>
+
+                <div class="fouls-analysis-card__stats">
+                    <div class="fouls-analysis-card__stat">
+                        <div class="fouls-analysis-card__stat-value">${(data.avgFoulsCommitted || 0).toFixed(1)}</div>
+                        <div class="fouls-analysis-card__stat-label">Avg Committed</div>
+                    </div>
+                    <div class="fouls-analysis-card__stat">
+                        <div class="fouls-analysis-card__stat-value">${(data.avgFoulsDrawn || 0).toFixed(1)}</div>
+                        <div class="fouls-analysis-card__stat-label">Avg Drawn</div>
+                    </div>
+                    <div class="fouls-analysis-card__stat">
+                        <div class="fouls-analysis-card__stat-value fouls-analysis-card__stat-value--${diffClass}">${diffSign}${differential.toFixed(1)}</div>
+                        <div class="fouls-analysis-card__stat-label">Differential</div>
+                    </div>
+                    <div class="fouls-analysis-card__stat">
+                        <div class="fouls-analysis-card__stat-value">${data.matchesAnalyzed}</div>
+                        <div class="fouls-analysis-card__stat-label">Matches</div>
+                    </div>
+                </div>
+
+                <div class="fouls-analysis-card__bar-section">
+                    <div class="fouls-analysis-card__bar-title">Fouls Comparison</div>
+                    <div class="fouls-analysis-card__bar-container">
+                        <div class="fouls-analysis-card__bar-item">
+                            <div class="fouls-analysis-card__bar-label">Committed</div>
+                            <div class="fouls-analysis-card__bar-track">
+                                <div class="fouls-analysis-card__bar-fill fouls-analysis-card__bar-fill--committed" style="width: ${committedWidth}%"></div>
+                            </div>
+                            <div class="fouls-analysis-card__bar-value">${(data.avgFoulsCommitted || 0).toFixed(1)}</div>
+                        </div>
+                        <div class="fouls-analysis-card__bar-item">
+                            <div class="fouls-analysis-card__bar-label">Drawn</div>
+                            <div class="fouls-analysis-card__bar-track">
+                                <div class="fouls-analysis-card__bar-fill fouls-analysis-card__bar-fill--drawn" style="width: ${drawnWidth}%"></div>
+                            </div>
+                            <div class="fouls-analysis-card__bar-value">${(data.avgFoulsDrawn || 0).toFixed(1)}</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fouls-analysis-card__insights">
+                    <div class="fouls-analysis-card__insights-title">
+                        <span>📈</span> Win Rate by Foul Count
+                    </div>
+                    <div class="fouls-analysis-card__insights-grid">
+                        <div class="fouls-analysis-card__insight-item">
+                            <div class="fouls-analysis-card__insight-value">${(data.winRateWhenLowFouls || 0).toFixed(0)}%</div>
+                            <div class="fouls-analysis-card__insight-label">Low (&lt;10)</div>
+                        </div>
+                        <div class="fouls-analysis-card__insight-item">
+                            <div class="fouls-analysis-card__insight-value">${(data.winRateWhenControlled || 0).toFixed(0)}%</div>
+                            <div class="fouls-analysis-card__insight-label">Controlled (&lt;12)</div>
+                        </div>
+                        <div class="fouls-analysis-card__insight-item">
+                            <div class="fouls-analysis-card__insight-value">${(data.winRateWhenHighFouls || 0).toFixed(0)}%</div>
+                            <div class="fouls-analysis-card__insight-label">High (&gt;15)</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="fouls-analysis-card__footer">
+                    <div class="fouls-analysis-card__data-scope">
+                        <span class="fouls-analysis-card__data-scope-icon">📊</span>
+                        ${this.escapeHtml(data.dataScope || 'Last 20 Matches')}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Get discipline level based on score
+     */
+    getDisciplineLevel(score) {
+        if (score >= 8) return { class: 'excellent', label: 'Excellent' };
+        if (score >= 6) return { class: 'good', label: 'Good' };
+        if (score >= 4) return { class: 'average', label: 'Average' };
+        return { class: 'poor', label: 'Poor' };
+    }
+
+    /**
+     * Render discipline prediction based on both teams' scores
+     */
+    renderDisciplinePrediction(homeData, awayData) {
+        // Skip if either team has no data
+        if (!homeData || !awayData ||
+            homeData.matchesAnalyzed === 0 || awayData.matchesAnalyzed === 0 ||
+            homeData.error || awayData.error) {
+            return '';
+        }
+
+        const homeDiscipline = homeData.disciplineScore || 0;
+        const awayDiscipline = awayData.disciplineScore || 0;
+        const homeTeam = homeData.teamName || 'Home Team';
+        const awayTeam = awayData.teamName || 'Away Team';
+
+        let predictionText;
+        let advantageTeam = '';
+
+        if (Math.abs(homeDiscipline - awayDiscipline) < 0.5) {
+            predictionText = `Both teams have similar discipline levels. Expect an evenly contested match with balanced physicality.`;
+        } else if (homeDiscipline > awayDiscipline) {
+            const diff = (homeDiscipline - awayDiscipline).toFixed(1);
+            advantageTeam = homeTeam;
+            predictionText = `<span class="fouls-prediction-section__highlight">${this.escapeHtml(homeTeam)}</span> has better discipline (+${diff} score). They may gain advantage through fewer fouls and better game control.`;
+        } else {
+            const diff = (awayDiscipline - homeDiscipline).toFixed(1);
+            advantageTeam = awayTeam;
+            predictionText = `<span class="fouls-prediction-section__highlight">${this.escapeHtml(awayTeam)}</span> has better discipline (+${diff} score). They may gain advantage through fewer fouls and better game control.`;
+        }
+
+        return `
+            <div class="fouls-prediction-section">
+                <div class="fouls-prediction-section__header">
+                    <span class="fouls-prediction-section__icon">🔮</span>
+                    <h4 class="fouls-prediction-section__title">Discipline Advantage</h4>
+                </div>
+                <div class="fouls-prediction-section__content">
+                    ${predictionText}
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -540,6 +789,20 @@ class Router {
 
             <!-- SECTION 5: Advanced Match Stats Cards -->
             ${this.renderAdvancedStatsCards(goalStats, commonResults, venueAdvantage, homeTeam, awayTeam)}
+
+            <!-- SECTION 6: Fouls & Discipline Analysis -->
+            <div class="fouls-discipline-section" id="foulsDisciplineSection">
+                <div class="section-header">
+                    <span class="header-icon">⚖️</span>
+                    <h4 class="header-title">Fouls & Discipline Analysis</h4>
+                </div>
+                <div class="fouls-analysis-container" id="foulsAnalysisContainer">
+                    <div class="fouls-analysis-loading">
+                        <div class="loading-spinner"></div>
+                        <p>Loading discipline analysis...</p>
+                    </div>
+                </div>
+            </div>
 
             <!-- Key Insights -->
             ${this.renderKeyInsights(keyInsights)}
@@ -1902,6 +2165,7 @@ class Router {
                 <button class="team-stats-tab" data-tab="seasons">📅 Season History</button>
                 <button class="team-stats-tab" data-tab="upcoming">⏭️ Upcoming</button>
                 <button class="team-stats-tab" data-tab="goals">⚽ Goals</button>
+                <button class="team-stats-tab" data-tab="shotquality">🎯 Shot Quality</button>
                 <button class="team-stats-tab" data-tab="form">📈 Form</button>
                 <button class="team-stats-tab" data-tab="matches">🏟️ Matches</button>
                 <button class="team-stats-tab" data-tab="rivals">⚔️ Rivals</button>
@@ -1938,6 +2202,9 @@ class Router {
                         break;
                     case 'goals':
                         content.innerHTML = this.renderGoalsTab(goalStats);
+                        break;
+                    case 'shotquality':
+                        this.renderShotQualityTab(content, teamName);
                         break;
                     case 'form':
                         content.innerHTML = this.renderFormTab(formStats);
@@ -2084,6 +2351,185 @@ class Router {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Render Shot Quality tab with home and away cards side-by-side
+     * Uses the ShotQualityCard component
+     */
+    renderShotQualityTab(container, teamName) {
+        if (!container) return;
+
+        // Generate unique IDs to avoid conflicts
+        const uniqueId = Date.now();
+        const homeContainerId = `sqc-home-${uniqueId}`;
+        const awayContainerId = `sqc-away-${uniqueId}`;
+
+        // Show loading state
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">🎯 Shot Quality Analysis</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - Home vs Away shot efficiency comparison</p>
+                <div class="shot-quality-cards-container" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div class="shot-quality-card-wrapper" id="${homeContainerId}" style="min-height: 280px;"></div>
+                    <div class="shot-quality-card-wrapper" id="${awayContainerId}" style="min-height: 280px;"></div>
+                </div>
+                <p class="stats-section-footer" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    League averages: Shot Accuracy 32% | Conversion Rate 28%
+                </p>
+            </div>
+        `;
+
+        const homeContainer = document.getElementById(homeContainerId);
+        const awayContainer = document.getElementById(awayContainerId);
+
+        // Helper function to render loading
+        const renderLoading = (el) => {
+            if (!el) return;
+            el.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                    <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading...</span>
+                </div>
+            `;
+        };
+
+        // Helper function to render error
+        const renderError = (el, msg) => {
+            if (!el) return;
+            el.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color); text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                    <span style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(msg)}</span>
+                </div>
+            `;
+        };
+
+        // Helper function to render card (fallback implementation)
+        const renderCard = (el, data) => {
+            if (!el || !data) return;
+            const qualityScore = Math.min(Math.max((data.qualityScore || 0) * 10, 0), 100);
+            const shotAccuracy = data.shotAccuracy || 0;
+            const conversionRate = (data.conversionRate || 0) * 100;
+            const isHome = data.isHome;
+            const teamLabel = data.teamName || teamName;
+
+            // Determine rating color
+            let ratingColor = '#22c55e'; // green
+            let ratingText = 'Above League Average';
+            if (qualityScore < 40) {
+                ratingColor = '#ef4444'; // red
+                ratingText = 'Below League Average';
+            } else if (qualityScore < 60) {
+                ratingColor = '#fbbf24'; // yellow
+                ratingText = 'Near League Average';
+            }
+
+            el.innerHTML = `
+                <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 0.75rem; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3 style="font-size: 1.125rem; font-weight: 600; color: var(--text-primary); margin: 0;">${this.escapeHtml(teamLabel)}</h3>
+                        <span style="padding: 0.25rem 0.5rem; border-radius: 0.25rem; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; background: ${isHome ? 'rgba(34, 197, 94, 0.15)' : 'rgba(59, 130, 246, 0.15)'}; color: ${isHome ? 'var(--accent-green)' : 'var(--accent-blue)'};">
+                            ${isHome ? 'HOME' : 'AWAY'}
+                        </span>
+                    </div>
+                    <div style="text-align: center; margin: 1.5rem 0;">
+                        <div style="font-size: 3rem; font-weight: 700; color: var(--text-primary);">${Math.round(qualityScore)}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Quality Score</div>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="background: var(--bg-tertiary); border-radius: 0.5rem; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${shotAccuracy.toFixed(1)}%</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Shot Accuracy</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); border-radius: 0.5rem; padding: 1rem; text-align: center;">
+                            <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${conversionRate.toFixed(1)}%</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">Conversion Rate</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <span style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; background: ${ratingColor}20; color: ${ratingColor};">
+                            ${ratingText}
+                        </span>
+                    </div>
+                </div>
+            `;
+        };
+
+        // Show loading
+        if (window.ShotQualityCard) {
+            window.ShotQualityCard.renderLoading(homeContainer);
+            window.ShotQualityCard.renderLoading(awayContainer);
+        } else {
+            renderLoading(homeContainer);
+            renderLoading(awayContainer);
+        }
+
+        // Fetch and render asynchronously
+        const apiUrl = `${window.location.origin}/api/teams/${encodeURIComponent(teamName)}/shot-quality?split=true`;
+        console.log('[Router] Fetching shot quality from:', apiUrl);
+
+        fetch(apiUrl)
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        let errorMsg;
+                        try {
+                            const errJson = JSON.parse(text);
+                            errorMsg = errJson.message || errJson.error || `HTTP ${response.status}`;
+                        } catch (e) {
+                            errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+                        }
+                        throw new Error(errorMsg);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('[Router] Shot quality data received:', data);
+                const homeEl = document.getElementById(homeContainerId);
+                const awayEl = document.getElementById(awayContainerId);
+
+                if (window.ShotQualityCard) {
+                    if (homeEl && data.home) {
+                        window.ShotQualityCard.render(homeEl, data.home);
+                    } else if (homeEl) {
+                        window.ShotQualityCard.renderError(homeEl, 'No home data available');
+                    }
+                    if (awayEl && data.away) {
+                        window.ShotQualityCard.render(awayEl, data.away);
+                    } else if (awayEl) {
+                        window.ShotQualityCard.renderError(awayEl, 'No away data available');
+                    }
+                } else {
+                    // Use inline fallback
+                    if (homeEl && data.home) {
+                        renderCard(homeEl, data.home);
+                    } else if (homeEl) {
+                        renderError(homeEl, 'No home data available');
+                    }
+                    if (awayEl && data.away) {
+                        renderCard(awayEl, data.away);
+                    } else if (awayEl) {
+                        renderError(awayEl, 'No away data available');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('[Router] Failed to load shot quality:', error);
+                const homeEl = document.getElementById(homeContainerId);
+                const awayEl = document.getElementById(awayContainerId);
+
+                const errorMsg = error.message || 'Failed to load data';
+
+                if (window.ShotQualityCard) {
+                    if (homeEl) window.ShotQualityCard.renderError(homeEl, errorMsg);
+                    if (awayEl) window.ShotQualityCard.renderError(awayEl, errorMsg);
+                } else {
+                    if (homeEl) renderError(homeEl, errorMsg);
+                    if (awayEl) renderError(awayEl, errorMsg);
+                }
+            });
     }
 
     /**

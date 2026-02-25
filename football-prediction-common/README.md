@@ -1,5 +1,9 @@
 # Football Prediction Common Module
 
+> **Part of the [Football Prediction Platform](../README.md)** - Shared foundation layer providing entities, repositories, and feature engineering.
+
+---
+
 ## Module Overview
 
 ### Purpose
@@ -31,6 +35,27 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+**Related Documentation:**
+- [Main Platform README](../README.md)
+- [Main Application](../football-prediction-app/README.md)
+- [Model Training Service](../model-training-service/README.md)
+- [Frontend Components](../frontend/README.md)
+
+---
+
+## Table of Contents
+
+- [Responsibilities](#responsibilities)
+- [Architecture](#architecture)
+- [Package Structure](#package-structure)
+- [Domain Entities](#domain-entities)
+- [Feature Engineering Pipeline](#feature-engineering-pipeline)
+- [Repository Layer](#repository-layer)
+- [Data Dependencies](#data-dependencies)
+- [Performance Design](#performance-design)
+- [Edge Case Handling](#edge-case-handling)
+- [Testing Strategy](#testing-strategy)
 
 ---
 
@@ -66,17 +91,20 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 ```
 com.app.common/
 ├── model/                    # JPA Entities
-│   ├── Match.java           # Core match data (126 lines)
-│   ├── Team.java            # Team metadata (53 lines)
-│   ├── League.java          # League configuration (75 lines)
-│   ├── LeagueStanding.java  # Season standings (201 lines)
-│   ├── Prediction.java      # Prediction tracking (165 lines)
+│   ├── Match.java           # Core match data
+│   ├── Team.java            # Team metadata
+│   ├── League.java          # League configuration
+│   ├── LeagueStanding.java  # Season standings
+│   ├── Prediction.java      # Prediction tracking
 │   ├── MatchFeatures.java   # ML feature DTO
 │   ├── AdminAuditLog.java   # Admin action logging
 │   └── SystemSettings.java  # Application settings
 │
+├── dto/                      # Data Transfer Objects
+│   └── ShotQualityDTO.java  # Shot quality metrics DTO
+│
 ├── repository/               # Spring Data JPA
-│   ├── MatchRepository.java          # Match queries (167 lines)
+│   ├── MatchRepository.java          # Match queries
 │   ├── TeamRepository.java           # Team queries
 │   ├── LeagueRepository.java         # League queries
 │   ├── LeagueStandingRepository.java # Standings queries
@@ -85,7 +113,11 @@ com.app.common/
 │   └── SystemSettingsRepository.java # Settings queries
 │
 ├── service/                  # Shared Business Logic
-│   └── FeatureEngineeringService.java  # 25-feature ML pipeline (354 lines)
+│   └── FeatureEngineeringService.java  # 25-feature ML pipeline
+│
+├── ingestion/                # Data Ingestion
+│   └── mapper/
+│       └── CanonicalMapper.java  # CSV field mapping
 │
 └── util/                     # Utilities
     └── PredictionUtils.java  # Helper functions
@@ -121,13 +153,107 @@ com.app.common/
 
 ---
 
-## Core Business Logic
+## Domain Entities
 
-### Feature Engineering Pipeline
+### Match Entity
+
+Core entity representing a historical or upcoming match.
+
+```java
+@Entity
+@Table(name = "matches")
+public class Match {
+    @Id @GeneratedValue
+    private Long id;
+
+    private LocalDate matchDate;
+    private String homeTeam;
+    private String awayTeam;
+    private String season;
+
+    private Integer fullTimeHomeGoals;
+    private Integer fullTimeAwayGoals;
+    private String fullTimeResult;  // H, D, A
+
+    // Match statistics
+    private Integer homeShots, awayShots;
+    private Integer homeShotsOnTarget, awayShotsOnTarget;
+    private Integer homeCorners, awayCorners;
+    private Integer homeFouls, awayFouls;
+    private Integer homeYellowCards, awayYellowCards;
+    private Integer homeRedCards, awayRedCards;
+
+    // Business methods
+    public int getPointsForTeam(String teamName) { ... }
+    public int getGoalsScoredByTeam(String teamName) { ... }
+    public int getGoalsConcededByTeam(String teamName) { ... }
+}
+```
+
+### MatchFeatures DTO
+
+Data transfer object containing 25 ML features.
+
+```java
+public class MatchFeatures {
+    // Phase 1: Form & Goals
+    private double homeFormPoints;
+    private double awayFormPoints;
+    private double homeGoalsScoredAvg;
+    private double homeGoalsConcededAvg;
+    private double awayGoalsScoredAvg;
+    private double awayGoalsConcededAvg;
+    private double homeTotalGoalsAvg;
+    private double awayTotalGoalsAvg;
+    private double h2hHomeWinRate;
+    private double h2hDrawRate;
+    private double h2hAwayWinRate;
+
+    // Phase 2: Match Statistics
+    private double homeShotsOnTargetAvg;
+    private double awayShotsOnTargetAvg;
+    private double homeCornersAvg;
+    private double awayCornersAvg;
+
+    // Phase 3: Momentum & Fatigue
+    private double homeGoalDifference;
+    private double awayGoalDifference;
+    private double homeOverallFormPoints;
+    private double awayOverallFormPoints;
+    private int homeWinStreak;
+    private int awayWinStreak;
+    private int homeUnbeatenStreak;
+    private int awayUnbeatenStreak;
+    private int homeDaysSinceLastMatch;
+    private int awayDaysSinceLastMatch;
+
+    // Label (training only)
+    private String actualResult;
+}
+```
+
+### ShotQualityDTO
+
+Shot quality metrics for team analytics.
+
+```java
+public class ShotQualityDTO {
+    private String teamName;
+    private Boolean isHome;
+    private double qualityScore;      // 0-10 scale
+    private double shotAccuracy;      // percentage
+    private double conversionRate;    // percentage
+    private List<ShotTrendPoint> shotsTrend;  // last 10 matches
+}
+```
+
+---
+
+## Feature Engineering Pipeline
 
 The `FeatureEngineeringService` computes 25 features organized in 3 phases:
 
-#### Phase 1: Form & Goals (10 features)
+### Phase 1: Form & Goals (10 features)
 
 | Feature | Formula | Description |
 |---------|---------|-------------|
@@ -142,7 +268,7 @@ The `FeatureEngineeringService` computes 25 features organized in 3 phases:
 | `h2hDrawRate` | `COUNT(draws) / COUNT(h2h_matches)` | H2H draw rate |
 | `h2hAwayWinRate` | `COUNT(away_wins) / COUNT(h2h_matches)` | H2H away win rate |
 
-#### Phase 2: Match Statistics (4 features)
+### Phase 2: Match Statistics (4 features)
 
 | Feature | Formula | Description |
 |---------|---------|-------------|
@@ -151,7 +277,7 @@ The `FeatureEngineeringService` computes 25 features organized in 3 phases:
 | `homeCornersAvg` | `AVG(home_corners) OVER last 10` | Avg corners at home |
 | `awayCornersAvg` | `AVG(away_corners) OVER last 10` | Avg corners away |
 
-#### Phase 3: Momentum & Fatigue (11 features)
+### Phase 3: Momentum & Fatigue (11 features)
 
 | Feature | Formula | Description |
 |---------|---------|-------------|
@@ -169,7 +295,6 @@ The `FeatureEngineeringService` computes 25 features organized in 3 phases:
 ### Points System
 
 ```java
-// Standard football points calculation
 W = 3 points  // Win
 D = 1 point   // Draw
 L = 0 points  // Loss
@@ -187,13 +312,45 @@ MatchFeatures features = buildFeatures(homeTeam, awayTeam, match.getMatchDate())
 MatchFeatures features = buildFeatures(homeTeam, awayTeam, LocalDate.now());
 ```
 
-### Season-scoped Queries
+---
 
-All insights queries must filter by season:
+## Repository Layer
+
+### MatchRepository
+
+Key query methods for match data access:
+
+```java
+public interface MatchRepository extends JpaRepository<Match, Long> {
+
+    // Season-scoped queries
+    List<Match> findBySeasonOrderByMatchDateDesc(String season);
+
+    // Team history queries
+    List<Match> findByHomeTeamAndMatchDateBeforeOrderByMatchDateDesc(
+        String homeTeam, LocalDate beforeDate);
+
+    List<Match> findByAwayTeamAndMatchDateBeforeOrderByMatchDateDesc(
+        String awayTeam, LocalDate beforeDate);
+
+    // H2H queries
+    @Query("SELECT m FROM Match m WHERE " +
+           "((m.homeTeam = :team1 AND m.awayTeam = :team2) OR " +
+           " (m.homeTeam = :team2 AND m.awayTeam = :team1)) " +
+           "AND m.matchDate < :beforeDate " +
+           "ORDER BY m.matchDate DESC")
+    List<Match> findH2HBeforeDate(String team1, String team2, LocalDate beforeDate);
+
+    // Season team list
+    @Query("SELECT DISTINCT m.homeTeam FROM Match m WHERE m.season = :season")
+    Set<String> findDistinctHomeTeamsBySeason(String season);
+}
+```
+
+### Season-scoped Query Pattern
 
 ```sql
--- Standard pattern for season-scoped queries
-SELECT m FROM Match m 
+SELECT m FROM Match m
 WHERE (m.homeTeam = :team OR m.awayTeam = :team)
   AND m.season = :season
   AND m.fullTimeResult IS NOT NULL
@@ -215,19 +372,9 @@ ORDER BY m.matchDate DESC
 | `league_standings` | Season standings | `league_id`, `season`, `team_name`, `position`, `points` |
 | `predictions` | Prediction tracking | `match_id`, `predicted_result`, `actual_result`, `is_correct` |
 
-### External Dependencies
-
-- **None**: This module has no external service dependencies
-- All data comes from the H2 database
-
----
-
-## Performance Design
-
 ### Index Strategy
 
 ```sql
--- Recommended indexes for optimal query performance
 CREATE INDEX idx_match_date ON matches(match_date DESC);
 CREATE INDEX idx_match_home_team ON matches(home_team);
 CREATE INDEX idx_match_away_team ON matches(away_team);
@@ -236,37 +383,30 @@ CREATE INDEX idx_match_team_date ON matches(home_team, match_date DESC);
 CREATE INDEX idx_match_season_date ON matches(season, match_date DESC);
 ```
 
-### Query Optimization
+---
 
-#### Batch Loading for Feature Engineering
+## Performance Design
+
+### Batch Loading for Feature Engineering
 
 ```java
 // Single database round-trip per feature build
-List<Match> homeTeamHomeMatches = matchRepository.findHomeMatchesByTeamBeforeDate(homeTeam, beforeDate);
-List<Match> awayTeamAwayMatches = matchRepository.findAwayMatchesByTeamBeforeDate(awayTeam, beforeDate);
-List<Match> h2hMatches = matchRepository.findH2HBeforeDate(homeTeam, awayTeam, beforeDate);
+List<Match> homeTeamHomeMatches = matchRepository
+    .findHomeMatchesByTeamBeforeDate(homeTeam, beforeDate);
+List<Match> awayTeamAwayMatches = matchRepository
+    .findAwayMatchesByTeamBeforeDate(awayTeam, beforeDate);
+List<Match> h2hMatches = matchRepository
+    .findH2HBeforeDate(homeTeam, awayTeam, beforeDate);
 ```
 
-#### Stream-based Aggregation with Limits
+### Stream-based Aggregation with Limits
 
 ```java
-// Limit processing to relevant window size
 return matches.stream()
     .limit(window)  // Typically 5, 10, or 20
     .mapToInt(m -> m.getPointsForTeam(teamName))
     .average()
     .orElse(0.0);
-```
-
-### Avoidance of N+1
-
-```java
-// Cache matches to avoid N+1 queries
-Map<String, List<Match>> matchCache = new HashMap<>();
-for (String team : teams) {
-    List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
-    matchCache.put(team, matches);  // Cache for reuse
-}
 ```
 
 ### Query Constraints
@@ -289,8 +429,10 @@ private double calcShotsOnTargetAvg(List<Match> matches, boolean isHome) {
     if (matches.isEmpty()) return 0.0;
     return matches.stream()
         .limit(10)
-        .filter(m -> isHome ? m.getHomeShotsOnTarget() != null : m.getAwayShotsOnTarget() != null)
-        .mapToInt(m -> isHome ? m.getHomeShotsOnTarget() : m.getAwayShotsOnTarget())
+        .filter(m -> isHome ? m.getHomeShotsOnTarget() != null
+                            : m.getAwayShotsOnTarget() != null)
+        .mapToInt(m -> isHome ? m.getHomeShotsOnTarget()
+                              : m.getAwayShotsOnTarget())
         .average()
         .orElse(0.0);
 }
@@ -299,7 +441,6 @@ private double calcShotsOnTargetAvg(List<Match> matches, boolean isHome) {
 ### Empty Dataset Handling
 
 ```java
-// Return sensible defaults for empty data
 private double calcH2HWinRate(List<Match> h2hMatches, String teamName) {
     if (h2hMatches.isEmpty()) return 0.33;  // Neutral prior (1/3)
     // ...
@@ -326,48 +467,31 @@ return (double) wins / h2hMatches.size();  // Guaranteed non-zero denominator
 
 | Test Class | Coverage |
 |------------|----------|
-| `MatchTest` | Entity methods (`getPointsForTeam`, `getGoalsScoredByTeam`) |
-| `MatchFeaturesTest` | DTO builder and field validation |
+| `MatchTest` | Entity methods |
+| `MatchFeaturesTest` | DTO builder and validation |
 | `FeatureEngineeringServiceTest` | All 25 feature calculations |
 
 ### Test Scenarios
 
 ```java
-// Normal case: Team with full history
 @Test
-void buildsCorrectFeaturesForTeamWithHistory();
+void buildsCorrectFeaturesForTeamWithHistory() { ... }
 
-// Edge case: New team with no history
 @Test
-void handlesNewTeamWithNoHistory();
+void handlesNewTeamWithNoHistory() { ... }
 
-// Boundary: Exactly 5 matches for form
 @Test
-void calculatesFormWithExactlyFiveMatches();
+void calculatesFormWithExactlyFiveMatches() { ... }
+
+@Test
+void preventsDataLeakageWithTemporalCutoff() { ... }
 ```
 
 ---
 
-## Future Enhancements
+## Maven Dependency
 
-| Enhancement | Description | Priority |
-|-------------|-------------|----------|
-| xG Features | Add expected goals data | High |
-| Player Availability | Track key player injuries | Medium |
-| Referee Features | Historical referee statistics | Medium |
-| Read Replicas | Distribute query load | Low |
-| Async Features | Parallel computation | Low |
-
----
-
-## Configuration
-
-```properties
-# Feature Engineering
-feature.form.window=5
-```
-
-### Maven Dependency
+To use this module in other modules:
 
 ```xml
 <dependency>
@@ -376,3 +500,20 @@ feature.form.window=5
     <version>${project.version}</version>
 </dependency>
 ```
+
+---
+
+## Metrics
+
+| Metric | Value |
+|--------|-------|
+| Lines of Code | ~3,500 |
+| Entities | 8 |
+| Repositories | 7 |
+| Services | 1 |
+| ML Features | 25 |
+
+---
+
+**[← Back to Main README](../README.md)**
+

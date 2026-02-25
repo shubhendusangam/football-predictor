@@ -444,5 +444,41 @@ public class AdminController {
             ));
         }
     }
-}
 
+    // ======================= DATA MIGRATION =======================
+
+    /**
+     * Update existing matches with fouls data (HF/AF) from CSV files.
+     * This is a one-time migration to populate fouls data for existing matches.
+     *
+     * POST /api/admin/data/update-fouls
+     */
+    @PostMapping("/data/update-fouls")
+    public ResponseEntity<?> updateFoulsData(Authentication authentication) {
+        try {
+            log.info("Fouls data update triggered by: {}",
+                    authentication != null ? authentication.getName() : "unknown");
+
+            int updated = adminService.updateFoulsData();
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Updated fouls data for " + updated + " matches",
+                    null, null, null, null, true, null);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "Fouls data update completed",
+                "matchesUpdated", updated
+            ));
+        } catch (Exception e) {
+            log.error("Error updating fouls data", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "Failed to update fouls data: " + e.getMessage()
+            ));
+        }
+    }
+}

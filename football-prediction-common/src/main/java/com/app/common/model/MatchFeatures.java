@@ -86,6 +86,22 @@ public class MatchFeatures {
    @Builder.Default
    private int awayLeaguePosition = 10;
 
+   // ── Phase 5 features (Possession Proxy) ────────────────────
+   /**
+    * Estimated home team possession (0.0 to 1.0).
+    * Calculated as: (shotRatio × 0.6) + (cornerRatio × 0.4)
+    * where shotRatio = teamShots / (teamShots + opponentShots)
+    */
+   @Builder.Default
+   private double homePossessionProxy = 0.5;
+
+   /**
+    * Estimated away team possession (0.0 to 1.0).
+    * Should approximately equal (1.0 - homePossessionProxy).
+    */
+   @Builder.Default
+   private double awayPossessionProxy = 0.5;
+
    // ── Label (training only) ──────────────────────────────
    private String actualResult;        // "H", "D", "A" — null at prediction time
 }

@@ -66,6 +66,8 @@ public class CanonicalMapper {
             .awayYellowCards(match.getAwayYellowCards())
             .homeRedCards(match.getHomeRedCards())
             .awayRedCards(match.getAwayRedCards())
+            .homeFouls(match.getHomeFouls())
+            .awayFouls(match.getAwayFouls())
             .homeWinOdds(match.getB365H())
             .drawOdds(match.getB365D())
             .awayWinOdds(match.getB365A())
@@ -108,6 +110,8 @@ public class CanonicalMapper {
             .awayYellowCards(dto.getAwayYellowCards())
             .homeRedCards(dto.getHomeRedCards())
             .awayRedCards(dto.getAwayRedCards())
+            .homeFouls(dto.getHomeFouls())
+            .awayFouls(dto.getAwayFouls())
             .b365H(dto.getHomeWinOdds())
             .b365D(dto.getDrawOdds())
             .b365A(dto.getAwayWinOdds())
@@ -163,6 +167,10 @@ public class CanonicalMapper {
         if (dto.getHomeRedCards() != null && existing.getHomeRedCards() == null) {
             existing.setHomeRedCards(dto.getHomeRedCards());
             existing.setAwayRedCards(dto.getAwayRedCards());
+        }
+        if (dto.getHomeFouls() != null && existing.getHomeFouls() == null) {
+            existing.setHomeFouls(dto.getHomeFouls());
+            existing.setAwayFouls(dto.getAwayFouls());
         }
 
         // Update referee if missing
