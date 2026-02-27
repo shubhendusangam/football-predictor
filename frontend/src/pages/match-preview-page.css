@@ -1,15 +1,15 @@
 /* ==========================================
-   TEAM ANALYTICS PAGE STYLES
-   Football Forecaster - Analytics Page Component
+   MATCH PREVIEW PAGE STYLES
+   Football Forecaster - Match Preview Component
    ========================================== */
 
 /* ==========================================
    PAGE CONTAINER
    ========================================== */
 
-.team-analytics-page {
+.match-preview-page {
     padding: 1.5rem;
-    max-width: 1200px;
+    max-width: 800px;
     margin: 0 auto;
 }
 
@@ -17,149 +17,160 @@
    PAGE HEADER
    ========================================== */
 
-.team-analytics-page__header {
+.match-preview-page__header {
     margin-bottom: 2rem;
     text-align: center;
 }
 
-.team-analytics-page__title {
+.match-preview-page__title {
     font-size: 1.75rem;
     font-weight: 700;
     color: var(--text-primary, #f1f5f9);
-    margin: 0 0 0.5rem 0;
+    margin: 0 0 1rem 0;
 }
 
-.team-analytics-page__subtitle {
+.match-preview-page__subtitle {
     font-size: 1rem;
     color: var(--text-secondary, #cbd5e1);
     margin: 0;
 }
 
-/* ==========================================
-   PAGE SECTIONS
-   ========================================== */
-
-.team-analytics-page__section {
-    margin-bottom: 2rem;
+.match-preview-page__teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
 }
 
-.team-analytics-page__section-title {
+.match-preview-page__team {
     font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.match-preview-page__team--home {
+    color: var(--accent-green, #22c55e);
+}
+
+.match-preview-page__team--away {
+    color: var(--accent-blue, #3b82f6);
+}
+
+.match-preview-page__vs {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+}
+
+/* ==========================================
+   CONTENT AREA
+   ========================================== */
+
+.match-preview-page__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+/* ==========================================
+   SECTIONS
+   ========================================== */
+
+.match-preview-page__section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.match-preview-page__section-title {
+    font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary, #f1f5f9);
-    margin: 0 0 1rem 0;
+    margin: 0;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-color, #334155);
 }
 
+.match-preview-page__card-container {
+    min-height: 400px;
+}
+
 /* ==========================================
-   PAGE FOOTER
+   FOOTER
    ========================================== */
 
-.team-analytics-page__footer {
+.match-preview-page__footer {
     margin-top: 2rem;
     padding-top: 1rem;
     border-top: 1px solid var(--border-color, #334155);
     text-align: center;
 }
 
-.team-analytics-page__note {
+.match-preview-page__note {
     font-size: 0.875rem;
     color: var(--text-muted, #94a3b8);
     margin: 0;
+    font-style: italic;
 }
 
 /* ==========================================
    ERROR STATE
    ========================================== */
 
-.team-analytics-page--error {
+.match-preview-page--error {
     display: flex;
     align-items: center;
     justify-content: center;
     min-height: 400px;
 }
 
-.team-analytics-page__error {
+.match-preview-page__error {
     text-align: center;
     padding: 2rem;
 }
 
-.team-analytics-page__error-icon {
+.match-preview-page__error-icon {
     font-size: 3rem;
     display: block;
     margin-bottom: 1rem;
 }
 
-.team-analytics-page__error h3 {
+.match-preview-page__error h3 {
     font-size: 1.25rem;
     color: var(--text-primary, #f1f5f9);
     margin: 0 0 0.5rem 0;
 }
 
-.team-analytics-page__error p {
+.match-preview-page__error p {
     font-size: 0.875rem;
     color: var(--text-secondary, #cbd5e1);
     margin: 0 0 1.5rem 0;
+    max-width: 400px;
 }
 
 /* ==========================================
-   SHOT QUALITY SECTION
+   CORNER PREDICTION SECTION (Standalone)
    ========================================== */
 
-.shot-quality-section {
+.corner-prediction-section {
     margin-bottom: 2rem;
 }
 
-.shot-quality-section__header {
+.corner-prediction-section__header {
     margin-bottom: 1rem;
 }
 
-.shot-quality-section__title {
+.corner-prediction-section__title {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--text-primary, #f1f5f9);
     margin: 0;
 }
 
-.shot-quality-card-wrapper {
-    min-height: 300px;
-}
-
-/* ==========================================
-   CORNER STATS SECTION
-   ========================================== */
-
-.corner-stats-section {
-    margin-bottom: 2rem;
-}
-
-.corner-stats-section__header {
-    margin-bottom: 1rem;
-}
-
-.corner-stats-section__title {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: var(--text-primary, #f1f5f9);
-    margin: 0;
-}
-
-.corner-stats-cards-container {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1.5rem;
-    margin-bottom: 1.5rem;
-}
-
-.corner-stats-card-wrapper {
-    min-height: 300px;
-}
-
-@media (max-width: 768px) {
-    .corner-stats-cards-container {
-        grid-template-columns: 1fr;
-    }
+.corner-prediction-section__card {
+    min-height: 400px;
 }
 
 /* ==========================================
@@ -197,17 +208,26 @@
    RESPONSIVE ADJUSTMENTS
    ========================================== */
 
-@media (max-width: 768px) {
-    .team-analytics-page {
+@media (max-width: 640px) {
+    .match-preview-page {
         padding: 1rem;
     }
 
-    .team-analytics-page__title {
+    .match-preview-page__title {
         font-size: 1.5rem;
     }
 
-    .team-analytics-page__section-title {
-        font-size: 1.125rem;
+    .match-preview-page__team {
+        font-size: 1rem;
+    }
+
+    .match-preview-page__teams {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .match-preview-page__section-title {
+        font-size: 1rem;
     }
 }
 

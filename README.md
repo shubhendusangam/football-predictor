@@ -148,6 +148,41 @@ Every prediction includes a breakdown of contributing factors:
 | **Win Rate by Foul Count** | Win % when committing low/controlled/high fouls |
 | **Discipline Badge** | Color-coded rating (Excellent/Good/Average/Poor) |
 
+### ⚑ Corner Stats & Predictions
+
+| Metric | Description |
+|--------|-------------|
+| **Avg Corners Won** | Average corners won per match (home/away split) |
+| **Avg Corners Against** | Average corners conceded per match |
+| **Corner Dominance** | Percentage of total corners won vs conceded |
+| **Success Rate** | Win rate correlation with corner performance |
+| **Weighted Avg Corners** | Recency-weighted average using exponential decay |
+| **Match Corner Prediction** | Expected total corners with probability distribution |
+| **Over/Under Probabilities** | Probability for Over 9.5, 10.5, 11.5 corners |
+
+### 🟡 Cards Prediction & Team Discipline
+
+| Metric | Description |
+|--------|-------------|
+| **Expected Yellow Cards** | Predicted yellow cards for home/away teams |
+| **Expected Red Cards** | Predicted red card probability |
+| **Referee Influence** | Card rates adjusted by referee history |
+| **Team Discipline Rating** | 0-10 discipline score per team |
+| **Recent Bookings** | Last 5 matches booking summary |
+| **Card Risk Level** | High/Medium/Low risk classification |
+
+### ⏱️ Half-Time Analysis
+
+| Metric | Description |
+|--------|-------------|
+| **First Half Goals %** | Percentage of goals scored in first half |
+| **Second Half Goals %** | Percentage of goals scored in second half |
+| **Pattern Classification** | Fast Starter / Strong Finisher / Balanced |
+| **Win Rate from Winning HT** | Win rate when leading at half-time |
+| **Win Rate from Drawing HT** | Win rate when drawing at half-time |
+| **Comeback Rate** | Percentage of wins after losing at half-time |
+| **Confidence Level** | Based on matches analyzed |
+
 ### 🏆 Additional Features
 
 | Feature | Description |
@@ -186,11 +221,14 @@ Every prediction includes a breakdown of contributing factors:
 │  │  │      Service Layer            │  │   └────────────────┬───────────┘   │
 │  │  │  • PreMatchInsightsService    │  │                    │               │
 │  │  │  • TrendingInsightsService    │  │   ┌────────────────▼───────────┐   │
-│  │  │  • ShotQualityService (NEW)   │  │   │     Shared Storage         │   │
-│  │  │  • FoulsAnalysisService (NEW) │  │   │                            │   │
-│  │  │  • H2HInsightsService         │  │   │  ┌──────────────────────┐  │   │
-│  │  │  • TeamStatsService           │  │   │  │   H2 Database        │  │   │
-│  │  └───────────────────────────────┘  │   │  │   footballdb.mv.db   │  │   │
+│  │  │  • ShotQualityService         │  │   │     Shared Storage         │   │
+│  │  │  • FoulsAnalysisService       │  │   │                            │   │
+│  │  │  • CornerStatsService (NEW)   │  │   │  ┌──────────────────────┐  │   │
+│  │  │  • CardsPredictionService     │  │   │  │   H2 Database        │  │   │
+│  │  │  • HalfAnalysisService (NEW)  │  │   │  │   footballdb.mv.db   │  │   │
+│  │  │  • H2HInsightsService         │  │   │  └──────────────────────┘  │   │
+│  │  │  • TeamStatsService           │  │   │                            │  │
+│  │  └───────────────────────────────┘  │   │  ┌──────────────────────┐  │   │
 │  │               │                     │   │  └──────────────────────┘  │   │
 │  │               ▼                     │   │                            │   │
 │  │  ┌───────────────────────────────┐  │   │  ┌──────────────────────┐  │   │
@@ -211,6 +249,7 @@ Every prediction includes a breakdown of contributing factors:
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                         Frontend (Vanilla JS)                        │   │
 │  │  • ShotQualityCard        • FoulsAnalysisCard    • TeamAnalyticsPage │   │
+│  │  • CornerStatsCard (NEW)  • CornerPredictionCard • MatchPreviewPage  │   │
 │  │  • Router.js              • Static Resources                         │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
@@ -266,6 +305,9 @@ Every prediction includes a breakdown of contributing factors:
 | `teamStats` | 10 min | Team statistics |
 | `shotQuality` | 10 min | Shot quality metrics |
 | `foulsAnalysis` | 10 min | Fouls & discipline data |
+| `cornerStats` | 10 min | Corner statistics |
+| `cardsPrediction` | 10 min | Cards prediction data |
+| `halfAnalysis` | 10 min | Half-time analysis data |
 | `h2hInsights` | 10 min | H2H historical data |
 | `teamLogos` | 60 min | Team logo URLs |
 | `news` | 15 min | News feed |

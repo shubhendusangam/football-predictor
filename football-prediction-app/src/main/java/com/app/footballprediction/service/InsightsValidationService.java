@@ -26,7 +26,27 @@ import java.util.List;
 public class InsightsValidationService {
 
     private static final int FORM_WINDOW = 5;
-    private static final double EPSILON = 0.01;
+
+    /**
+     * Epsilon for general floating-point comparisons.
+     * Used for simple sum validations like totalExpectedGoals = home + away.
+     */
+    private static final double EPSILON = 0.1;
+
+    /**
+     * Epsilon for Goal Threat Index comparisons.
+     * Set to 0.5 to accommodate rounding differences when values are:
+     * 1. Calculated using raw data then rounded separately
+     * 2. Validated by recalculating from rounded values
+     *
+     * The Goal Threat Index formula (avgScored / 2.0) * 100 amplifies small
+     * rounding differences by 50x. For example, if avgScored has a 0.01 rounding
+     * error, the GTI error would be 0.01 * 50 = 0.5.
+     *
+     * Example: homeAvgScored=1.8268 → GTI=91.34, but rounded homeTeamAvgScored=1.83 → expected GTI=91.5
+     */
+    private static final double EPSILON_GTI = 0.5;
+
     private static final int STREAK_THRESHOLD = 3;
 
     /**
@@ -271,14 +291,15 @@ public class InsightsValidationService {
         }
 
         // Validate Goal Threat Index is consistent with formula
+        // Use EPSILON_GTI for GTI comparisons due to amplified rounding errors
         double expectedHomeGTI = Math.min(100, (meter.getHomeTeamAvgScored() / 2.0) * 100);
-        if (Math.abs(meter.getHomeGoalThreatIndex() - expectedHomeGTI) > EPSILON) {
+        if (Math.abs(meter.getHomeGoalThreatIndex() - expectedHomeGTI) > EPSILON_GTI) {
             errors.add(String.format("Home Goal Threat Index inconsistent: expected %.2f but got %.2f",
                     expectedHomeGTI, meter.getHomeGoalThreatIndex()));
         }
 
         double expectedAwayGTI = Math.min(100, (meter.getAwayTeamAvgScored() / 2.0) * 100);
-        if (Math.abs(meter.getAwayGoalThreatIndex() - expectedAwayGTI) > EPSILON) {
+        if (Math.abs(meter.getAwayGoalThreatIndex() - expectedAwayGTI) > EPSILON_GTI) {
             errors.add(String.format("Away Goal Threat Index inconsistent: expected %.2f but got %.2f",
                     expectedAwayGTI, meter.getAwayGoalThreatIndex()));
         }

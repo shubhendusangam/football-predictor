@@ -1,0 +1,715 @@
+/* ==========================================
+   HALF ANALYSIS CARD STYLES
+   Football Forecaster - First Half vs Second Half
+   ========================================== */
+
+/* ==========================================
+   CSS VARIABLES
+   ========================================== */
+
+:root {
+    --half-first-color: #3b82f6;         /* Blue for first half */
+    --half-first-light: #60a5fa;
+    --half-first-dark: #2563eb;
+    --half-second-color: #ef4444;        /* Red for second half */
+    --half-second-light: #f87171;
+    --half-second-dark: #dc2626;
+    --half-balanced-color: #6b7280;      /* Grey for balanced */
+    --half-gradient: linear-gradient(135deg, var(--half-first-color) 0%, var(--half-second-color) 100%);
+}
+
+/* ==========================================
+   HALF ANALYSIS SECTION
+   ========================================== */
+
+.half-analysis-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.half-analysis-section .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.25rem;
+}
+
+.half-analysis-section .header-icon {
+    font-size: 1.25rem;
+}
+
+.half-analysis-section .header-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+/* ==========================================
+   HALF ANALYSIS CARD
+   ========================================== */
+
+.half-analysis-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.half-analysis-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--half-gradient);
+}
+
+/* ==========================================
+   CARD HEADER
+   ========================================== */
+
+.half-analysis-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+}
+
+.half-analysis-card__team-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.half-analysis-card__team-name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.half-analysis-card__data-scope {
+    font-size: 0.8125rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* Stronger Half Badge */
+.half-analysis-card__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.half-analysis-card__badge--first-half {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--half-first-color);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.half-analysis-card__badge--second-half {
+    background: rgba(239, 68, 68, 0.15);
+    color: var(--half-second-color);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.half-analysis-card__badge--balanced {
+    background: rgba(107, 114, 128, 0.15);
+    color: var(--half-balanced-color);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+/* ==========================================
+   SPLIT LAYOUT (First Half vs Second Half)
+   ========================================== */
+
+.half-analysis-card__split-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+@media (max-width: 480px) {
+    .half-analysis-card__split-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+.half-analysis-card__half {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.half-analysis-card__half:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.half-analysis-card__half--first {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.half-analysis-card__half--second {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.half-analysis-card__half-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.half-analysis-card__half-icon {
+    font-size: 1.25rem;
+}
+
+.half-analysis-card__half-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.half-analysis-card__half-percentage {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0.25rem 0;
+}
+
+.half-analysis-card__half--first .half-analysis-card__half-percentage {
+    color: var(--half-first-color);
+}
+
+.half-analysis-card__half--second .half-analysis-card__half-percentage {
+    color: var(--half-second-color);
+}
+
+.half-analysis-card__half-avg {
+    font-size: 0.8125rem;
+    color: var(--text-muted, #64748b);
+}
+
+.half-analysis-card__half-avg strong {
+    color: var(--text-secondary, #94a3b8);
+}
+
+/* ==========================================
+   DONUT CHART (SVG-based)
+   ========================================== */
+
+.half-analysis-card__chart-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.half-analysis-chart {
+    width: 160px;
+    height: 160px;
+    position: relative;
+}
+
+.half-analysis-chart__svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.half-analysis-chart__track {
+    fill: none;
+    stroke: var(--bg-tertiary, #0f172a);
+    stroke-width: 20;
+}
+
+.half-analysis-chart__first-half {
+    fill: none;
+    stroke: var(--half-first-color);
+    stroke-width: 20;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease;
+}
+
+.half-analysis-chart__second-half {
+    fill: none;
+    stroke: var(--half-second-color);
+    stroke-width: 20;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s ease, stroke-dashoffset 0.6s ease;
+}
+
+.half-analysis-chart__center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+
+.half-analysis-chart__center-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.half-analysis-chart__center-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* ==========================================
+   WIN RATE BARS
+   ========================================== */
+
+.half-analysis-card__win-rates {
+    margin-top: 1.5rem;
+}
+
+.half-analysis-card__win-rates-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.half-analysis-card__win-rate-item {
+    margin-bottom: 0.875rem;
+}
+
+.half-analysis-card__win-rate-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.375rem;
+}
+
+.half-analysis-card__win-rate-label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.half-analysis-card__win-rate-value {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.half-analysis-card__win-rate-bar {
+    height: 6px;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.half-analysis-card__win-rate-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.half-analysis-card__win-rate-fill--leading {
+    background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+}
+
+.half-analysis-card__win-rate-fill--drawing {
+    background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+}
+
+.half-analysis-card__win-rate-fill--losing {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.half-analysis-card__win-rate-fill--comeback {
+    background: linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+/* ==========================================
+   PATTERN BADGE
+   ========================================== */
+
+.half-analysis-card__pattern-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.half-analysis-card__pattern {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.half-analysis-card__pattern--fast-starter {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.1) 100%);
+    color: var(--half-first-color);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.half-analysis-card__pattern--strong-finisher {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+    color: var(--half-second-color);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.half-analysis-card__pattern--balanced {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%);
+    color: var(--half-balanced-color);
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+/* ==========================================
+   HALF COMPARISON WIDGET
+   ========================================== */
+
+.half-comparison-widget {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.half-comparison-widget::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: var(--half-gradient);
+    animation: gradient-shift 3s ease infinite;
+}
+
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.half-comparison-widget__header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.half-comparison-widget__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Comparison Rows */
+.half-comparison-widget__comparison {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+}
+
+.half-comparison-widget__team-value {
+    text-align: center;
+}
+
+.half-comparison-widget__team-value--home {
+    text-align: right;
+}
+
+.half-comparison-widget__team-value--away {
+    text-align: left;
+}
+
+.half-comparison-widget__value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.half-comparison-widget__team-name {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+    margin-top: 0.125rem;
+}
+
+.half-comparison-widget__metric-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    padding: 0 0.5rem;
+}
+
+/* Prediction Box */
+.half-comparison-widget__prediction {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(239, 68, 68, 0.1) 100%);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.5rem;
+    text-align: center;
+}
+
+.half-comparison-widget__prediction-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    margin-bottom: 0.5rem;
+}
+
+.half-comparison-widget__prediction-icon {
+    font-size: 1rem;
+}
+
+.half-comparison-widget__prediction-title {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.half-comparison-widget__prediction-text {
+    font-size: 0.9375rem;
+    color: var(--text-primary, #f1f5f9);
+    line-height: 1.5;
+}
+
+.half-comparison-widget__prediction-text strong {
+    color: var(--accent-blue, #60a5fa);
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+
+.half-analysis-card--loading {
+    min-height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.half-analysis-card__loader {
+    text-align: center;
+}
+
+.half-analysis-card__spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-tertiary, #0f172a);
+    border-top-color: var(--half-first-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.half-analysis-card__loading-text {
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.half-analysis-card--error {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.half-analysis-card__error {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.half-analysis-card__error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.half-analysis-card__error-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0 0 0.5rem;
+}
+
+.half-analysis-card__error-message {
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    margin: 0 0 1rem;
+}
+
+.half-analysis-card__retry-btn {
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary, #0f172a);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.5rem;
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.half-analysis-card__retry-btn:hover {
+    background: var(--border-color, #334155);
+}
+
+/* ==========================================
+   ANOMALY WARNING
+   ========================================== */
+
+.half-analysis-card__anomaly {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.half-analysis-card__anomaly-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+}
+
+.half-analysis-card__anomaly-text {
+    font-size: 0.8125rem;
+    color: #fbbf24;
+    line-height: 1.4;
+}
+
+/* ==========================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================== */
+
+@media (max-width: 640px) {
+    .half-analysis-card {
+        padding: 1rem;
+    }
+
+    .half-analysis-card__header {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .half-analysis-card__half-percentage {
+        font-size: 1.5rem;
+    }
+
+    .half-comparison-widget__comparison {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+        text-align: center;
+    }
+
+    .half-comparison-widget__team-value--home,
+    .half-comparison-widget__team-value--away {
+        text-align: center;
+    }
+
+    .half-comparison-widget__metric-label {
+        order: -1;
+        padding: 0;
+    }
+}
+
+/* ==========================================
+   ANIMATIONS
+   ========================================== */
+
+.half-analysis-card__half {
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+}
+
+.half-analysis-card__half--first {
+    animation-delay: 0.1s;
+}
+
+.half-analysis-card__half--second {
+    animation-delay: 0.2s;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.half-analysis-card__win-rate-item {
+    animation: fadeInRight 0.4s ease forwards;
+    opacity: 0;
+}
+
+.half-analysis-card__win-rate-item:nth-child(1) { animation-delay: 0.2s; }
+.half-analysis-card__win-rate-item:nth-child(2) { animation-delay: 0.3s; }
+.half-analysis-card__win-rate-item:nth-child(3) { animation-delay: 0.4s; }
+.half-analysis-card__win-rate-item:nth-child(4) { animation-delay: 0.5s; }
+
+@keyframes fadeInRight {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+

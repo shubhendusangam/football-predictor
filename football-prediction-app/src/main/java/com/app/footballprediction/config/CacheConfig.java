@@ -52,6 +52,11 @@ public class CacheConfig {
     public static final String CACHE_ELO_RATINGS = "eloRatings";
     public static final String CACHE_SHOT_QUALITY = "shotQuality";
     public static final String CACHE_FOULS_ANALYSIS = "foulsAnalysis";
+    public static final String CACHE_CORNER_STATS = "cornerStats";
+    public static final String CACHE_CORNER_PREDICTION = "cornerPrediction";
+    public static final String CACHE_CARDS_PREDICTION = "cardsPrediction";
+    public static final String CACHE_TEAM_DISCIPLINE = "teamDiscipline";
+    public static final String CACHE_HALF_ANALYSIS = "halfAnalysis";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -106,6 +111,21 @@ public class CacheConfig {
     @Value("${cache.foulsAnalysis.ttl:900}")
     private int foulsAnalysisTtl;
 
+    @Value("${cache.cornerStats.ttl:900}")
+    private int cornerStatsTtl;
+
+    @Value("${cache.cornerPrediction.ttl:600}")
+    private int cornerPredictionTtl;
+
+    @Value("${cache.cardsPrediction.ttl:600}")
+    private int cardsPredictionTtl;
+
+    @Value("${cache.teamDiscipline.ttl:900}")
+    private int teamDisciplineTtl;
+
+    @Value("${cache.halfAnalysis.ttl:900}")
+    private int halfAnalysisTtl;
+
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
     private int standingsMaxSize;
@@ -158,6 +178,21 @@ public class CacheConfig {
 
     @Value("${cache.foulsAnalysis.maxSize:100}")
     private int foulsAnalysisMaxSize;
+
+    @Value("${cache.cornerStats.maxSize:100}")
+    private int cornerStatsMaxSize;
+
+    @Value("${cache.halfAnalysis.maxSize:100}")
+    private int halfAnalysisMaxSize;
+
+    @Value("${cache.cornerPrediction.maxSize:200}")
+    private int cornerPredictionMaxSize;
+
+    @Value("${cache.cardsPrediction.maxSize:200}")
+    private int cardsPredictionMaxSize;
+
+    @Value("${cache.teamDiscipline.maxSize:100}")
+    private int teamDisciplineMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -226,6 +261,21 @@ public class CacheConfig {
         // Fouls analysis: moderate TTL (15 min), moderate size for team discipline analysis
         cacheConfigs.put(CACHE_FOULS_ANALYSIS, buildCache(foulsAnalysisTtl, foulsAnalysisMaxSize));
 
+        // Corner stats: moderate TTL (15 min), moderate size for team corner analysis
+        cacheConfigs.put(CACHE_CORNER_STATS, buildCache(cornerStatsTtl, cornerStatsMaxSize));
+
+        // Corner prediction: moderate TTL (10 min), larger size for match combinations
+        cacheConfigs.put(CACHE_CORNER_PREDICTION, buildCache(cornerPredictionTtl, cornerPredictionMaxSize));
+
+        // Cards prediction: moderate TTL (10 min), larger size for match combinations
+        cacheConfigs.put(CACHE_CARDS_PREDICTION, buildCache(cardsPredictionTtl, cardsPredictionMaxSize));
+
+        // Team discipline: moderate TTL (15 min), moderate size for team discipline stats
+        cacheConfigs.put(CACHE_TEAM_DISCIPLINE, buildCache(teamDisciplineTtl, teamDisciplineMaxSize));
+
+        // Half analysis: moderate TTL (15 min), moderate size for team half analysis
+        cacheConfigs.put(CACHE_HALF_ANALYSIS, buildCache(halfAnalysisTtl, halfAnalysisMaxSize));
+
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
 
@@ -282,6 +332,12 @@ public class CacheConfig {
             case CACHE_PRE_MATCH_INSIGHTS -> preMatchInsightsTtl;
             case CACHE_LEAGUE_STATS -> leagueStatsTtl;
             case CACHE_SHOT_QUALITY -> shotQualityTtl;
+            case CACHE_FOULS_ANALYSIS -> foulsAnalysisTtl;
+            case CACHE_CORNER_STATS -> cornerStatsTtl;
+            case CACHE_CORNER_PREDICTION -> cornerPredictionTtl;
+            case CACHE_CARDS_PREDICTION -> cardsPredictionTtl;
+            case CACHE_TEAM_DISCIPLINE -> teamDisciplineTtl;
+            case CACHE_HALF_ANALYSIS -> halfAnalysisTtl;
             default -> 300;
         };
     }

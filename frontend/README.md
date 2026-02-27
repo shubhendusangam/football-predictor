@@ -43,16 +43,24 @@ frontend/
 ├── README.md                           # This file
 ├── src/
 │   ├── components/
-│   │   └── team/
-│   │       ├── README.md               # Component-specific docs
-│   │       ├── ShotQualityCard.js      # Shot quality component
-│   │       ├── shot-quality-card.css   # Shot quality styles
-│   │       ├── FoulsAnalysisCard.js    # Fouls analysis component
-│   │       └── fouls-analysis-card.css # Fouls analysis styles
+│   │   ├── team/
+│   │   │   ├── README.md               # Component-specific docs
+│   │   │   ├── ShotQualityCard.js      # Shot quality component
+│   │   │   ├── shot-quality-card.css   # Shot quality styles
+│   │   │   ├── FoulsAnalysisCard.js    # Fouls analysis component
+│   │   │   ├── fouls-analysis-card.css # Fouls analysis styles
+│   │   │   ├── CornerStatsCard.js      # Corner statistics component
+│   │   │   └── corner-stats-card.css   # Corner stats styles
+│   │   │
+│   │   └── match/
+│   │       ├── CornerPredictionCard.js  # Corner prediction component
+│   │       └── corner-prediction-card.css # Corner prediction styles
 │   │
 │   └── pages/
 │       ├── TeamAnalyticsPage.js        # Team analytics page
-│       └── team-analytics-page.css     # Page styles
+│       ├── team-analytics-page.css     # Team page styles
+│       ├── MatchPreviewPage.js         # Match preview page
+│       └── match-preview-page.css      # Match preview styles
 ```
 
 ---
@@ -177,6 +185,107 @@ GET /api/teams/{teamName}/fouls-analysis?isHome=true
 
 ---
 
+### CornerStatsCard
+
+Displays corner kick statistics with horizontal bar charts and dominance indicators.
+
+#### Features
+- **Average Corners Won/Against** - Horizontal bar visualization
+- **Corner Dominance** - Percentage with color coding (Strong/Weak)
+- **Success Rate** - Correlation with win rate
+- **League Comparison** - Above/Near/Below average indicators
+- **Corner Flag Icon** - ⚑ visual element
+
+#### API
+```javascript
+// ES6 Module
+import { 
+    renderCornerStatsCard,
+    renderCornerStatsLoading,
+    renderCornerStatsError,
+    fetchAndRenderCornerStatsCard 
+} from './components/team/CornerStatsCard.js';
+
+// Render a card
+renderCornerStatsCard(container, cornerStats);
+
+// Fetch and render
+fetchAndRenderCornerStatsCard(container, 'Arsenal', true);
+```
+
+#### REST Endpoint
+```
+GET /api/teams/{teamName}/corner-stats?isHome=true
+```
+
+#### Response Structure
+```json
+{
+  "teamName": "Arsenal",
+  "isHome": true,
+  "avgCornersWon": 6.45,
+  "avgCornersAgainst": 4.20,
+  "cornerDominance": 0.606,
+  "successRate": 0.583,
+  "matchesAnalyzed": 20,
+  "weightedAvgCorners": 6.78
+}
+```
+
+---
+
+### CornerPredictionCard
+
+Displays match corner predictions with animated counters and probability bars.
+
+#### Features
+- **Animated Counter** - Expected total corners with animation
+- **Home vs Away Split** - Corner breakdown comparison bars
+- **Over/Under Probabilities** - 9.5, 10.5, 11.5 corner thresholds
+- **Color-Coded Probability** - Green (>60%), Yellow (40-60%), Red (<40%)
+- **Clean Match Preview Layout** - Team names and prediction summary
+
+#### API
+```javascript
+// ES6 Module
+import { 
+    renderCornerPredictionCard,
+    renderCornerPredictionLoading,
+    renderCornerPredictionError,
+    fetchAndRenderCornerPredictionCard 
+} from './components/match/CornerPredictionCard.js';
+
+// Render a card
+renderCornerPredictionCard(container, predictionData);
+
+// Fetch and render
+fetchAndRenderCornerPredictionCard(container, 'Arsenal', 'Chelsea');
+```
+
+#### REST Endpoint
+```
+GET /api/matches/predict-corners?home={homeTeam}&away={awayTeam}
+```
+
+#### Response Structure
+```json
+{
+  "homeTeam": "Arsenal",
+  "awayTeam": "Chelsea",
+  "expectedTotalCorners": 10.8,
+  "homeCorners": 6.2,
+  "awayCorners": 4.6,
+  "overUnderProbabilities": {
+    "over9_5": 0.72,
+    "over10_5": 0.58,
+    "over11_5": 0.41
+  },
+  "confidenceLevel": "HIGH"
+}
+```
+
+---
+
 ## Pages
 
 ### TeamAnalyticsPage
@@ -218,6 +327,44 @@ renderShotQualityTab() {
 
 ---
 
+### MatchPreviewPage
+
+Page component for displaying match preview analytics with corner predictions.
+
+#### Features
+- **Team Selection** - Home and away team inputs
+- **Corner Predictions** - Integrated CornerPredictionCard
+- **Loading States** - Skeleton loaders during data fetch
+- **Error Handling** - Graceful error states with retry
+- **Responsive Layout** - Optimized for all screen sizes
+
+#### API
+```javascript
+import { 
+    MatchPreviewPage, 
+    createMatchPreviewPage 
+} from './pages/MatchPreviewPage.js';
+
+// Create and render the page
+const page = createMatchPreviewPage('container-id');
+
+// Load predictions for a match
+page.loadPrediction('Arsenal', 'Chelsea');
+```
+
+#### Integration
+The MatchPreviewPage can be integrated into the main application via router:
+
+```javascript
+// In router.js
+showMatchPreview(homeTeam, awayTeam) {
+    const page = createMatchPreviewPage('match-preview-container');
+    page.loadPrediction(homeTeam, awayTeam);
+}
+```
+
+---
+
 ## API Integration
 
 ### Base URL
@@ -231,6 +378,8 @@ const API_BASE = '/api';
 |-----------|----------|--------|
 | ShotQualityCard | `/api/teams/{name}/shot-quality` | GET |
 | FoulsAnalysisCard | `/api/teams/{name}/fouls-analysis` | GET |
+| CornerStatsCard | `/api/teams/{name}/corner-stats` | GET |
+| CornerPredictionCard | `/api/matches/predict-corners` | GET |
 
 ### Error Handling
 ```javascript

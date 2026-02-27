@@ -382,8 +382,8 @@ public class TeamStatsController {
 
             // Sanitize input - remove potentially harmful characters
             String sanitizedTeamName = teamName.trim()
-                    .replaceAll("[<>\"'&;]", "")  // Remove XSS vectors
-                    .substring(0, Math.min(teamName.trim().length(), 100));  // Limit length
+                    .replaceAll("[<>\"&;]", "");  // Remove XSS vectors (keep apostrophe for names like Nott'm Forest)
+            sanitizedTeamName = sanitizedTeamName.substring(0, Math.min(sanitizedTeamName.length(), 100));  // Limit length
 
             if (sanitizedTeamName.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -438,8 +438,8 @@ public class TeamStatsController {
 
             // Sanitize input - remove potentially harmful characters
             String sanitizedTeamName = teamName.trim()
-                    .replaceAll("[<>\"'&;]", "")
-                    .substring(0, Math.min(teamName.trim().length(), 100));
+                    .replaceAll("[<>\"&;]", "");
+            sanitizedTeamName = sanitizedTeamName.substring(0, Math.min(sanitizedTeamName.length(), 100));
 
             if (sanitizedTeamName.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(
@@ -494,8 +494,8 @@ public class TeamStatsController {
 
             // Sanitize input
             String sanitizedTeamName = teamName.trim()
-                    .replaceAll("[<>\"'&;]", "")
-                    .substring(0, Math.min(teamName.trim().length(), 100));
+                    .replaceAll("[<>\"&;]", "");  // Keep apostrophe for names like Nott'm Forest
+            sanitizedTeamName = sanitizedTeamName.substring(0, Math.min(sanitizedTeamName.length(), 100));
 
             if (sanitizedTeamName.isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of(

@@ -455,10 +455,71 @@ class Router {
                     </div>
                 </div>
             </div>
+
+            <!-- Corner Prediction Section -->
+            <div class="corner-prediction-section" style="margin-top: 2rem;">
+                <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem;">⚑</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">Corner Kick Prediction</h3>
+                    </div>
+                    <div id="cornerPredictionContainer" style="min-height: 300px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+                            <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #a855f7; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading corner prediction...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards Prediction Section -->
+            <div class="cards-prediction-section" style="margin-top: 2rem;">
+                <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem;">🟨</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">Cards & Discipline Prediction</h3>
+                    </div>
+                    <div id="cardsPredictionContainer" style="min-height: 300px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+                            <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading cards prediction...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Half Analysis Section (First Half vs Second Half) -->
+            <div class="half-analysis-section" style="margin-top: 2rem;">
+                <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem;">⏱️</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">First Half vs Second Half Analysis</h3>
+                    </div>
+                    <div id="halfAnalysisComparisonContainer" style="min-height: 200px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
+                            <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading half analysis...</span>
+                        </div>
+                    </div>
+                    <div id="halfAnalysisCardsContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div id="homeHalfAnalysisCard"></div>
+                        <div id="awayHalfAnalysisCard"></div>
+                    </div>
+                </div>
+            </div>
         `;
 
         // Load Pre-Match Insights asynchronously (homeTeam/awayTeam are already normalized from caller)
         this.loadPreMatchInsights(homeTeam, awayTeam);
+
+        // Load Corner Prediction asynchronously
+        this.loadCornerPrediction(homeTeam, awayTeam);
+
+        // Load Cards Prediction asynchronously
+        this.loadCardsPrediction(homeTeam, awayTeam);
+
+        // Load Half Analysis asynchronously
+        this.loadHalfAnalysis(homeTeam, awayTeam);
     }
 
     /**
@@ -496,12 +557,289 @@ class Router {
                     <span class="error-icon">⚠️</span>
                     <h4 class="error-title">Unable to Load Insights</h4>
                     <p class="error-message">${this.escapeHtml(error.message || 'Please try again later')}</p>
-                    <button class="retry-btn" onclick="window.router.loadPreMatchInsights('${this.escapeHtml(homeTeam)}', '${this.escapeHtml(awayTeam)}')">
+                    <button class="retry-btn" onclick="window.router.loadPreMatchInsights('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
                         Retry
                     </button>
                 </div>
             `;
         }
+    }
+
+    /**
+     * Load Corner Prediction for a match
+     */
+    async loadCornerPrediction(homeTeam, awayTeam) {
+        const container = document.getElementById('cornerPredictionContainer');
+        if (!container) return;
+
+        try {
+            // Use CornerStatsCard if available
+            if (window.CornerStatsCard && window.CornerStatsCard.fetchAndRenderPrediction) {
+                await window.CornerStatsCard.fetchAndRenderPrediction(container, homeTeam, awayTeam);
+            } else {
+                // Fallback - direct fetch
+                const response = await fetch(
+                    `/api/matches/predict-corners?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Render simple fallback UI
+                const homePercent = data.expectedTotalCorners > 0
+                    ? (data.expectedHomeCorners / data.expectedTotalCorners) * 100
+                    : 50;
+                const awayPercent = 100 - homePercent;
+
+                container.innerHTML = `
+                    <div style="padding: 1rem;">
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Expected Total Corners</div>
+                            <div style="font-size: 3rem; font-weight: 800; color: var(--accent-purple);">${data.expectedTotalCorners?.toFixed(1) || '0.0'}</div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(data.homeTeam || homeTeam)}</span><br>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--accent-green);">${data.expectedHomeCorners?.toFixed(1) || '0.0'}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(data.awayTeam || awayTeam)}</span><br>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--accent-blue);">${data.expectedAwayCorners?.toFixed(1) || '0.0'}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--bg-secondary); margin-bottom: 1rem;">
+                            <div style="height: 100%; width: ${homePercent}%; background: linear-gradient(90deg, var(--accent-green), #10b981);"></div>
+                            <div style="height: 100%; width: ${awayPercent}%; background: linear-gradient(90deg, var(--accent-blue), #60a5fa);"></div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                            <div style="text-align: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Over 9.5</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: ${data.probOver9_5 >= 0.5 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((data.probOver9_5 || 0) * 100)}%</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Over 10.5</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: ${data.probOver10_5 >= 0.5 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((data.probOver10_5 || 0) * 100)}%</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Over 11.5</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: ${data.probOver11_5 >= 0.5 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((data.probOver11_5 || 0) * 100)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[Router] Failed to load corner prediction:', error);
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(error.message || 'Failed to load corner prediction')}</p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="window.router.loadCornerPrediction('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Load Cards Prediction for a match
+     */
+    async loadCardsPrediction(homeTeam, awayTeam) {
+        const container = document.getElementById('cardsPredictionContainer');
+        if (!container) return;
+
+        try {
+            // Use CardsPredictionCard if available
+            if (window.CardsPredictionCard && window.CardsPredictionCard.fetchAndRender) {
+                await window.CardsPredictionCard.fetchAndRender(container, homeTeam, awayTeam);
+            } else {
+                // Fallback - direct fetch
+                const response = await fetch(
+                    `/api/matches/predict-cards?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Render simple fallback UI
+                const warningHtml = data.disciplineWarning
+                    ? `<div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.15); border-radius: 0.5rem; color: #ef4444; font-weight: 600;">⚠️ ${this.escapeHtml(data.disciplineWarning)}</div>`
+                    : '';
+
+                container.innerHTML = `
+                    <div style="padding: 1rem;">
+                        ${warningHtml}
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Expected Total Yellow Cards</div>
+                            <div style="font-size: 3rem; font-weight: 800; color: #fbbf24;">🟨 ${data.expectedTotalYellowCards?.toFixed(1) || '0.0'}</div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(data.homeTeam || homeTeam)}</span><br>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--accent-green);">🟨 ${data.expectedYellowCardsHome?.toFixed(1) || '0.0'}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(data.awayTeam || awayTeam)}</span><br>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--accent-blue);">🟨 ${data.expectedYellowCardsAway?.toFixed(1) || '0.0'}</span>
+                            </div>
+                        </div>
+
+                        <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                                <span style="font-size: 0.875rem; color: var(--text-secondary);">🟥 Red Card Probability</span>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: ${data.redCardProbability >= 0.20 ? '#ef4444' : 'var(--text-primary)'};">${Math.round((data.redCardProbability || 0) * 100)}%</span>
+                            </div>
+                        </div>
+
+                        ${data.referee ? `
+                            <div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem; text-align: center;">
+                                <span style="font-size: 0.8rem; color: var(--text-muted);">👨‍⚖️ ${this.escapeHtml(data.refereeImpact || data.referee)}</span>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[Router] Failed to load cards prediction:', error);
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(error.message || 'Failed to load cards prediction')}</p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="window.router.loadCardsPrediction('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Load Half Analysis (First Half vs Second Half) for both teams
+     */
+    async loadHalfAnalysis(homeTeam, awayTeam) {
+        const comparisonContainer = document.getElementById('halfAnalysisComparisonContainer');
+        const homeCardContainer = document.getElementById('homeHalfAnalysisCard');
+        const awayCardContainer = document.getElementById('awayHalfAnalysisCard');
+
+        try {
+            // Load comparison widget if available
+            if (comparisonContainer && window.HalfComparisonWidget && typeof window.HalfComparisonWidget.fetchAndRender === 'function') {
+                window.HalfComparisonWidget.fetchAndRender(comparisonContainer, homeTeam, awayTeam);
+            } else if (comparisonContainer) {
+                comparisonContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                        <p>Half comparison widget not available</p>
+                    </div>
+                `;
+            }
+
+            // Load individual team cards
+            if (window.HalfAnalysisCard && typeof window.HalfAnalysisCard.fetchAndRender === 'function') {
+                if (homeCardContainer) {
+                    window.HalfAnalysisCard.fetchAndRender(homeCardContainer, homeTeam);
+                }
+                if (awayCardContainer) {
+                    window.HalfAnalysisCard.fetchAndRender(awayCardContainer, awayTeam);
+                }
+            } else {
+                // Fallback - direct API fetch
+                const [homeData, awayData] = await Promise.all([
+                    fetch(`/api/teams/${encodeURIComponent(homeTeam)}/half-analysis`).then(r => r.ok ? r.json() : null),
+                    fetch(`/api/teams/${encodeURIComponent(awayTeam)}/half-analysis`).then(r => r.ok ? r.json() : null)
+                ]);
+
+                // Render fallback UI for comparison
+                if (comparisonContainer) {
+                    comparisonContainer.innerHTML = this.renderHalfAnalysisFallback(homeData, awayData, homeTeam, awayTeam);
+                }
+
+                // Hide individual cards container if using fallback
+                if (homeCardContainer) homeCardContainer.style.display = 'none';
+                if (awayCardContainer) awayCardContainer.style.display = 'none';
+            }
+
+        } catch (error) {
+            console.error('[Router] Failed to load half analysis:', error);
+            if (comparisonContainer) {
+                comparisonContainer.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; text-align: center; padding: 1rem;">
+                        <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                        <p style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(error.message || 'Failed to load half analysis')}</p>
+                        <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="window.router.loadHalfAnalysis('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    /**
+     * Render fallback UI for half analysis when component is not available
+     */
+    renderHalfAnalysisFallback(homeData, awayData, homeTeam, awayTeam) {
+        const formatPercent = (val) => val != null ? val.toFixed(1) + '%' : 'N/A';
+        const getPattern = (data) => data?.pattern || 'Unknown';
+
+        const homeFirst = homeData?.firstHalfPercentage ?? 50;
+        const homeSecond = homeData?.secondHalfPercentage ?? 50;
+        const awayFirst = awayData?.firstHalfPercentage ?? 50;
+        const awaySecond = awayData?.secondHalfPercentage ?? 50;
+
+        return `
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                <!-- Home Team -->
+                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; border-left: 3px solid #3b82f6;">
+                    <h4 style="margin: 0 0 1rem; font-size: 1rem; color: var(--text-primary);">${this.escapeHtml(homeTeam)}</h4>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">1st Half</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${formatPercent(homeFirst)}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">2nd Half</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">${formatPercent(homeSecond)}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.25rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Pattern: </span>
+                        <span style="font-weight: 600; color: var(--text-primary);">${this.escapeHtml(getPattern(homeData))}</span>
+                    </div>
+                </div>
+
+                <!-- Away Team -->
+                <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; border-left: 3px solid #ef4444;">
+                    <h4 style="margin: 0 0 1rem; font-size: 1rem; color: var(--text-primary);">${this.escapeHtml(awayTeam)}</h4>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">1st Half</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${formatPercent(awayFirst)}</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">2nd Half</div>
+                            <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">${formatPercent(awaySecond)}</div>
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 0.25rem;">
+                        <span style="font-size: 0.75rem; color: var(--text-secondary);">Pattern: </span>
+                        <span style="font-weight: 600; color: var(--text-primary);">${this.escapeHtml(getPattern(awayData))}</span>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     /**
@@ -1831,15 +2169,14 @@ class Router {
                     <div class="team-logo team-logo--lg">
                         <img src="${logoSrc}"
                              alt="${this.escapeHtml(teamName)} logo"
-                             crossorigin="anonymous"
-                             onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
+                             onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
                              loading="lazy">
                     </div>
                 `;
             }
 
             return `
-                <div class="team-card ${statusClass}" data-team="${this.escapeHtml(teamName)}" data-status="${status || ''}" data-zone="${zone || ''}" onclick="window.router.showTeamDetails('${this.escapeHtml(teamName)}')">
+                <div class="team-card ${statusClass}" data-team="${this.escapeHtml(teamName)}" data-status="${status || ''}" data-zone="${zone || ''}" onclick="window.router.showTeamDetails('${this.escapeJs(teamName)}')">
                     <div class="team-card-header">
                         ${positionBadge}
                         ${logoHtml}
@@ -1849,7 +2186,7 @@ class Router {
                         </div>
                     </div>
                     <div style="display: flex; justify-content: center;">
-                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.router.showTeamDetails('${this.escapeHtml(teamName)}')">
+                        <button class="btn btn-outline btn-sm" onclick="event.stopPropagation(); window.router.showTeamDetails('${this.escapeJs(teamName)}')">
                             View Stats
                         </button>
                     </div>
@@ -2137,7 +2474,7 @@ class Router {
                         <span class="error-icon">⚠️</span>
                         <h3>Failed to Load Statistics</h3>
                         <p>${error.message}</p>
-                        <button class="btn btn-primary" onclick="window.router.showTeamStatsModal('${this.escapeHtml(teamName)}')">Retry</button>
+                        <button class="btn btn-primary" onclick="window.router.showTeamStatsModal('${this.escapeJs(teamName)}')">Retry</button>
                     </div>
                 `;
             }
@@ -2165,6 +2502,9 @@ class Router {
                 <button class="team-stats-tab" data-tab="seasons">📅 Season History</button>
                 <button class="team-stats-tab" data-tab="upcoming">⏭️ Upcoming</button>
                 <button class="team-stats-tab" data-tab="goals">⚽ Goals</button>
+                <button class="team-stats-tab" data-tab="halfanalysis">⏱️ Half Analysis</button>
+                <button class="team-stats-tab" data-tab="corners">⚑ Corners</button>
+                <button class="team-stats-tab" data-tab="discipline">🟨 Discipline</button>
                 <button class="team-stats-tab" data-tab="shotquality">🎯 Shot Quality</button>
                 <button class="team-stats-tab" data-tab="form">📈 Form</button>
                 <button class="team-stats-tab" data-tab="matches">🏟️ Matches</button>
@@ -2202,6 +2542,15 @@ class Router {
                         break;
                     case 'goals':
                         content.innerHTML = this.renderGoalsTab(goalStats);
+                        break;
+                    case 'halfanalysis':
+                        this.renderHalfAnalysisTab(content, teamName);
+                        break;
+                    case 'corners':
+                        this.renderCornerStatsTab(content, teamName);
+                        break;
+                    case 'discipline':
+                        this.renderDisciplineTab(content, teamName);
                         break;
                     case 'shotquality':
                         this.renderShotQualityTab(content, teamName);
@@ -2530,6 +2879,279 @@ class Router {
                     if (awayEl) renderError(awayEl, errorMsg);
                 }
             });
+    }
+
+    /**
+     * Render Half Analysis tab with First Half vs Second Half performance analysis
+     * Uses the HalfAnalysisCard component
+     */
+    renderHalfAnalysisTab(container, teamName) {
+        if (!container) return;
+
+        // Generate unique ID to avoid conflicts
+        const uniqueId = Date.now();
+        const containerId = `hac-${uniqueId}`;
+
+        // Show loading state
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">⏱️ Half Analysis</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - First Half vs Second Half Performance</p>
+                <div id="${containerId}" style="min-height: 400px;"></div>
+                <p class="stats-section-footer" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    Analyzes scoring patterns, win rates from HT positions, and comeback stats
+                </p>
+            </div>
+        `;
+
+        const halfAnalysisContainer = document.getElementById(containerId);
+
+        // Helper function to render loading
+        const renderLoading = (el) => {
+            if (!el) return;
+            el.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                    <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: var(--accent-blue); border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                    <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading half analysis...</span>
+                </div>
+            `;
+        };
+
+        // Helper function to render error
+        const renderError = (el, msg) => {
+            if (!el) return;
+            el.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color); text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                    <span style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(msg)}</span>
+                </div>
+            `;
+        };
+
+        // Use the HalfAnalysisCard component if available
+        if (window.HalfAnalysisCard && typeof window.HalfAnalysisCard.fetchAndRender === 'function') {
+            window.HalfAnalysisCard.fetchAndRender(halfAnalysisContainer, teamName);
+        } else {
+            // Fallback - direct fetch
+            renderLoading(halfAnalysisContainer);
+
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/half-analysis`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(containerId);
+                    if (el && window.HalfAnalysisCard && typeof window.HalfAnalysisCard.render === 'function') {
+                        window.HalfAnalysisCard.render(el, data);
+                    } else if (el) {
+                        // Basic fallback render
+                        const firstHalfPct = data.firstHalfGoalPercentage || 0;
+                        const secondHalfPct = data.secondHalfGoalPercentage || 0;
+                        const pattern = data.pattern || 'Balanced';
+
+                        el.innerHTML = `<div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 1rem;">⏱️ ${this.escapeHtml(data.teamName || teamName)}</h4>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 1rem;">
+                                <div style="text-align: center; flex: 1;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #3b82f6;">${firstHalfPct.toFixed(1)}%</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">First Half Goals</div>
+                                </div>
+                                <div style="text-align: center; flex: 1;">
+                                    <div style="font-size: 1.5rem; font-weight: 700; color: #ef4444;">${secondHalfPct.toFixed(1)}%</div>
+                                    <div style="font-size: 0.75rem; color: var(--text-muted);">Second Half Goals</div>
+                                </div>
+                            </div>
+                            <div style="text-align: center; margin-top: 1rem;">
+                                <span style="display: inline-block; padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.875rem; font-weight: 600; background: var(--bg-tertiary); color: var(--text-primary);">
+                                    ${pattern === 'Fast Starter' ? '🚀' : pattern === 'Strong Finisher' ? '💪' : '⚖️'} ${this.escapeHtml(pattern)}
+                                </span>
+                            </div>
+                            <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">Matches: ${data.matchesAnalyzed || 0}</p>
+                        </div>`;
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(containerId);
+                    if (el) renderError(el, err.message || 'Failed to load half analysis');
+                });
+        }
+    }
+
+    /**
+     * Render Corner Stats tab
+     */
+    renderCornerStatsTab(container, teamName) {
+        if (!container) return;
+
+        // Generate unique IDs to avoid conflicts
+        const uniqueId = Date.now();
+        const homeContainerId = `csc-home-${uniqueId}`;
+        const awayContainerId = `csc-away-${uniqueId}`;
+
+        // Show loading state
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">⚑ Corner Kick Statistics</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - Full season corner analysis</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div id="${homeContainerId}" style="min-height: 400px;"></div>
+                    <div id="${awayContainerId}" style="min-height: 400px;"></div>
+                </div>
+                <p class="stats-section-footer" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    League average: ~5.5 corners per team per match
+                </p>
+            </div>
+        `;
+
+        const homeContainer = document.getElementById(homeContainerId);
+        const awayContainer = document.getElementById(awayContainerId);
+
+        // Use the CornerStatsCard component if available
+        if (window.CornerStatsCard) {
+            window.CornerStatsCard.fetchAndRender(homeContainer, teamName, true);
+            window.CornerStatsCard.fetchAndRender(awayContainer, teamName, false);
+        } else {
+            // Fallback - direct fetch
+            const renderLoading = (el) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                        <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading corner stats...</span>
+                    </div>
+                `;
+            };
+
+            const renderError = (el, msg) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color); text-align: center; padding: 1rem;">
+                        <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(msg)}</span>
+                    </div>
+                `;
+            };
+
+            renderLoading(homeContainer);
+            renderLoading(awayContainer);
+
+            // Fetch home corner stats
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/corner-stats?isHome=true`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(homeContainerId);
+                    if (el && window.CornerStatsCard) {
+                        window.CornerStatsCard.render(el, data);
+                    } else if (el) {
+                        el.innerHTML = `<div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 1rem;">⚑ ${this.escapeHtml(data.teamName)} (Home)</h4>
+                            <p style="color: var(--text-secondary);">Avg Corners Won: <strong>${data.avgCornersWon?.toFixed(2) || 0}</strong></p>
+                            <p style="color: var(--text-secondary);">Avg Corners Against: <strong>${data.avgCornersAgainst?.toFixed(2) || 0}</strong></p>
+                            <p style="color: var(--text-secondary);">Corner Dominance: <strong>${((data.cornerDominance || 0) * 100).toFixed(1)}%</strong></p>
+                            <p style="color: var(--text-secondary);">Matches: <strong>${data.matchesAnalyzed || 0}</strong></p>
+                        </div>`;
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(homeContainerId);
+                    if (el) renderError(el, err.message || 'Failed to load home corner stats');
+                });
+
+            // Fetch away corner stats
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/corner-stats?isHome=false`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(awayContainerId);
+                    if (el && window.CornerStatsCard) {
+                        window.CornerStatsCard.render(el, data);
+                    } else if (el) {
+                        el.innerHTML = `<div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                            <h4 style="color: var(--text-primary); margin-bottom: 1rem;">⚑ ${this.escapeHtml(data.teamName)} (Away)</h4>
+                            <p style="color: var(--text-secondary);">Avg Corners Won: <strong>${data.avgCornersWon?.toFixed(2) || 0}</strong></p>
+                            <p style="color: var(--text-secondary);">Avg Corners Against: <strong>${data.avgCornersAgainst?.toFixed(2) || 0}</strong></p>
+                            <p style="color: var(--text-secondary);">Corner Dominance: <strong>${((data.cornerDominance || 0) * 100).toFixed(1)}%</strong></p>
+                            <p style="color: var(--text-secondary);">Matches: <strong>${data.matchesAnalyzed || 0}</strong></p>
+                        </div>`;
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(awayContainerId);
+                    if (el) renderError(el, err.message || 'Failed to load away corner stats');
+                });
+        }
+    }
+
+    /**
+     * Render Discipline tab
+     */
+    renderDisciplineTab(container, teamName) {
+        if (!container) return;
+
+        // Generate unique ID
+        const uniqueId = Date.now();
+        const containerId = `discipline-${uniqueId}`;
+
+        // Show loading state
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">🟨 Discipline Statistics</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - Card history and discipline analysis</p>
+                <div id="${containerId}" style="min-height: 400px;"></div>
+            </div>
+        `;
+
+        const disciplineContainer = document.getElementById(containerId);
+
+        // Use TeamDisciplineCard if available
+        if (window.TeamDisciplineCard && window.TeamDisciplineCard.fetchAndRender) {
+            window.TeamDisciplineCard.fetchAndRender(disciplineContainer, teamName);
+        } else {
+            // Fallback - direct fetch
+            const renderLoading = (el) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                        <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading discipline stats...</span>
+                    </div>
+                `;
+            };
+
+            const renderError = (el, msg) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color); text-align: center; padding: 1rem;">
+                        <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(msg)}</span>
+                    </div>
+                `;
+            };
+
+            renderLoading(disciplineContainer);
+
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/discipline`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(containerId);
+                    if (el && window.TeamDisciplineCard) {
+                        window.TeamDisciplineCard.render(el, data);
+                    } else if (el) {
+                        // Basic fallback
+                        el.innerHTML = `
+                            <div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                                <h4 style="color: var(--text-primary); margin-bottom: 1rem;">🟨 ${this.escapeHtml(data.teamName)}</h4>
+                                <p style="color: var(--text-secondary);">Discipline Rating: <strong>${data.disciplineRating || 'Unknown'}</strong></p>
+                                <p style="color: var(--text-secondary);">Avg Yellow Cards: <strong>${data.avgYellowCardsOverall?.toFixed(2) || 0}</strong></p>
+                                <p style="color: var(--text-secondary);">Total Yellow Cards: <strong>${data.totalYellowCardsSeason || 0}</strong></p>
+                                <p style="color: var(--text-secondary);">Total Red Cards: <strong>${data.totalRedCardsSeason || 0}</strong></p>
+                                <p style="color: var(--text-secondary);">Matches Analyzed: <strong>${data.matchesAnalyzed || 0}</strong></p>
+                            </div>
+                        `;
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(containerId);
+                    if (el) renderError(el, err.message || 'Failed to load discipline stats');
+                });
+        }
     }
 
     /**
@@ -4360,7 +4982,7 @@ class Router {
                         <td class="match-score match-result-${result}">${homeGoals} - ${awayGoals}</td>
                         <td>${awayTeamCell}</td>
                         <td>
-                            <button class="btn btn-primary btn-sm" onclick="window.router.predictMatch('${this.escapeHtml(homeTeam)}', '${this.escapeHtml(awayTeam)}')">
+                            <button class="btn btn-primary btn-sm" onclick="window.router.predictMatch('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
                                 Predict Similar
                             </button>
                         </td>
@@ -4378,7 +5000,7 @@ class Router {
                         <td style="text-align: center;">vs</td>
                         <td>${awayTeamCell}</td>
                         <td>
-                            <button class="btn btn-primary btn-sm" onclick="window.router.predictMatch('${this.escapeHtml(homeTeam)}', '${this.escapeHtml(awayTeam)}')">
+                            <button class="btn btn-primary btn-sm" onclick="window.router.predictMatch('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
                                 Predict
                             </button>
                         </td>
@@ -4425,8 +5047,7 @@ class Router {
                 <div class="team-logo team-logo--sm">
                     <img src="${logoSrc}"
                          alt="${escapedName} logo"
-                         crossorigin="anonymous"
-                         onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
+                         onerror="this.onerror=null; this.src='https://cdn-icons-png.flaticon.com/512/861/861512.png';"
                          loading="lazy">
                 </div>
                 <span class="team-name" style="font-weight: 500;">${escapedName}</span>
@@ -4465,6 +5086,20 @@ class Router {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    /**
+     * Escape string for use in JavaScript string literals (single-quoted)
+     * Handles apostrophes, backslashes, and other special characters
+     */
+    escapeJs(text) {
+        if (!text) return '';
+        return String(text)
+            .replace(/\\/g, '\\\\')
+            .replace(/'/g, "\\'")
+            .replace(/"/g, '\\"')
+            .replace(/\n/g, '\\n')
+            .replace(/\r/g, '\\r');
     }
 
 

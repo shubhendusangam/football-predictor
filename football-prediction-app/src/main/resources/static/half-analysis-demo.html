@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Half Analysis Demo - Football Forecaster</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/layout.css">
+    <link rel="stylesheet" href="css/cards.css">
+    <link rel="stylesheet" href="css/half-analysis.css">
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--bg-primary, #0f172a);
+            color: var(--text-primary, #f1f5f9);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .demo-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .demo-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .demo-header h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.75rem;
+        }
+
+        .demo-header p {
+            color: var(--text-muted, #64748b);
+            margin: 0;
+        }
+
+        .demo-controls {
+            background: var(--bg-secondary, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .demo-controls .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .demo-controls label {
+            display: block;
+            font-size: 0.875rem;
+            color: var(--text-secondary, #94a3b8);
+            margin-bottom: 0.5rem;
+        }
+
+        .demo-controls input {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--bg-tertiary, #0f172a);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 0.5rem;
+            color: var(--text-primary, #f1f5f9);
+            font-size: 1rem;
+        }
+
+        .demo-controls input:focus {
+            outline: none;
+            border-color: var(--accent-blue, #3b82f6);
+        }
+
+        .demo-controls button {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent-blue, #3b82f6);
+            border: none;
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .demo-controls button:hover {
+            background: var(--accent-blue-dark, #2563eb);
+        }
+
+        .demo-section {
+            margin-bottom: 2rem;
+        }
+
+        .demo-section h2 {
+            font-size: 1.25rem;
+            margin: 0 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+
+        @media (max-width: 480px) {
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <header class="demo-header">
+            <h1>⏱️ Half Analysis Demo</h1>
+            <p>First Half vs Second Half Performance Analysis</p>
+        </header>
+
+        <!-- Controls -->
+        <div class="demo-controls">
+            <div class="input-group">
+                <label for="homeTeamInput">Home Team</label>
+                <input type="text" id="homeTeamInput" placeholder="e.g., Arsenal" value="Arsenal">
+            </div>
+            <div class="input-group">
+                <label for="awayTeamInput">Away Team</label>
+                <input type="text" id="awayTeamInput" placeholder="e.g., Chelsea" value="Chelsea">
+            </div>
+            <button type="button" id="loadAnalysisBtn">Load Analysis</button>
+        </div>
+
+        <!-- Single Team Analysis -->
+        <section class="demo-section">
+            <h2>📊 Individual Team Analysis</h2>
+            <div class="cards-grid">
+                <div id="home-team-card"></div>
+                <div id="away-team-card"></div>
+            </div>
+        </section>
+
+        <!-- Comparison Widget -->
+        <section class="demo-section">
+            <h2>⚔️ Head-to-Head Comparison</h2>
+            <div id="comparison-widget"></div>
+        </section>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/half-analysis-card.js"></script>
+    <script src="js/half-comparison-widget.js"></script>
+    <script>
+        (function() {
+            'use strict';
+
+            var homeTeamInput = document.getElementById('homeTeamInput');
+            var awayTeamInput = document.getElementById('awayTeamInput');
+            var loadBtn = document.getElementById('loadAnalysisBtn');
+            var homeTeamCard = document.getElementById('home-team-card');
+            var awayTeamCard = document.getElementById('away-team-card');
+            var comparisonWidget = document.getElementById('comparison-widget');
+
+            function loadAnalysis() {
+                var homeTeam = homeTeamInput.value.trim();
+                var awayTeam = awayTeamInput.value.trim();
+
+                if (!homeTeam || !awayTeam) {
+                    alert('Please enter both team names');
+                    return;
+                }
+
+                // Load individual cards
+                if (window.HalfAnalysisCard) {
+                    window.HalfAnalysisCard.fetchAndRender(homeTeamCard, homeTeam);
+                    window.HalfAnalysisCard.fetchAndRender(awayTeamCard, awayTeam);
+                } else {
+                    console.error('HalfAnalysisCard not loaded');
+                }
+
+                // Load comparison widget
+                if (window.HalfComparisonWidget) {
+                    window.HalfComparisonWidget.fetchAndRender(comparisonWidget, homeTeam, awayTeam);
+                } else {
+                    console.error('HalfComparisonWidget not loaded');
+                }
+            }
+
+            // Event listeners
+            loadBtn.addEventListener('click', loadAnalysis);
+
+            homeTeamInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loadAnalysis();
+            });
+
+            awayTeamInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') loadAnalysis();
+            });
+
+            // Auto-load on page load
+            loadAnalysis();
+
+        })();
+    </script>
+</body>
+</html>
+

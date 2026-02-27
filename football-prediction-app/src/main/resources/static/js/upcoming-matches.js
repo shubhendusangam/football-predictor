@@ -221,8 +221,7 @@ class UpcomingMatchesPanel {
                          alt="${teamName}"
                          class="team-logo-img"
                          loading="lazy"
-                         crossorigin="anonymous"
-                         onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${defaultLogo}'; this.classList.add('fallback-logo');" /><span class="team-logo-fallback" style="display:none;">${emoji}</span>`;
+                         onerror="this.onerror=null; this.src='${defaultLogo}'; this.classList.add('fallback-logo');" /><span class="team-logo-fallback" style="display:none;">${emoji}</span>`;
         } else if (defaultLogo) {
             // Use default logo
             return `<img src="${defaultLogo}"

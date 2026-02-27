@@ -1,0 +1,558 @@
+/**
+ * Cards Prediction & Team Discipline CSS
+ * =======================================
+ *
+ * Styles for:
+ * - CardsPredictionCard component
+ * - TeamDisciplineCard component
+ *
+ * @author Football Forecaster Team
+ * @version 1.0.0
+ */
+
+/* ══════════════════════════════════════════════════════════════════════
+   CARDS PREDICTION CARD
+   ══════════════════════════════════════════════════════════════════════ */
+
+.cards-prediction-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.cards-prediction-card--loading,
+.cards-prediction-card--error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    text-align: center;
+}
+
+.cards-prediction-card__loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-tertiary, #334155);
+    border-top-color: #fbbf24;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.cards-prediction-card__loading-text,
+.cards-prediction-card__error-text {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.cards-prediction-card__error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Header */
+.cards-prediction-card__header {
+    margin-bottom: 1.25rem;
+}
+
+.cards-prediction-card__title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.cards-prediction-card__title h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.cards-prediction-card__icon {
+    font-size: 1.5rem;
+}
+
+.cards-prediction-card__teams {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.cards-prediction-card__home-team,
+.cards-prediction-card__away-team {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.cards-prediction-card__home-team {
+    color: #22c55e;
+}
+
+.cards-prediction-card__away-team {
+    color: #3b82f6;
+}
+
+.cards-prediction-card__vs {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* Total Section */
+.cards-prediction-card__total {
+    text-align: center;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(234, 179, 8, 0.05) 100%);
+    border: 1px solid rgba(251, 191, 36, 0.2);
+    border-radius: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.cards-prediction-card__total-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.cards-prediction-card__total-value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #fbbf24;
+}
+
+.cards-prediction-card__total-value--high {
+    color: #ef4444;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Breakdown Section */
+.cards-prediction-card__breakdown {
+    margin-bottom: 1.25rem;
+}
+
+.cards-prediction-card__section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+.cards-prediction-card__team-row {
+    margin-bottom: 0.75rem;
+}
+
+.cards-prediction-card__team-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.25rem;
+}
+
+.cards-prediction-card__team-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.cards-prediction-card__team-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.cards-prediction-card__bar-container {
+    height: 10px;
+    background: var(--bg-tertiary, #334155);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+.cards-prediction-card__bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.8s ease-out;
+}
+
+.cards-prediction-card__bar--home {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.cards-prediction-card__bar--away {
+    background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+/* Red Card Section */
+.cards-prediction-card__red-card {
+    padding: 1rem;
+    background: var(--bg-tertiary, #334155);
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.cards-prediction-card__red-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.cards-prediction-card__red-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.cards-prediction-card__red-bar-container {
+    height: 8px;
+    background: var(--bg-secondary, #1e293b);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.cards-prediction-card__red-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease-out;
+}
+
+.cards-prediction-card__red-note {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    text-align: center;
+}
+
+/* Footer */
+.cards-prediction-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #334155);
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.cards-prediction-card__confidence {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.cards-prediction-card__matches {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   TEAM DISCIPLINE CARD
+   ══════════════════════════════════════════════════════════════════════ */
+
+.team-discipline-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.team-discipline-card--loading,
+.team-discipline-card--error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 350px;
+    text-align: center;
+}
+
+.team-discipline-card__loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--bg-tertiary, #334155);
+    border-top-color: #22c55e;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.team-discipline-card__loading-text,
+.team-discipline-card__error-text {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.team-discipline-card__error-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Header */
+.team-discipline-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.team-discipline-card__title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.team-discipline-card__title h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.team-discipline-card__icon {
+    font-size: 1.5rem;
+}
+
+.team-discipline-card__rating {
+    padding: 0.375rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Totals */
+.team-discipline-card__totals {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.team-discipline-card__total-item {
+    text-align: center;
+    padding: 1rem 0.5rem;
+    background: var(--bg-tertiary, #334155);
+    border-radius: 0.5rem;
+}
+
+.team-discipline-card__total-icon {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.team-discipline-card__total-value {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.team-discipline-card__total-label {
+    font-size: 0.7rem;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
+}
+
+/* Section Title */
+.team-discipline-card__section-title {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+}
+
+/* Averages */
+.team-discipline-card__averages {
+    margin-bottom: 1.25rem;
+}
+
+.team-discipline-card__avg-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.team-discipline-card__avg-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: var(--bg-tertiary, #334155);
+    border-radius: 0.375rem;
+}
+
+.team-discipline-card__avg-label {
+    font-size: 0.8rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.team-discipline-card__avg-value {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* Comparison */
+.team-discipline-card__comparison {
+    margin-bottom: 1.25rem;
+    padding: 1rem;
+    background: var(--bg-tertiary, #334155);
+    border-radius: 0.5rem;
+}
+
+.team-discipline-card__comparison-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.team-discipline-card__comparison-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.team-discipline-card__comparison-diff {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    font-weight: 700;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+    margin-top: 0.25rem;
+}
+
+/* Recent Bookings */
+.team-discipline-card__bookings {
+    margin-bottom: 0.5rem;
+}
+
+.team-discipline-card__bookings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.team-discipline-card__booking-item {
+    display: grid;
+    grid-template-columns: 80px 1fr auto 30px;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: var(--bg-tertiary, #334155);
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+}
+
+.team-discipline-card__booking-date {
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.7rem;
+}
+
+.team-discipline-card__booking-opponent {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-primary, #f1f5f9);
+    font-weight: 500;
+}
+
+.team-discipline-card__booking-cards {
+    color: var(--text-secondary, #cbd5e1);
+    text-align: right;
+}
+
+.team-discipline-card__booking-result {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 600px) {
+    .cards-prediction-card,
+    .team-discipline-card {
+        padding: 1rem;
+    }
+
+    .cards-prediction-card__total-value {
+        font-size: 2rem;
+    }
+
+    .team-discipline-card__totals {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
+    .team-discipline-card__total-value {
+        font-size: 1.5rem;
+    }
+
+    .team-discipline-card__avg-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .team-discipline-card__booking-item {
+        grid-template-columns: 1fr auto auto;
+    }
+
+    .team-discipline-card__booking-date {
+        grid-column: 1 / -1;
+        margin-bottom: 0.25rem;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   ANIMATIONS
+   ══════════════════════════════════════════════════════════════════════ */
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Card flip animation for loading */
+@keyframes cardFlip {
+    0%, 100% { transform: rotateY(0deg); }
+    50% { transform: rotateY(180deg); }
+}
+
+.cards-prediction-card--loading .cards-prediction-card__loading-spinner {
+    animation: spin 1s linear infinite, cardFlip 2s ease-in-out infinite;
+}
+

@@ -90,8 +90,7 @@
             <div class="team-logo ${sizeClass}" title="${escapedName}">
                 <img src="${url}"
                      alt="${escapedName} logo"
-                     crossorigin="anonymous"
-                     onerror="this.onerror=null; this.removeAttribute('crossorigin'); this.src='${DEFAULT_LOGO}';"
+                     onerror="this.onerror=null; this.src='${DEFAULT_LOGO}';"
                      loading="lazy">
             </div>`;
     }

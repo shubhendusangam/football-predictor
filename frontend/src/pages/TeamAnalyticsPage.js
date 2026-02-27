@@ -19,6 +19,14 @@ import {
     LEAGUE_AVERAGES
 } from './ShotQualityCard.js';
 
+import {
+    renderCornerStatsCard,
+    renderCornerStatsLoading,
+    renderCornerStatsError,
+    fetchAndRenderCornerStatsCard,
+    LEAGUE_AVERAGE_CORNERS
+} from '../components/team/CornerStatsCard.js';
+
 /**
  * TeamAnalyticsPage class
  * Manages the team analytics page state and rendering
@@ -150,7 +158,7 @@ class TeamAnalyticsPage {
         this.container.innerHTML = `
             <div class="team-analytics-page">
                 <div class="team-analytics-page__header">
-                    <h2 class="team-analytics-page__title">📊 Shot Quality Analytics</h2>
+                    <h2 class="team-analytics-page__title">📊 Team Analytics</h2>
                     <p class="team-analytics-page__subtitle">${this.escapeHtml(teamName)} - Home vs Away Performance</p>
                 </div>
                 <div class="team-analytics-page__section">
@@ -160,15 +168,22 @@ class TeamAnalyticsPage {
                         <div id="away-shot-quality-container" class="shot-quality-card-wrapper"></div>
                     </div>
                 </div>
+                <div class="team-analytics-page__section">
+                    <h3 class="team-analytics-page__section-title">⚑ Corner Kick Statistics</h3>
+                    <div class="corner-stats-cards-container">
+                        <div id="home-corner-stats-container" class="corner-stats-card-wrapper"></div>
+                        <div id="away-corner-stats-container" class="corner-stats-card-wrapper"></div>
+                    </div>
+                </div>
                 <div class="team-analytics-page__footer">
                     <p class="team-analytics-page__note">
-                        League averages: Shot Accuracy ${LEAGUE_AVERAGES.shotAccuracy}% | Conversion Rate ${(LEAGUE_AVERAGES.conversionRate * 100).toFixed(0)}%
+                        League averages: Shot Accuracy ${LEAGUE_AVERAGES.shotAccuracy}% | Corners ${LEAGUE_AVERAGE_CORNERS} per match
                     </p>
                 </div>
             </div>
         `;
 
-        // Render home and away cards
+        // Render shot quality cards
         const homeContainer = document.getElementById('home-shot-quality-container');
         const awayContainer = document.getElementById('away-shot-quality-container');
 
@@ -178,6 +193,28 @@ class TeamAnalyticsPage {
 
         if (awayContainer && data.away) {
             renderShotQualityCard(awayContainer, data.away);
+        }
+
+        // Render corner stats cards
+        this.loadCornerStats(teamName);
+    }
+
+    /**
+     * Load and render corner statistics
+     * @param {string} teamName - Team name
+     */
+    async loadCornerStats(teamName) {
+        const homeCornerContainer = document.getElementById('home-corner-stats-container');
+        const awayCornerContainer = document.getElementById('away-corner-stats-container');
+
+        if (homeCornerContainer) {
+            renderCornerStatsLoading(homeCornerContainer);
+            fetchAndRenderCornerStatsCard(homeCornerContainer, teamName, true);
+        }
+
+        if (awayCornerContainer) {
+            renderCornerStatsLoading(awayCornerContainer);
+            fetchAndRenderCornerStatsCard(awayCornerContainer, teamName, false);
         }
     }
 
@@ -298,10 +335,65 @@ export async function createTeamAnalyticsPage(containerId, teamName) {
 // Export the class and utility functions
 export { TeamAnalyticsPage };
 
+/**
+ * Render corner stats cards side-by-side for home and away
+ * Utility function for integration into existing pages
+ *
+ * @param {HTMLElement} container - Container element
+ * @param {string} teamName - Team name
+ * @returns {Promise<Object>} Object containing home and away card data
+ */
+export async function renderCornerStatsSection(container, teamName) {
+    if (!container || !teamName) {
+        console.error('[TeamAnalyticsPage] Container and teamName are required');
+        return null;
+    }
+
+    // Create the section structure
+    const section = document.createElement('div');
+    section.className = 'corner-stats-section';
+    section.innerHTML = `
+        <div class="corner-stats-section__header">
+            <h3 class="corner-stats-section__title">⚑ Corner Kick Statistics</h3>
+        </div>
+        <div class="corner-stats-cards-container">
+            <div id="section-home-corner-stats" class="corner-stats-card-wrapper"></div>
+            <div id="section-away-corner-stats" class="corner-stats-card-wrapper"></div>
+        </div>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(section);
+
+    const homeContainer = document.getElementById('section-home-corner-stats');
+    const awayContainer = document.getElementById('section-away-corner-stats');
+
+    // Show loading state
+    renderCornerStatsLoading(homeContainer);
+    renderCornerStatsLoading(awayContainer);
+
+    try {
+        // Fetch both home and away stats in parallel
+        const [homeData, awayData] = await Promise.all([
+            fetchAndRenderCornerStatsCard(homeContainer, teamName, true),
+            fetchAndRenderCornerStatsCard(awayContainer, teamName, false)
+        ]);
+
+        return { home: homeData, away: awayData };
+
+    } catch (error) {
+        console.error('[TeamAnalyticsPage] Failed to load corner stats:', error);
+        renderCornerStatsError(homeContainer, 'Failed to load home stats');
+        renderCornerStatsError(awayContainer, 'Failed to load away stats');
+        return null;
+    }
+}
+
 // Make available globally for non-module usage
 if (typeof window !== 'undefined') {
     window.TeamAnalyticsPage = TeamAnalyticsPage;
     window.renderShotQualitySection = renderShotQualitySection;
+    window.renderCornerStatsSection = renderCornerStatsSection;
     window.createTeamAnalyticsPage = createTeamAnalyticsPage;
 }
 

@@ -137,6 +137,28 @@ The `football-prediction-app` is the **main application module** of the Football
 - Color-coded discipline badges
 - Team comparison for predictions
 
+### 9. Corner Statistics & Predictions
+- Corner kick statistics per team (home/away split)
+- Average corners won and conceded
+- Corner dominance calculation
+- Weighted averages with recency decay
+- Match corner predictions with probability distribution
+- Over/under probabilities (9.5, 10.5, 11.5 corners)
+
+### 10. Cards Prediction & Team Discipline
+- Yellow and red card predictions
+- Referee influence on card rates
+- Team discipline ratings (0-10)
+- Recent bookings summary
+- Card risk level classification (HIGH/MEDIUM/LOW)
+
+### 11. Half-Time Analysis
+- First half vs second half goal distribution
+- Win rates based on half-time position
+- Comeback rate statistics
+- Pattern classification (Fast Starter/Strong Finisher/Balanced)
+- Confidence levels based on matches analyzed
+
 ---
 
 ## Architecture
@@ -186,6 +208,9 @@ com.app.footballprediction/
 │   ├── AnalyticsController.java          # Pre-match & H2H insights
 │   ├── DashboardController.java          # Dashboard widgets
 │   ├── TeamStatsController.java          # Team statistics & analytics
+│   ├── CornerStatsController.java        # Corner statistics & predictions
+│   ├── CardsController.java              # Cards prediction & discipline
+│   ├── HalfAnalysisController.java       # Half-time analysis
 │   ├── ExternalApiController.java        # External API proxy
 │   ├── AdminController.java              # Admin operations
 │   ├── NewsController.java               # News aggregation
@@ -201,6 +226,9 @@ com.app.footballprediction/
 │   ├── TeamAnalyticsService.java         # Full team analytics
 │   ├── ShotQualityService.java           # Shot efficiency metrics
 │   ├── FoulsAnalysisService.java         # Fouls & discipline analysis
+│   ├── CornerStatsService.java           # Corner statistics & predictions
+│   ├── CardsPredictionService.java       # Cards prediction & team discipline
+│   ├── HalfAnalysisService.java          # First/second half analysis
 │   ├── DashboardService.java             # Dashboard aggregation
 │   ├── FootballDataApiService.java       # football-data.org integration
 │   ├── NewsService.java                  # RSS news aggregation
@@ -221,6 +249,11 @@ com.app.footballprediction/
 │   ├── LeagueStandingsResponse.java
 │   ├── TeamStatsResponse.java
 │   ├── FoulsAnalysisDTO.java             # Fouls & discipline metrics
+│   ├── CornerStatsDTO.java               # Corner statistics
+│   ├── CornerPredictionDTO.java          # Corner match prediction
+│   ├── CardsPredictionDTO.java           # Cards prediction
+│   ├── TeamDisciplineDTO.java            # Team discipline metrics
+│   ├── HalfAnalysisDTO.java              # Half-time analysis
 │   └── dashboard/                        # Dashboard-specific DTOs
 │
 ├── config/                               # Configuration
@@ -288,6 +321,85 @@ double normalizedFouls = (maxFouls - avgFouls) / (maxFouls - minFouls);
 disciplineScore = normalizedFouls * 10;
 ```
 
+### CornerStatsService
+
+Calculates corner kick statistics and match predictions.
+
+```java
+public class CornerStatsService {
+
+    public CornerStatsDTO getCornerStats(String teamName, Boolean isHome) {
+        // Average corners won/conceded
+        // Corner dominance percentage
+        // Weighted average with recency decay
+    }
+
+    public CornerPredictionDTO predictCorners(String homeTeam, String awayTeam) {
+        // Expected total corners
+        // Home vs Away corner breakdown
+        // Over/under probabilities (9.5, 10.5, 11.5)
+    }
+}
+```
+
+**Key Metrics:**
+| Metric | Formula |
+|--------|---------|
+| Corner Dominance | `cornersWon / (cornersWon + cornersAgainst)` |
+| Weighted Avg | Exponential decay with factor `0.15` |
+| Home Advantage | `1.10` multiplier for home team |
+
+### CardsPredictionService
+
+Predicts yellow/red cards with referee influence.
+
+```java
+public class CardsPredictionService {
+
+    public CardsPredictionDTO predictCards(String home, String away, String referee) {
+        // Expected yellow cards per team
+        // Red card probability
+        // Risk level (HIGH/MEDIUM/LOW)
+    }
+
+    public TeamDisciplineDTO getTeamDiscipline(String teamName) {
+        // Discipline rating (0-10)
+        // Recent bookings summary
+        // Card trends
+    }
+}
+```
+
+**Key Metrics:**
+| Metric | Formula |
+|--------|---------|
+| Card Risk Level | Total yellows > 5.0 = HIGH |
+| Discipline Rating | Based on avg cards relative to league average |
+| Referee Influence | Adjusted by referee's historical card rate |
+
+### HalfAnalysisService
+
+Analyzes team performance by half (first vs second).
+
+```java
+public class HalfAnalysisService {
+
+    public HalfAnalysisDTO analyzeByHalf(String teamName) {
+        // First/second half goal percentages
+        // Win rates from HT positions
+        // Comeback rate
+        // Pattern classification
+    }
+}
+```
+
+**Key Metrics:**
+| Metric | Description |
+|--------|-------------|
+| Pattern | Fast Starter (>60% 1H) / Strong Finisher (>60% 2H) / Balanced |
+| Comeback Rate | % of wins after losing at half-time |
+| Win from HT Lead | % of wins when leading at half-time |
+
 ### TrendingInsightsService
 
 All trending insights are **strictly season-scoped**:
@@ -346,6 +458,16 @@ public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
 | `/api/teams/{name}/stats` | GET | Team statistics |
 | `/api/teams/{name}/shot-quality` | GET | Shot quality metrics |
 | `/api/teams/{name}/fouls-analysis` | GET | Fouls & discipline |
+| `/api/teams/{name}/corner-stats` | GET | Corner statistics |
+| `/api/teams/{name}/half-analysis` | GET | Half-time analysis |
+| `/api/teams/{name}/discipline` | GET | Team discipline metrics |
+
+### Corner & Cards Prediction Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/matches/predict-corners` | GET | Corner prediction for match |
+| `/api/matches/predict-cards` | GET | Cards prediction for match |
 
 ### Dashboard Endpoints
 
