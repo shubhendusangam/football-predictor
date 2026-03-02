@@ -5,6 +5,7 @@ import com.app.common.model.SystemSettings;
 import com.app.common.repository.TeamRepository;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.SystemSettingsRepository;
+import com.app.footballprediction.util.SeasonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
@@ -361,22 +362,10 @@ public class TeamLogoSeeder implements ApplicationRunner {
 
     /**
      * Get the current football season string (e.g., "2025-26").
-     * Season runs from August to May, so:
-     * - Jan-Jul: previous year to current year (e.g., 2025-26 in Jan 2026)
-     * - Aug-Dec: current year to next year (e.g., 2025-26 in Sep 2025)
+     * Season runs from August to May.
      */
     private String getCurrentSeason() {
-        LocalDate today = LocalDate.now();
-        int year = today.getYear();
-        int month = today.getMonthValue();
-
-        if (month >= 8) {
-            // Aug-Dec: season is currentYear-nextYear
-            return year + "-" + String.format("%02d", (year + 1) % 100);
-        } else {
-            // Jan-Jul: season is previousYear-currentYear
-            return (year - 1) + "-" + String.format("%02d", year % 100);
-        }
+        return SeasonUtils.getCurrentSeason();
     }
 
     /**

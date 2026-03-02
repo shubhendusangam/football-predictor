@@ -5,7 +5,10 @@ import com.app.common.model.League;
 import com.app.common.model.Match;
 import com.app.common.model.SystemSettings;
 import com.app.common.model.Team;
+import com.app.common.repository.LeagueStandingRepository;
+import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.service.AdminService;
+import com.app.footballprediction.service.ApiDataSyncService;
 import com.app.footballprediction.service.PredictionTrackingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +34,9 @@ public class AdminController {
 
     private final AdminService adminService;
     private final PredictionTrackingService predictionTrackingService;
+    private final ApiDataSyncService apiDataSyncService;
+    private final MatchRepository matchRepository;
+    private final LeagueStandingRepository standingRepository;
 
     // ======================= AUTHENTICATION =======================
 
@@ -479,6 +486,215 @@ public class AdminController {
                 "status", "error",
                 "message", "Failed to update fouls data: " + e.getMessage()
             ));
+        }
+    }
+
+    // ======================= API DATA SYNC =======================
+
+    /**
+     * Sync standings from football-data.org API to database.
+     *
+     * POST /api/admin/sync/standings?competition=PL
+     */
+    @PostMapping("/sync/standings")
+    public ResponseEntity<?> syncStandings(
+            @RequestParam(defaultValue = "PL") String competition,
+            Authentication authentication) {
+        try {
+            log.info("Standings sync triggered by: {} for competition: {}",
+                    authentication != null ? authentication.getName() : "unknown", competition);
+
+            int count = apiDataSyncService.syncStandings(competition);
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Synced " + count + " team standings from API",
+                    null, null, null, null, true, null);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "✅ Standings synced successfully",
+                "competition", competition,
+                "teamsCount", count
+            ));
+        } catch (Exception e) {
+            log.error("Error syncing standings", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "❌ Failed to sync standings: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Sync finished matches from football-data.org API to database.
+     *
+     * POST /api/admin/sync/matches?competition=PL
+     */
+    @PostMapping("/sync/matches")
+    public ResponseEntity<?> syncMatches(
+            @RequestParam(defaultValue = "PL") String competition,
+            Authentication authentication) {
+        try {
+            log.info("Matches sync triggered by: {} for competition: {}",
+                    authentication != null ? authentication.getName() : "unknown", competition);
+
+            int[] result = apiDataSyncService.syncFinishedMatches(competition);
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Synced matches: " + result[0] + " new, " + result[1] + " updated",
+                    null, null, null, null, true, null);
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "message", "✅ Matches synced successfully",
+                "competition", competition,
+                "newMatches", result[0],
+                "updatedMatches", result[1]
+            ));
+        } catch (Exception e) {
+            log.error("Error syncing matches", e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                "status", "error",
+                "message", "❌ Failed to sync matches: " + e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Perform full data sync (standings + finished matches + scheduled matches).
+     *
+     * POST /api/admin/sync/all?competition=PL
+     */
+    @PostMapping("/sync/all")
+    public ResponseEntity<Map<String, Object>> syncAll(
+            @RequestParam(defaultValue = "PL") String competition,
+            Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            log.info("Full data sync triggered by: {} for competition: {}",
+                    authentication != null ? authentication.getName() : "unknown", competition);
+
+            apiDataSyncService.syncAll(competition);
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Full data sync completed in " + duration + "ms",
+                    null, null, null, null, true, null);
+            }
+
+            response.put("status", "success");
+            response.put("competition", competition);
+            response.put("duration", duration + "ms");
+            response.put("message", "✅ Full sync completed");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error during full sync", e);
+            long duration = System.currentTimeMillis() - startTime;
+
+            response.put("status", "error");
+            response.put("competition", competition);
+            response.put("duration", duration + "ms");
+            response.put("message", "❌ Full sync failed: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Get current sync status (latest match date, counts, etc.).
+     *
+     * GET /api/admin/sync/status
+     */
+    @GetMapping("/sync/status")
+    public ResponseEntity<Map<String, Object>> getSyncStatus() {
+        Map<String, Object> status = new HashMap<>();
+
+        try {
+            // Get latest match date
+            List<Match> latestMatches = matchRepository.findAllByOrderByMatchDateDesc();
+            if (!latestMatches.isEmpty()) {
+                Match latest = latestMatches.get(0);
+                status.put("latestMatchDate", latest.getMatchDate().toString());
+                status.put("latestMatch", latest.getHomeTeam() + " vs " + latest.getAwayTeam());
+            } else {
+                status.put("latestMatchDate", "N/A");
+                status.put("latestMatch", "No matches found");
+            }
+
+            // Get counts
+            status.put("standingsCount", standingRepository.count());
+            status.put("matchesCount", matchRepository.count());
+
+            return ResponseEntity.ok(status);
+
+        } catch (Exception e) {
+            log.error("Error fetching sync status", e);
+            status.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(status);
+        }
+    }
+
+    /**
+     * Normalize all season data to standard format (YYYY-YY with dash).
+     * Also recalculates missing form data for standings.
+     *
+     * This fixes:
+     * - Inconsistent season formats ("2025/26" vs "2025-26")
+     * - Empty/null form data in league standings
+     *
+     * POST /api/admin/sync/normalize-seasons
+     */
+    @PostMapping("/sync/normalize-seasons")
+    public ResponseEntity<Map<String, Object>> normalizeSeasons(Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            log.info("Season normalization triggered by: {}",
+                    authentication != null ? authentication.getName() : "unknown");
+
+            Map<String, Integer> result = apiDataSyncService.normalizeAllSeasonData();
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Season data normalized in " + duration + "ms",
+                    null, null, null, null, true, null);
+            }
+
+            response.put("status", "success");
+            response.put("matchesNormalized", result.get("matchesNormalized"));
+            response.put("standingsNormalized", result.get("standingsNormalized"));
+            response.put("formsCalculated", result.get("formsCalculated"));
+            response.put("duration", duration + "ms");
+            response.put("message", "✅ Season data normalized successfully");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error normalizing season data", e);
+            long duration = System.currentTimeMillis() - startTime;
+
+            response.put("status", "error");
+            response.put("duration", duration + "ms");
+            response.put("message", "❌ Normalization failed: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(response);
         }
     }
 }

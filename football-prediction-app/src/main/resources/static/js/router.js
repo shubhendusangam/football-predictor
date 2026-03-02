@@ -4899,8 +4899,9 @@ class Router {
 
     /**
      * Load upcoming matches from API
+     * @param {boolean} forceRefresh - If true, bypasses cache for fresh data
      */
-    async loadUpcomingMatches() {
+    async loadUpcomingMatches(forceRefresh = false) {
         const container = document.getElementById('matchesContent');
         const loadingDiv = container?.querySelector('.matches-loading');
         const existingTable = container?.querySelector('.matches-table-container');
@@ -4909,10 +4910,18 @@ class Router {
         if (loadingDiv) loadingDiv.style.display = 'block';
 
         try {
-            console.log('[Router] Fetching upcoming matches...');
-            const response = await (window.api ? window.api.getUpcomingMatches(20) : fetch('/api/matches/upcoming?limit=20').then(r => r.json()));
+            console.log('[Router] Fetching upcoming matches...', forceRefresh ? '(FRESH)' : '(cached)');
+
+            // Add refresh parameter for real-time updates
+            const refreshParam = forceRefresh ? '&refresh=true' : '';
+            const response = await (window.api
+                ? window.api.get(`/matches/upcoming?limit=20${refreshParam}`)
+                : fetch(`/api/matches/upcoming?limit=20${refreshParam}`).then(r => r.json()));
 
             const matches = response?.matches || [];
+            const isCached = response?.cached ?? true;
+            const fetchedAt = response?.fetchedAt;
+
             if (loadingDiv) loadingDiv.style.display = 'none';
 
             if (matches.length === 0) {
@@ -4922,14 +4931,30 @@ class Router {
                             <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">📅</div>
                             <h3>No Upcoming Matches</h3>
                             <p style="color: var(--text-muted);">No scheduled matches found. Check back later!</p>
+                            <button class="btn btn-outline" onclick="window.router.loadUpcomingMatches(true)" style="margin-top: 1rem;">
+                                🔄 Refresh
+                            </button>
                         </div>
                     </div>
                 `);
                 return;
             }
 
-            container.insertAdjacentHTML('beforeend', this.buildMatchesTableHTML(matches, 'upcoming'));
-            console.log('[Router] Upcoming matches loaded:', matches.length);
+            // Add refresh button and cache status
+            const refreshButton = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span style="font-size: 0.875rem; color: var(--text-muted);">
+                        ${isCached ? '📦 Cached data' : '🔄 Fresh data'}
+                        ${fetchedAt ? `• ${new Date(fetchedAt).toLocaleTimeString()}` : ''}
+                    </span>
+                    <button class="btn btn-outline btn-sm" onclick="window.router.loadUpcomingMatches(true)">
+                        🔄 Refresh
+                    </button>
+                </div>
+            `;
+
+            container.insertAdjacentHTML('beforeend', refreshButton + this.buildMatchesTableHTML(matches, 'upcoming'));
+            console.log('[Router] Upcoming matches loaded:', matches.length, isCached ? '(cached)' : '(fresh)');
 
         } catch (error) {
             console.error('[Router] Failed to load upcoming matches:', error);
@@ -4940,7 +4965,7 @@ class Router {
                         <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
                         <h3>Unable to Load Upcoming Matches</h3>
                         <p style="color: var(--text-muted); margin-bottom: 1rem;">${error.message || 'Please try again later'}</p>
-                        <button class="btn btn-primary" onclick="window.router.loadUpcomingMatches()">Retry</button>
+                        <button class="btn btn-primary" onclick="window.router.loadUpcomingMatches(true)">🔄 Retry (Fresh Data)</button>
                     </div>
                 </div>
             `);

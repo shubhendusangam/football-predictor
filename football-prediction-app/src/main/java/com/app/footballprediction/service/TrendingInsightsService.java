@@ -501,7 +501,13 @@ public class TrendingInsightsService {
                     .map(Map.Entry::getKey)
                     .toList();
 
-            log.debug("Analyzing {} active teams for upset potential in season {}", activeTeams.size(), season);
+            log.info("Analyzing {} active teams for upset potential in season {} (model loaded: {})",
+                    activeTeams.size(), season, modelTrainingService.isModelLoaded());
+
+            if (activeTeams.isEmpty()) {
+                log.warn("No active teams found for upset detection in season {}", season);
+                return upsetAlerts;
+            }
 
             // Analyze matchups for upset potential
             for (String homeTeam : activeTeams) {
@@ -522,12 +528,15 @@ public class TrendingInsightsService {
                             probs = modelTrainingService.predict(features);
                         }
 
-                        // Upset detection logic:
+                        // Upset detection logic (enhanced):
                         // 1. Home team has higher Elo but away team has >40% win probability
                         // 2. Away team has higher Elo but home team has >40% win probability
+                        // 3. Away team predicted to win (away win is always somewhat of an upset)
+                        // 4. Form-based upset: team with worse Elo but better form
                         boolean isUpset = false;
                         String upsetType = "";
 
+                        // Traditional Elo-based upset detection
                         if (eloDiff > ELO_UPSET_THRESHOLD && probs[2] > UPSET_PROBABILITY_THRESHOLD) {
                             // Home team stronger but away might win
                             isUpset = true;
@@ -536,6 +545,22 @@ public class TrendingInsightsService {
                             // Away team stronger but home might win
                             isUpset = true;
                             upsetType = "Home upset vs stronger away team";
+                        }
+                        // Away win prediction is always noteworthy (home advantage expected)
+                        else if (probs[2] > 0.45) {
+                            isUpset = true;
+                            upsetType = "Away win predicted despite home advantage";
+                        }
+                        // Form-based upset: weaker team in better form
+                        else if (features != null && Math.abs(eloDiff) < ELO_UPSET_THRESHOLD) {
+                            double formDiff = features.getAwayFormPoints() - features.getHomeFormPoints();
+                            if (formDiff > 0.3 && probs[2] > 0.35) {
+                                isUpset = true;
+                                upsetType = "Form-based away upset (better recent form)";
+                            } else if (formDiff < -0.3 && probs[0] > 0.50) {
+                                isUpset = true;
+                                upsetType = "Strong home form advantage";
+                            }
                         }
 
                         if (isUpset) {

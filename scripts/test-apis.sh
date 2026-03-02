@@ -150,6 +150,30 @@ test_api "POST" "$MAIN_APP_URL/api/predict" \
     '{"homeTeam":"Manchester United","awayTeam":"Liverpool"}' \
     "Predict Manchester United vs Liverpool"
 
+# ============================================
+# API Data Sync Tests (Admin endpoints - require auth)
+# ============================================
+print_header "API DATA SYNC TESTS"
+
+print_info "Note: These endpoints require admin authentication"
+print_info "Use: curl -u admin:changeme <url>"
+
+print_test "Testing sync status endpoint..."
+response=$(curl -s -w "\n%{http_code}" "$MAIN_APP_URL/api/admin/sync/status" -u admin:changeme 2>/dev/null)
+http_code=$(echo "$response" | tail -n1)
+if [ "$http_code" = "200" ]; then
+    print_success "GET /api/admin/sync/status - Status retrieved successfully"
+    echo "$response" | head -n -1 | jq '.' 2>/dev/null || echo "$response" | head -n -1
+else
+    print_info "Admin endpoint requires authentication (HTTP $http_code)"
+fi
+
+echo ""
+print_info "To manually test sync:"
+echo "   curl -X POST '$MAIN_APP_URL/api/admin/sync/standings?competition=PL' -u admin:changeme"
+echo "   curl -X POST '$MAIN_APP_URL/api/admin/sync/matches?competition=PL' -u admin:changeme"
+echo "   curl -X POST '$MAIN_APP_URL/api/admin/sync/all?competition=PL' -u admin:changeme"
+
 echo ""
 print_header "TEST SUMMARY"
 echo ""

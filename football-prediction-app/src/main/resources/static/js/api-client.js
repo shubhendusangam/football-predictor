@@ -121,9 +121,20 @@ class APIClient {
 
     /**
      * Get upcoming matches
+     * @param {number} limit - Maximum number of matches to return
+     * @param {boolean} refresh - If true, bypasses cache for fresh data
      */
-    async getUpcomingMatches(limit = 10) {
-        return this.fetch(`/matches/upcoming?limit=${limit}`);
+    async getUpcomingMatches(limit = 10, refresh = false) {
+        const refreshParam = refresh ? '&refresh=true' : '';
+        return this.fetch(`/matches/upcoming?limit=${limit}${refreshParam}`);
+    }
+
+    /**
+     * Get upcoming matches with fresh data (bypasses cache)
+     * @param {number} limit - Maximum number of matches to return
+     */
+    async getUpcomingMatchesFresh(limit = 10) {
+        return this.getUpcomingMatches(limit, true);
     }
 
     /**

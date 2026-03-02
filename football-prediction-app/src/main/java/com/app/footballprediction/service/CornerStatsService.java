@@ -123,8 +123,8 @@ public class CornerStatsService {
         if (matches.isEmpty()) {
             log.warn("No matches found for team: {} in season: {}", resolvedTeam, currentSeason);
             throw new IllegalArgumentException(
-                    "No matches found for team: '" + resolvedTeam + "' in season " + currentSeason + ". " +
-                    "Please check the team name or ingest match data first.");
+                    "No corner data available for '" + resolvedTeam + "' in season " + currentSeason + ". " +
+                    "Corner statistics require historical match data with corner information.");
         }
 
         log.debug("Processing {} full season matches for corner statistics", matches.size());

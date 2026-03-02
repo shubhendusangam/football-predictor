@@ -67,21 +67,21 @@ class LeagueStandingServiceTest {
                 .name("Premier League")
                 .countryCode("ENG")
                 .countryName("England")
-                .currentSeason("2025/26")
+                .currentSeason("2025-26")
                 .enabled(true)
                 .displayOrder(1)
                 .build();
 
         // Create sample standings
         sampleStandings = Arrays.asList(
-                createStanding(1L, 1L, "2025/26", "Arsenal", 1, 23, 17, 3, 3, 52, 21, 31, 54, "W W D W L"),
-                createStanding(2L, 1L, "2025/26", "Liverpool", 2, 23, 16, 4, 3, 48, 20, 28, 52, "W W W L D"),
-                createStanding(3L, 1L, "2025/26", "Manchester City", 3, 23, 15, 5, 3, 45, 18, 27, 50, "D W W W W"),
-                createStanding(4L, 1L, "2025/26", "Chelsea", 4, 23, 14, 5, 4, 42, 22, 20, 47, "W L W D W"),
-                createStanding(5L, 1L, "2025/26", "Newcastle", 5, 23, 12, 6, 5, 38, 25, 13, 42, "L W D W W"),
-                createStanding(18L, 1L, "2025/26", "Everton", 18, 23, 5, 7, 11, 22, 35, -13, 22, "L L D L W"),
-                createStanding(19L, 1L, "2025/26", "Luton", 19, 23, 4, 6, 13, 18, 42, -24, 18, "L L L D L"),
-                createStanding(20L, 1L, "2025/26", "Sheffield United", 20, 23, 3, 5, 15, 14, 48, -34, 14, "L L L L L")
+                createStanding(1L, 1L, "2025-26", "Arsenal", 1, 23, 17, 3, 3, 52, 21, 31, 54, "W W D W L"),
+                createStanding(2L, 1L, "2025-26", "Liverpool", 2, 23, 16, 4, 3, 48, 20, 28, 52, "W W W L D"),
+                createStanding(3L, 1L, "2025-26", "Manchester City", 3, 23, 15, 5, 3, 45, 18, 27, 50, "D W W W W"),
+                createStanding(4L, 1L, "2025-26", "Chelsea", 4, 23, 14, 5, 4, 42, 22, 20, 47, "W L W D W"),
+                createStanding(5L, 1L, "2025-26", "Newcastle", 5, 23, 12, 6, 5, 38, 25, 13, 42, "L W D W W"),
+                createStanding(18L, 1L, "2025-26", "Everton", 18, 23, 5, 7, 11, 22, 35, -13, 22, "L L D L W"),
+                createStanding(19L, 1L, "2025-26", "Luton", 19, 23, 4, 6, 13, 18, 42, -24, 18, "L L L D L"),
+                createStanding(20L, 1L, "2025-26", "Sheffield United", 20, 23, 3, 5, 15, 14, 48, -34, 14, "L L L L L")
         );
     }
 
@@ -130,7 +130,7 @@ class LeagueStandingServiceTest {
         void getCurrentLeagueTable_validLeague_returnsTable() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(sampleStandings);
 
             // When
@@ -140,7 +140,7 @@ class LeagueStandingServiceTest {
             assertThat(response).isNotNull();
             assertThat(response.getLeagueName()).isEqualTo("Premier League");
             assertThat(response.getLeagueCode()).isEqualTo("PL");
-            assertThat(response.getSeason()).isEqualTo("2025/26");
+            assertThat(response.getSeason()).isEqualTo("2025-26");
             assertThat(response.getTotalTeams()).isEqualTo(8);
             assertThat(response.getStandings()).hasSize(8);
         }
@@ -162,7 +162,7 @@ class LeagueStandingServiceTest {
         void getCurrentLeagueTable_noStandings_calculatesFromMatches() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
@@ -211,7 +211,7 @@ class LeagueStandingServiceTest {
         void standings_topFour_shouldBeChampionsZone() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(sampleStandings);
 
             // When
@@ -230,7 +230,7 @@ class LeagueStandingServiceTest {
         void standings_fiveAndSix_shouldBeEuropaZone() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(sampleStandings);
 
             // When
@@ -245,7 +245,7 @@ class LeagueStandingServiceTest {
         void standings_bottomThree_shouldBeRelegationZone() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(sampleStandings);
 
             // When
@@ -269,7 +269,7 @@ class LeagueStandingServiceTest {
         void standings_shouldSortByPoints() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(sampleStandings);
 
             // When
@@ -288,12 +288,12 @@ class LeagueStandingServiceTest {
         void standings_samePoints_shouldSortByGoalDifference() {
             // Given
             List<LeagueStanding> tiedStandings = Arrays.asList(
-                    createStanding(1L, 1L, "2025/26", "Team A", 1, 10, 5, 2, 3, 20, 10, 10, 17, "W W D L W"),
-                    createStanding(2L, 1L, "2025/26", "Team B", 2, 10, 5, 2, 3, 15, 10, 5, 17, "W D W L W")
+                    createStanding(1L, 1L, "2025-26", "Team A", 1, 10, 5, 2, 3, 20, 10, 10, 17, "W W D L W"),
+                    createStanding(2L, 1L, "2025-26", "Team B", 2, 10, 5, 2, 3, 15, 10, 5, 17, "W D W L W")
             );
 
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(tiedStandings);
 
             // When
@@ -314,7 +314,7 @@ class LeagueStandingServiceTest {
         void getLeagueTable_noTeams_returnsEmptyList() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025/26"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2025-26"))
                     .thenReturn(Collections.emptyList());
             when(matchRepository.findAllByOrderByMatchDateAsc()).thenReturn(Collections.emptyList());
 
@@ -358,7 +358,7 @@ class LeagueStandingServiceTest {
         @DisplayName("should return distinct seasons for league")
         void getAvailableSeasons_returnsSeasons() {
             // Given
-            List<String> seasons = Arrays.asList("2025/26", "2024/25", "2023/24");
+            List<String> seasons = Arrays.asList("2025-26", "2024/25", "2023/24");
             when(standingRepository.findDistinctSeasonsByLeagueId(1L)).thenReturn(seasons);
 
             // When
@@ -366,7 +366,7 @@ class LeagueStandingServiceTest {
 
             // Then
             assertThat(result).hasSize(3);
-            assertThat(result).containsExactly("2025/26", "2024/25", "2023/24");
+            assertThat(result).containsExactly("2025-26", "2024/25", "2023/24");
         }
     }
 

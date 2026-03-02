@@ -1,5 +1,6 @@
 package com.app.footballprediction.scheduler;
 
+import com.app.footballprediction.service.ApiDataSyncService;
 import com.app.footballprediction.service.CsvIngestionService;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +16,8 @@ import java.nio.file.*;
 /**
  * Scheduled tasks for automated data updates and model retraining.
  *
- * - Downloads latest Premier League data weekly
+ * - Downloads latest Premier League data weekly (CSV)
+ * - Syncs data from football-data.org API hourly
  * - Retrains model after new data ingestion
  */
 @Component
@@ -25,6 +27,7 @@ public class DataUpdateScheduler {
 
     private final CsvIngestionService csvIngestionService;
     private final ModelTrainingService modelTrainingService;
+    private final ApiDataSyncService apiDataSyncService;
 
     @Value("${scheduler.enabled:true}")
     private boolean schedulerEnabled;
@@ -37,6 +40,12 @@ public class DataUpdateScheduler {
 
     @Value("${scheduler.current-season-file:data/PL_25_26.csv}")
     private String currentSeasonFile;
+
+    @Value("${scheduler.api-sync.enabled:true}")
+    private boolean apiSyncEnabled;
+
+    @Value("${api.sync.competition:PL}")
+    private String apiSyncCompetition;
 
     /**
      * Download latest data every Monday and Friday at 6 AM.
@@ -146,6 +155,66 @@ public class DataUpdateScheduler {
         } catch (Exception e) {
             log.error("Manual update failed: {}", e.getMessage(), e);
             return "Update failed: " + e.getMessage();
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // API Data Sync Scheduled Tasks
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Sync data from football-data.org API every hour.
+     * This ensures the database has fresh data from the external API.
+     */
+    @Scheduled(cron = "${scheduler.api-sync.cron:0 0 * * * *}")
+    public void syncFromApi() {
+        if (!schedulerEnabled || !apiSyncEnabled) {
+            log.debug("API sync disabled, skipping");
+            return;
+        }
+
+        log.info("⏰ Scheduled API sync starting for: {}", apiSyncCompetition);
+
+        try {
+            apiDataSyncService.syncAll(apiSyncCompetition);
+            log.info("✅ Scheduled API sync completed for: {}", apiSyncCompetition);
+        } catch (Exception e) {
+            log.error("❌ Scheduled API sync failed for {}: {}", apiSyncCompetition, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Sync data after typical match times (18:00, 20:00, 22:00 GMT).
+     * Most Premier League matches finish around these times.
+     */
+    @Scheduled(cron = "${scheduler.post-match.cron:0 0 18,20,22 * * *}")
+    public void syncAfterMatches() {
+        if (!schedulerEnabled || !apiSyncEnabled) {
+            log.debug("Post-match sync disabled, skipping");
+            return;
+        }
+
+        log.info("⏰ Post-match API sync starting for: {}", apiSyncCompetition);
+
+        try {
+            apiDataSyncService.syncAll(apiSyncCompetition);
+            log.info("✅ Post-match API sync completed for: {}", apiSyncCompetition);
+        } catch (Exception e) {
+            log.error("❌ Post-match API sync failed for {}: {}", apiSyncCompetition, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Manual trigger for API data sync.
+     */
+    public String triggerManualApiSync() {
+        try {
+            log.info("🔄 Manual API sync triggered for: {}", apiSyncCompetition);
+            apiDataSyncService.syncAll(apiSyncCompetition);
+            return "API sync completed successfully for: " + apiSyncCompetition;
+        } catch (Exception e) {
+            log.error("Manual API sync failed: {}", e.getMessage(), e);
+            return "API sync failed: " + e.getMessage();
         }
     }
 }

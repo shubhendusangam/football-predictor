@@ -25,7 +25,7 @@ public class LeagueStandingsResponse {
     private String leagueCode;
 
     /**
-     * Current season (e.g., "2025/26").
+     * Current season (e.g., "2025-26").
      */
     private String season;
 

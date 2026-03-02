@@ -57,6 +57,7 @@ public class CacheConfig {
     public static final String CACHE_CARDS_PREDICTION = "cardsPrediction";
     public static final String CACHE_TEAM_DISCIPLINE = "teamDiscipline";
     public static final String CACHE_HALF_ANALYSIS = "halfAnalysis";
+    public static final String CACHE_API_SYNC = "apiSync";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -126,6 +127,9 @@ public class CacheConfig {
     @Value("${cache.halfAnalysis.ttl:900}")
     private int halfAnalysisTtl;
 
+    @Value("${cache.apiSync.ttl:60}")
+    private int apiSyncTtl;
+
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
     private int standingsMaxSize;
@@ -193,6 +197,9 @@ public class CacheConfig {
 
     @Value("${cache.teamDiscipline.maxSize:100}")
     private int teamDisciplineMaxSize;
+
+    @Value("${cache.apiSync.maxSize:10}")
+    private int apiSyncMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -276,6 +283,9 @@ public class CacheConfig {
         // Half analysis: moderate TTL (15 min), moderate size for team half analysis
         cacheConfigs.put(CACHE_HALF_ANALYSIS, buildCache(halfAnalysisTtl, halfAnalysisMaxSize));
 
+        // API sync: short TTL (1 min), small size for sync status
+        cacheConfigs.put(CACHE_API_SYNC, buildCache(apiSyncTtl, apiSyncMaxSize));
+
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
 
@@ -338,6 +348,7 @@ public class CacheConfig {
             case CACHE_CARDS_PREDICTION -> cardsPredictionTtl;
             case CACHE_TEAM_DISCIPLINE -> teamDisciplineTtl;
             case CACHE_HALF_ANALYSIS -> halfAnalysisTtl;
+            case CACHE_API_SYNC -> apiSyncTtl;
             default -> 300;
         };
     }

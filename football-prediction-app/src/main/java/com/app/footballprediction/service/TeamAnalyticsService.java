@@ -14,6 +14,7 @@ import com.app.footballprediction.dto.TeamAnalyticsDto;
 import com.app.footballprediction.dto.TeamAnalyticsDto.*;
 import com.app.footballprediction.dto.external.FootballApiResponse;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
+import com.app.footballprediction.util.SeasonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -1063,16 +1064,7 @@ public class TeamAnalyticsService {
      * Get current season identifier
      */
     private String getCurrentSeason() {
-        LocalDate now = LocalDate.now();
-        int year = now.getYear();
-        int month = now.getMonthValue();
-
-        // Season typically runs Aug-May
-        if (month >= 8) {
-            return year + "-" + String.format("%02d", (year + 1) % 100);
-        } else {
-            return (year - 1) + "-" + String.format("%02d", year % 100);
-        }
+        return SeasonUtils.getCurrentSeason();
     }
 
     // ═══════════════════════════════════════════════════════════════════

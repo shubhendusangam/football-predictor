@@ -8,6 +8,7 @@ import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.common.repository.TeamRepository;
 import com.app.footballprediction.config.CacheConfig;
 import com.app.footballprediction.dto.TeamDTO;
+import com.app.footballprediction.util.SeasonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -15,7 +16,6 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -334,7 +334,7 @@ public class TeamService {
             int endYear = (Integer.parseInt(parts[1]) + 1) % 100;
             return startYear + "-" + String.format("%02d", endYear);
         } catch (Exception e) {
-            return "2025-26"; // Fallback
+            return SeasonUtils.getCurrentSeason(); // Fallback to current season
         }
     }
 
@@ -342,30 +342,14 @@ public class TeamService {
      * Get the current season string (e.g., "2025-26")
      */
     public String getCurrentSeason() {
-        int year = LocalDate.now().getYear();
-        int month = LocalDate.now().getMonthValue();
-
-        // Football seasons typically run Aug-May
-        if (month >= 8) {
-            return year + "-" + String.format("%02d", (year + 1) % 100);
-        } else {
-            return (year - 1) + "-" + String.format("%02d", year % 100);
-        }
+        return SeasonUtils.getCurrentSeason();
     }
 
     /**
      * Get previous season string
      */
     private String getPreviousSeason(String currentSeason) {
-        try {
-            String[] parts = currentSeason.split("-");
-            int startYear = Integer.parseInt(parts[0]) - 1;
-            int endYear = Integer.parseInt(parts[1]) - 1;
-            if (endYear < 0) endYear = 99;
-            return startYear + "-" + String.format("%02d", endYear);
-        } catch (Exception e) {
-            return "2024-25"; // Fallback
-        }
+        return SeasonUtils.getPreviousSeason(currentSeason);
     }
 
     /**

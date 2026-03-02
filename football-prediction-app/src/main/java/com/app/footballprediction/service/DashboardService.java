@@ -39,8 +39,14 @@ public class DashboardService {
     private final LeagueStandingService leagueStandingService;
     private final FootballDataApiService footballDataApiService;
 
-    private static final String CURRENT_SEASON = "2025/26";
     private static final long DEFAULT_LEAGUE_ID = 1L; // Premier League
+
+    /**
+     * Get current season dynamically.
+     */
+    private String getCurrentSeason() {
+        return com.app.footballprediction.util.SeasonUtils.getCurrentSeason();
+    }
 
     /**
      * Get upcoming matches grouped by match day.
@@ -240,12 +246,13 @@ public class DashboardService {
         log.debug("Fetching top teams for dashboard");
         long startTime = System.currentTimeMillis();
 
+        String currentSeason = getCurrentSeason();
         List<LeagueStanding> standings = standingRepository
-                .findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(DEFAULT_LEAGUE_ID, CURRENT_SEASON);
+                .findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(DEFAULT_LEAGUE_ID, currentSeason);
 
         if (standings.isEmpty()) {
             // Try to calculate from matches
-            standings = leagueStandingService.calculateStandingsFromMatches(DEFAULT_LEAGUE_ID, CURRENT_SEASON);
+            standings = leagueStandingService.calculateStandingsFromMatches(DEFAULT_LEAGUE_ID, currentSeason);
         }
 
         // Top 5 by points
@@ -275,7 +282,7 @@ public class DashboardService {
                 .teamsByPoints(byPoints)
                 .teamsByGoalDifference(byGD)
                 .teamsByForm(byForm)
-                .season(CURRENT_SEASON)
+                .season(currentSeason)
                 .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
                 .build();
     }

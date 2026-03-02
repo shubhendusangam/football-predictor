@@ -4,6 +4,7 @@ import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.dto.SeasonStatsResponse;
 import com.app.footballprediction.dto.SeasonStatsResponse.*;
+import com.app.footballprediction.util.SeasonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -28,7 +29,7 @@ public class SeasonStatsService {
     /**
      * Get all available seasons.
      *
-     * @return List of season strings (e.g., ["2023-24", "2022-23", ...])
+     * @return List of season strings in standard format (e.g., ["2023-24", "2022-23", ...])
      */
     @Cacheable(value = "seasons", key = "'allSeasons'")
     public List<String> getAllSeasons() {
@@ -38,6 +39,7 @@ public class SeasonStatsService {
         return allMatches.stream()
                 .map(Match::getSeason)
                 .filter(Objects::nonNull)
+                .map(SeasonUtils::normalizeSeason) // Normalize to standard format
                 .distinct()
                 .sorted(Comparator.reverseOrder())
                 .collect(Collectors.toList());
@@ -57,14 +59,22 @@ public class SeasonStatsService {
     @Cacheable(value = "seasonStats", key = "#season + '_' + #page + '_' + #pageSize + '_' + #sortBy + '_' + #sortDir + '_' + #teamFilter")
     public SeasonStatsResponse getSeasonStats(String season, int page, int pageSize,
                                                String sortBy, String sortDir, String teamFilter) {
-        log.info("Fetching stats for season: {}, page: {}, pageSize: {}, sortBy: {}, sortDir: {}, filter: {}",
-                season, page, pageSize, sortBy, sortDir, teamFilter);
+        // Normalize the input season to standard format (YYYY-YY)
+        String normalizedSeason = SeasonUtils.normalizeSeason(season);
+
+        log.info("Fetching stats for season: {} (normalized from: {}), page: {}, pageSize: {}, sortBy: {}, sortDir: {}, filter: {}",
+                normalizedSeason, season, page, pageSize, sortBy, sortDir, teamFilter);
 
         List<Match> allMatches = matchRepository.findAllByOrderByMatchDateDesc();
 
-        // Filter by season
+        // Filter by season - try both normalized and original format for compatibility
+        final String seasonToMatch = normalizedSeason;
+        final String altSeasonFormat = normalizedSeason.replace("-", "/"); // Try alternate format
+
         List<Match> seasonMatches = allMatches.stream()
-                .filter(m -> season.equals(m.getSeason()))
+                .filter(m -> seasonToMatch.equals(m.getSeason()) ||
+                             altSeasonFormat.equals(m.getSeason()) ||
+                             season.equals(m.getSeason()))
                 .collect(Collectors.toList());
 
         if (seasonMatches.isEmpty()) {

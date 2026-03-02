@@ -1086,6 +1086,7 @@ public class PredictionController {
 
    /**
     * Get match history with optional filtering.
+    * Only returns finished matches (with scores), not scheduled fixtures.
     * Endpoint: GET /api/matches/history?team=Arsenal&amp;limit=20
     */
    @GetMapping("/matches/history")
@@ -1105,9 +1106,13 @@ public class PredictionController {
          });
 
          var filteredMatches = allMatches.stream()
+            // Only include finished matches (those with scores)
+            .filter(m -> m.getFullTimeHomeGoals() != null && m.getFullTimeAwayGoals() != null)
+            // Filter by team if specified
             .filter(m -> team == null || team.isBlank() ||
                         m.getHomeTeam().equalsIgnoreCase(team) ||
                         m.getAwayTeam().equalsIgnoreCase(team))
+            // Sort by date descending (most recent first)
             .sorted((m1, m2) -> m2.getMatchDate().compareTo(m1.getMatchDate()))
             .limit(limit)
             .map(match -> {
@@ -1119,6 +1124,7 @@ public class PredictionController {
                matchData.put("homeGoals", match.getFullTimeHomeGoals());
                matchData.put("awayGoals", match.getFullTimeAwayGoals());
                matchData.put("result", match.getFullTimeResult());
+               matchData.put("season", match.getSeason());
                // Add logo URLs
                matchData.put("homeTeamCrest", teamLogos.getOrDefault(match.getHomeTeam().toLowerCase(), null));
                matchData.put("awayTeamCrest", teamLogos.getOrDefault(match.getAwayTeam().toLowerCase(), null));
@@ -1184,25 +1190,76 @@ public class PredictionController {
    }
 
    /**
-    * Get upcoming matches (alias to external API).
-    * Endpoint: GET /api/matches/upcoming?limit=10
+    * Get upcoming matches (scheduled fixtures from external API).
+    * Returns matches that haven't been played yet.
+    *
+    * @param limit Maximum number of matches to return
+    * @param refresh If true, bypasses cache and fetches fresh data from API
+    *
+    * Endpoint: GET /api/matches/upcoming?limit=10&refresh=true
     */
    @GetMapping("/matches/upcoming")
    public ResponseEntity<?> getUpcomingMatches(
-         @RequestParam(defaultValue = "10") int limit) {
+         @RequestParam(defaultValue = "10") int limit,
+         @RequestParam(defaultValue = "false") boolean refresh) {
 
       try {
-         var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
+         // Use fresh data if refresh=true, otherwise use cached data
+         var upcomingMatches = refresh
+            ? footballDataApiService.getScheduledMatchesFresh("PL")
+            : footballDataApiService.getScheduledMatches("PL");
 
-         var limitedMatches = upcomingMatches.getMatches() != null ?
-            upcomingMatches.getMatches().stream().limit(limit).toList() :
-            java.util.List.of();
+         if (upcomingMatches == null || upcomingMatches.getMatches() == null) {
+            return ResponseEntity.ok(Map.of(
+               "matches", java.util.List.of(),
+               "count", 0,
+               "competition", "Premier League",
+               "cached", !refresh
+            ));
+         }
+
+         // Pre-fetch all teams for logo lookup
+         Map<String, String> teamLogos = new HashMap<>();
+         teamRepository.findAll().forEach(t -> {
+            if (t.getLogoUrl() != null && !t.getLogoUrl().isBlank()) {
+               teamLogos.put(t.getName().toLowerCase(), t.getLogoUrl());
+            }
+         });
+
+         var limitedMatches = upcomingMatches.getMatches().stream()
+            .limit(limit)
+            .map(match -> {
+               // Normalize team names for consistency
+               String homeTeam = footballDataApiService.normalizeTeamName(match.getHomeTeam().getName());
+               String awayTeam = footballDataApiService.normalizeTeamName(match.getAwayTeam().getName());
+
+               Map<String, Object> matchData = new HashMap<>();
+               matchData.put("id", match.getId());
+               matchData.put("homeTeam", homeTeam);
+               matchData.put("awayTeam", awayTeam);
+               matchData.put("utcDate", match.getUtcDate());
+               matchData.put("matchday", match.getMatchday());
+               matchData.put("status", match.getStatus());
+               // Add logo URLs - try both original API name and normalized name
+               String homeLogoKey = homeTeam.toLowerCase();
+               String awayLogoKey = awayTeam.toLowerCase();
+               matchData.put("homeTeamCrest",
+                   match.getHomeTeam().getCrest() != null ? match.getHomeTeam().getCrest() :
+                   teamLogos.getOrDefault(homeLogoKey, null));
+               matchData.put("awayTeamCrest",
+                   match.getAwayTeam().getCrest() != null ? match.getAwayTeam().getCrest() :
+                   teamLogos.getOrDefault(awayLogoKey, null));
+               return matchData;
+            })
+            .toList();
 
          return ResponseEntity.ok(Map.of(
             "matches", limitedMatches,
             "count", limitedMatches.size(),
             "competition", "Premier League",
-            "hint", "Use GET /api/external/predict for match predictions"
+            "cached", !refresh,
+            "fetchedAt", java.time.LocalDateTime.now().toString(),
+            "hint", "Add ?refresh=true for fresh data"
          ));
       } catch (Exception e) {
          log.error("Failed to fetch upcoming matches: {}", e.getMessage());

@@ -10,6 +10,28 @@
  * - Pagination support
  */
 
+/**
+ * Normalize season format to standard format (YYYY-YY with dash).
+ * Converts "2025/26" -> "2025-26"
+ * @param {string} season - Season string in any format
+ * @returns {string} - Normalized season in YYYY-YY format
+ */
+function normalizeSeasonFormat(season) {
+    if (!season) return season;
+    return season.replace('/', '-');
+}
+
+/**
+ * Format season for display (YYYY/YY with slash).
+ * Converts "2025-26" -> "2025/26"
+ * @param {string} season - Season string in standard format
+ * @returns {string} - Display format with slash
+ */
+function formatSeasonForDisplay(season) {
+    if (!season) return season;
+    return season.replace('-', '/');
+}
+
 class HistoricalExplorer {
     constructor() {
         this.api = window.api || window.apiClient;
@@ -116,7 +138,10 @@ class HistoricalExplorer {
                 params.append('team', this.teamFilter);
             }
 
-            const response = await fetch(`/api/seasons/${encodeURIComponent(this.currentSeason)}/stats?${params}`);
+            // Normalize season format for API call (use dash format)
+            // Standard format: "2025-26" (dash), Display format: "2025/26" (slash)
+            const normalizedSeason = normalizeSeasonFormat(this.currentSeason);
+            const response = await fetch(`/api/seasons/${normalizedSeason}/stats?${params}`);
             if (!response.ok) throw new Error('Failed to fetch season stats');
 
             this.data = await response.json();

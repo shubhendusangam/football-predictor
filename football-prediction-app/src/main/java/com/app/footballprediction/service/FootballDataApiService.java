@@ -58,6 +58,24 @@ public class FootballDataApiService {
     @Cacheable(value = "matches", key = "'scheduled_' + #competitionCode", unless = "#result == null")
     public FootballApiResponse getScheduledMatches(String competitionCode) {
         log.info("Fetching scheduled matches for {} from external API", competitionCode);
+        return fetchScheduledMatchesFromApi(competitionCode);
+    }
+
+    /**
+     * Fetch upcoming/scheduled matches WITHOUT caching.
+     * Use this for real-time updates when fresh data is needed.
+     */
+    public FootballApiResponse getScheduledMatchesFresh(String competitionCode) {
+        log.info("Fetching FRESH scheduled matches for {} from external API (bypassing cache)", competitionCode);
+        // First clear the cache to ensure subsequent cached calls get fresh data
+        clearMatchesCache();
+        return fetchScheduledMatchesFromApi(competitionCode);
+    }
+
+    /**
+     * Internal method to fetch scheduled matches from API.
+     */
+    private FootballApiResponse fetchScheduledMatchesFromApi(String competitionCode) {
         return fetchWithRetry(() -> footballApiClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/competitions/{code}/matches")

@@ -77,17 +77,18 @@ public class AdminService {
     private void initializeDefaultLeagues() {
         if (leagueRepository.count() == 0) {
             log.info("Initializing default leagues...");
+            String currentSeason = com.app.footballprediction.util.SeasonUtils.getCurrentSeason();
             List<League> defaultLeagues = List.of(
                 League.builder().code("PL").name("Premier League").countryCode("ENG")
-                        .countryName("England").enabled(true).displayOrder(1).currentSeason("2025-26").build(),
+                        .countryName("England").enabled(true).displayOrder(1).currentSeason(currentSeason).build(),
                 League.builder().code("PD").name("La Liga").countryCode("ESP")
-                        .countryName("Spain").enabled(false).displayOrder(2).currentSeason("2025-26").build(),
+                        .countryName("Spain").enabled(false).displayOrder(2).currentSeason(currentSeason).build(),
                 League.builder().code("BL1").name("Bundesliga").countryCode("GER")
-                        .countryName("Germany").enabled(false).displayOrder(3).currentSeason("2025-26").build(),
+                        .countryName("Germany").enabled(false).displayOrder(3).currentSeason(currentSeason).build(),
                 League.builder().code("SA").name("Serie A").countryCode("ITA")
-                        .countryName("Italy").enabled(false).displayOrder(4).currentSeason("2025-26").build(),
+                        .countryName("Italy").enabled(false).displayOrder(4).currentSeason(currentSeason).build(),
                 League.builder().code("FL1").name("Ligue 1").countryCode("FRA")
-                        .countryName("France").enabled(false).displayOrder(5).currentSeason("2025-26").build()
+                        .countryName("France").enabled(false).displayOrder(5).currentSeason(currentSeason).build()
             );
             leagueRepository.saveAll(defaultLeagues);
             log.info("Default leagues created: {}", defaultLeagues.size());

@@ -235,7 +235,9 @@ class LeagueStandingsPanel {
         }
 
         if (seasonSpan && data.season) {
-            seasonSpan.textContent = `— ${data.season}`;
+            // Format season for display (dash to slash): "2025-26" -> "2025/26"
+            const displaySeason = data.season.replace('-', '/');
+            seasonSpan.textContent = `— ${displaySeason}`;
         }
 
         if (!data.standings || data.standings.length === 0) {

@@ -11,6 +11,8 @@ import com.app.common.repository.TeamRepository;
 import com.app.footballprediction.config.CacheConfig;
 import com.app.footballprediction.dto.LeagueStandingsResponse;
 import com.app.footballprediction.dto.LeagueStandingsResponse.StandingDto;
+import com.app.footballprediction.util.SeasonUtils;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -59,10 +61,12 @@ public class LeagueStandingService {
         League league = leagueRepository.findById(leagueId)
                 .orElseThrow(() -> new IllegalArgumentException("League not found: " + leagueId));
 
-        // Get current season
+        // Get current season and normalize to standard format
         String currentSeason = league.getCurrentSeason();
         if (currentSeason == null || currentSeason.isEmpty()) {
             currentSeason = getCurrentSeasonString();
+        } else {
+            currentSeason = SeasonUtils.normalizeSeason(currentSeason);
         }
 
         return getLeagueTableForSeason(leagueId, currentSeason);
@@ -72,34 +76,50 @@ public class LeagueStandingService {
      * Get league table for a specific season.
      *
      * @param leagueId League ID
-     * @param season   Season string (e.g., "2025/26")
+     * @param season   Season string (e.g., "2025-26")
      * @return LeagueStandingsResponse
      */
     @Cacheable(value = CacheConfig.CACHE_STANDINGS, key = "'league_' + #leagueId + '_season_' + #season")
     @Transactional
     public LeagueStandingsResponse getLeagueTableForSeason(Long leagueId, String season) {
-        log.info("Fetching league table for league ID: {} season: {}", leagueId, season);
+        // Normalize season to standard format
+        String normalizedSeason = SeasonUtils.normalizeSeason(season);
+        log.info("Fetching league table for league ID: {} season: {} (normalized from: {})",
+                leagueId, normalizedSeason, season);
 
         League league = leagueRepository.findById(leagueId)
                 .orElseThrow(() -> new IllegalArgumentException("League not found: " + leagueId));
 
-        // Get standings from database
+        // Try to get standings with normalized season first
         List<LeagueStanding> standings = standingRepository
-                .findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(leagueId, season);
+                .findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(leagueId, normalizedSeason);
 
-        // If no standings exist, calculate from matches
+        // If no standings found, try alternate format (for backward compatibility)
+        if (standings.isEmpty()) {
+            String altSeason = normalizedSeason.replace("-", "/");
+            standings = standingRepository
+                    .findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(leagueId, altSeason);
+
+            if (!standings.isEmpty()) {
+                log.info("Found standings with alternate season format: {}", altSeason);
+            }
+        }
+
+        // If still no standings exist, calculate from matches
         if (standings.isEmpty()) {
             log.info("No standings found, calculating from match history...");
-            standings = calculateStandingsFromMatches(leagueId, season);
+            standings = calculateStandingsFromMatches(leagueId, normalizedSeason);
         }
 
         // Map to DTOs
         List<StandingDto> standingDtos = mapToStandingDtos(standings);
 
+        // Return season in standard format (YYYY-YY with dash)
+        // Frontend handles display formatting (dash to slash)
         return LeagueStandingsResponse.builder()
                 .leagueName(league.getName())
                 .leagueCode(league.getCode())
-                .season(formatSeasonForDisplay(season))
+                .season(normalizedSeason)
                 .totalTeams(standings.size())
                 .standings(standingDtos)
                 .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
@@ -112,25 +132,32 @@ public class LeagueStandingService {
      */
     @Transactional
     public List<LeagueStanding> calculateStandingsFromMatches(Long leagueId, String season) {
-        log.info("Calculating standings from matches for league: {}, season: {}", leagueId, season);
+        String normalizedSeason = SeasonUtils.normalizeSeason(season);
+        String altSeason = normalizedSeason.replace("-", "/"); // For backward compatibility
+
+        log.info("Calculating standings from matches for league: {}, season: {}", leagueId, normalizedSeason);
 
         // Get season date range
-        LocalDate seasonStart = getSeasonStartDate(season);
-        LocalDate seasonEnd = getSeasonEndDate(season);
+        LocalDate seasonStart = getSeasonStartDate(normalizedSeason);
+        LocalDate seasonEnd = getSeasonEndDate(normalizedSeason);
 
-        // Fetch all matches for the season
+        // Fetch all matches for the season - filter by both date range AND season field
         List<Match> matches = matchRepository.findAllByOrderByMatchDateAsc().stream()
                 .filter(m -> m.getMatchDate() != null)
                 .filter(m -> !m.getMatchDate().isBefore(seasonStart) && !m.getMatchDate().isAfter(seasonEnd))
+                .filter(m -> m.getSeason() == null ||
+                            normalizedSeason.equals(m.getSeason()) ||
+                            altSeason.equals(m.getSeason()))
+                .filter(m -> m.getFullTimeHomeGoals() != null && m.getFullTimeAwayGoals() != null) // Only finished matches
                 .toList();
 
-        log.info("Found {} matches for season {}", matches.size(), season);
+        log.info("Found {} finished matches for season {}", matches.size(), normalizedSeason);
 
         // Calculate standings
         Map<String, LeagueStanding> standingsMap = new HashMap<>();
 
         for (Match match : matches) {
-            processMatchForStandings(standingsMap, match, leagueId, season);
+            processMatchForStandings(standingsMap, match, leagueId, normalizedSeason);
         }
 
         // Convert to list and sort
@@ -147,8 +174,9 @@ public class LeagueStandingService {
             standings.get(i).setLastUpdated(LocalDateTime.now());
         }
 
-        // Save to database
-        standingRepository.deleteByLeagueIdAndSeason(leagueId, season);
+        // Save to database - delete both formats
+        standingRepository.deleteByLeagueIdAndSeason(leagueId, normalizedSeason);
+        standingRepository.deleteByLeagueIdAndSeason(leagueId, altSeason);
         standingRepository.saveAll(standings);
 
         log.info("Calculated and saved {} team standings", standings.size());
@@ -389,16 +417,6 @@ public class LeagueStandingService {
                 .orElse(1L);
     }
 
-    /**
-     * Format season string for display (e.g., "2025-26" -> "2025/26").
-     */
-    private String formatSeasonForDisplay(String season) {
-        if (season == null) {
-            return "";
-        }
-        // Convert dash to slash for display
-        return season.replace("-", "/");
-    }
 
     // ========== Date-Based Standings (for Feature Engineering) ==========
 

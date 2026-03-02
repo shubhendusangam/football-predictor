@@ -455,6 +455,13 @@
             return Promise.resolve(null);
         }
 
+        // Validate team names are not empty strings
+        if (homeTeam.trim() === '' || awayTeam.trim() === '') {
+            console.warn('[CornerStatsCard] Empty team name provided');
+            renderError(container, 'Team names are required');
+            return Promise.resolve(null);
+        }
+
         renderPredictionLoading(container);
 
         var url = '/api/matches/predict-corners?home=' + encodeURIComponent(homeTeam) + '&away=' + encodeURIComponent(awayTeam);
@@ -463,8 +470,16 @@
             .then(function(response) {
                 if (!response.ok) {
                     return response.json().then(function(err) {
-                        throw new Error(err.message || 'HTTP ' + response.status);
-                    }).catch(function() {
+                        // Extract meaningful error message
+                        var errorMessage = err.message || err.error || 'HTTP ' + response.status;
+                        if (response.status === 400 && errorMessage.includes('No matches found')) {
+                            errorMessage = 'No corner data available for these teams this season';
+                        }
+                        throw new Error(errorMessage);
+                    }).catch(function(parseErr) {
+                        if (parseErr.message && parseErr.message !== 'HTTP ' + response.status) {
+                            throw parseErr;
+                        }
                         throw new Error('HTTP ' + response.status);
                     });
                 }

@@ -35,7 +35,7 @@ public class LeagueStanding {
     private Long leagueId;
 
     /**
-     * Season identifier (e.g., "2025/26" or "2025-26").
+     * Season identifier in standard format (e.g., "2025-26").
      */
     @Column(name = "season", nullable = false, length = 20)
     private String season;
