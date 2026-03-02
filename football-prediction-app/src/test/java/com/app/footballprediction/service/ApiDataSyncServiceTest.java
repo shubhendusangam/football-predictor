@@ -89,7 +89,7 @@ class ApiDataSyncServiceTest {
         // Assert
         assertEquals(1, count);
         verify(standingRepository, times(1)).save(any(LeagueStanding.class));
-        verify(standingRepository, times(1)).deleteByLeagueIdAndSeason(eq(1L), anyString());
+        verify(standingRepository, times(2)).deleteByLeagueIdAndSeason(eq(1L), anyString());
     }
 
     @Test

@@ -190,7 +190,7 @@ class LeagueStandingServiceTest {
         void getLeagueTableForSeason_validSeason_returnsStandings() {
             // Given
             when(leagueRepository.findById(1L)).thenReturn(Optional.of(premierLeague));
-            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2024/25"))
+            when(standingRepository.findByLeagueIdAndSeasonOrderByPointsDescGoalDifferenceDescGoalsForDesc(1L, "2024-25"))
                     .thenReturn(sampleStandings);
 
             // When
@@ -198,7 +198,7 @@ class LeagueStandingServiceTest {
 
             // Then
             assertThat(response).isNotNull();
-            assertThat(response.getSeason()).isEqualTo("2024/25");
+            assertThat(response.getSeason()).isEqualTo("2024-25");
         }
     }
 

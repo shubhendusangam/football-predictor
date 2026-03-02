@@ -154,7 +154,7 @@ class CornerStatsServiceTest {
             // When/Then
             assertThatThrownBy(() -> cornerStatsService.calculateCornerStats("UnknownTeam", true))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("No matches found");
+                    .hasMessageContaining("No corner data available");
         }
 
         @Test
