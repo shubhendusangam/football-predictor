@@ -33,11 +33,9 @@ build/
 .vscode/
 
 ### Data files (all modules) ###
-**/data/*.db
-**/data/*.mv.db
-**/data/*.model
+# Allow db and model files to be tracked in git
+# Only ignore trace.db files (temporary/runtime files)
 **/data/*.trace.db
-**/data/model_backups/
 !**/data/.gitkeep
 
 ### PID files ###

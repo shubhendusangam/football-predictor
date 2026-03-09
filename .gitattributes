@@ -1,2 +1,14 @@
 /mvnw text eol=lf
 *.cmd text eol=crlf
+
+# Git LFS tracking for large binary files
+# To use this, install Git LFS: https://git-lfs.com
+# Then run: git lfs install
+
+# Database files
+*.mv.db filter=lfs diff=lfs merge=lfs -text
+*.db filter=lfs diff=lfs merge=lfs -text
+
+# Model files
+*.model filter=lfs diff=lfs merge=lfs -text
+
