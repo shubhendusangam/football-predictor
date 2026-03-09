@@ -56,6 +56,7 @@ public class CanonicalMapper {
             .halfTimeResult(match.getHalfTimeResult())
             .referee(match.getReferee())
             .status(match.getFullTimeResult() != null ? "FINISHED" : "SCHEDULED")
+            .kickoffTime(match.getKickoffTime())
             .homeShots(match.getHomeShots())
             .awayShots(match.getAwayShots())
             .homeShotsOnTarget(match.getHomeShotsOnTarget())
@@ -100,6 +101,7 @@ public class CanonicalMapper {
             .halfTimeAwayGoals(dto.getHalfTimeAwayGoals())
             .halfTimeResult(dto.getHalfTimeResult())
             .referee(dto.getReferee())
+            .kickoffTime(dto.getKickoffTime())
             .homeShots(dto.getHomeShots())
             .awayShots(dto.getAwayShots())
             .homeShotsOnTarget(dto.getHomeShotsOnTarget())
@@ -176,6 +178,11 @@ public class CanonicalMapper {
         // Update referee if missing
         if (dto.getReferee() != null && existing.getReferee() == null) {
             existing.setReferee(dto.getReferee());
+        }
+
+        // Backfill kick-off time if missing
+        if (dto.getKickoffTime() != null && (existing.getKickoffTime() == null || existing.getKickoffTime().isBlank())) {
+            existing.setKickoffTime(dto.getKickoffTime());
         }
 
         return existing;

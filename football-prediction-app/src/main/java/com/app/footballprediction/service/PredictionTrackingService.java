@@ -26,13 +26,16 @@ public class PredictionTrackingService {
     private final PredictionRepository predictionRepository;
     private final MatchRepository matchRepository;
     private final TeamAnalyticsService teamAnalyticsService;
+    private final MatchResultProcessor matchResultProcessor;
 
     public PredictionTrackingService(PredictionRepository predictionRepository,
                                       MatchRepository matchRepository,
-                                      @Lazy TeamAnalyticsService teamAnalyticsService) {
+                                      @Lazy TeamAnalyticsService teamAnalyticsService,
+                                      @Lazy MatchResultProcessor matchResultProcessor) {
         this.predictionRepository = predictionRepository;
         this.matchRepository = matchRepository;
         this.teamAnalyticsService = teamAnalyticsService;
+        this.matchResultProcessor = matchResultProcessor;
     }
 
     /**
@@ -80,7 +83,7 @@ public class PredictionTrackingService {
                 .build();
 
         prediction = predictionRepository.save(prediction);
-        log.info("Recorded prediction for {} vs {} on {}: {} ({}% confidence)",
+        log.debug("Recorded prediction for {} vs {} on {}: {} ({}% confidence)",
                 teamName, opponentName, matchDate, predictedResult, Math.round(confidence * 100));
 
         return prediction;
@@ -151,53 +154,21 @@ public class PredictionTrackingService {
             log.warn("Failed to evict analytics cache for {}: {}", teamName, e.getMessage());
         }
 
-        log.info("Updated prediction result for {} match {}: predicted={}, actual={}, correct={}",
+        log.debug("Updated prediction result for {} match {}: predicted={}, actual={}, correct={}",
                 teamName, matchId, prediction.getPredictedResult(), actualResult, prediction.getIsCorrect());
     }
 
     /**
      * Scheduled task to update predictions with actual results.
-     * Runs daily at 6 AM to update results from completed matches.
+     * Runs daily at 6 AM. Delegates to MatchResultProcessor which uses
+     * case-insensitive team name matching for robust resolution.
      */
     @Scheduled(cron = "0 0 6 * * *")
     @Transactional
     public void updateUnresolvedPredictions() {
         log.info("Starting scheduled update of unresolved predictions");
-
-        // Get all unresolved predictions where match date has passed
-        LocalDate yesterday = LocalDate.now().minusDays(1);
-        List<Prediction> unresolvedPredictions = predictionRepository
-                .findAllUnresolvedPredictionsBeforeDate(yesterday);
-
-        int updated = 0;
-        for (Prediction prediction : unresolvedPredictions) {
-            // Find the corresponding match
-            List<Match> matches = matchRepository.findByTeamBeforeDate(
-                    prediction.getTeamName(), yesterday.plusDays(1));
-
-            for (Match match : matches) {
-                if (match.getMatchDate().equals(prediction.getMatchDate()) &&
-                    (match.getHomeTeam().equalsIgnoreCase(prediction.getTeamName()) ||
-                     match.getAwayTeam().equalsIgnoreCase(prediction.getTeamName()))) {
-
-                    // Determine actual result for this team
-                    boolean isHome = match.getHomeTeam().equalsIgnoreCase(prediction.getTeamName());
-                    String actualResult = determineActualResult(match, isHome);
-
-                    prediction.setActualResult(actualResult);
-                    prediction.setActualHomeGoals(match.getFullTimeHomeGoals());
-                    prediction.setActualAwayGoals(match.getFullTimeAwayGoals());
-                    prediction.setIsCorrect(prediction.getPredictedResult().equals(actualResult));
-                    prediction.setResultRecordedDate(LocalDateTime.now());
-
-                    predictionRepository.save(prediction);
-                    updated++;
-                    break;
-                }
-            }
-        }
-
-        log.info("Updated {} unresolved predictions with actual results", updated);
+        int resolved = matchResultProcessor.processAllUnresolvedPredictions();
+        log.info("Scheduled resolution complete: resolved {} predictions", resolved);
     }
 
     /**

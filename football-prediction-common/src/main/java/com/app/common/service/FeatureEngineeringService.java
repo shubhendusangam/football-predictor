@@ -16,7 +16,9 @@ import java.util.TreeSet;
 
 import com.app.common.model.Match;
 import com.app.common.model.MatchFeatures;
+import com.app.common.model.SeasonTeamStats;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SeasonTeamStatsRepository;
 
 /**
  * Service for computing match features from historical data.
@@ -45,6 +47,9 @@ public class FeatureEngineeringService {
 
    @Autowired(required = false)
    private LeaguePositionService leaguePositionService;
+
+   @Autowired(required = false)
+   private SeasonTeamStatsRepository seasonTeamStatsRepository;
 
    @Value("${feature.form.window:5}")
    private int formWindow;
@@ -130,12 +135,28 @@ public class FeatureEngineeringService {
       return buildFeatures(homeTeam, awayTeam, today, season);
    }
 
-   /**
-    * For PREDICTION with explicit season — used when season is known.
-    */
-   public MatchFeatures buildFeaturesForPrediction(String homeTeam, String awayTeam, String season) {
-      return buildFeatures(homeTeam, awayTeam, LocalDate.now(), season);
-   }
+    /**
+     * For PREDICTION with explicit season — used when season is known.
+     */
+    public MatchFeatures buildFeaturesForPrediction(String homeTeam, String awayTeam, String season) {
+       return buildFeatures(homeTeam, awayTeam, LocalDate.now(), season);
+    }
+
+    /**
+     * For HISTORICAL PREDICTION — uses the match date as the cutoff
+     * so that features only include data available before the match was played.
+     * This prevents data leakage when generating retrospective predictions.
+     *
+     * @param homeTeam  Home team name
+     * @param awayTeam  Away team name
+     * @param matchDate Date of the match (used as cutoff)
+     * @param season    Season identifier
+     * @return MatchFeatures computed from data available before matchDate
+     */
+    public MatchFeatures buildFeaturesForHistoricalPrediction(String homeTeam, String awayTeam,
+                                                               LocalDate matchDate, String season) {
+       return buildFeatures(homeTeam, awayTeam, matchDate, season);
+    }
 
    // ── Core builder ──────────────────────────────────────────────────────
 
@@ -190,7 +211,7 @@ public class FeatureEngineeringService {
       List<Match> awayMatchesWithCorners = matchRepository
             .findAwayMatchesWithCornersData(awayTeam, season, beforeDate, MEDIUM_TERM_WINDOW);
 
-      return MatchFeatures.builder()
+      MatchFeatures features = MatchFeatures.builder()
             .homeTeam(homeTeam)
             .awayTeam(awayTeam)
 
@@ -253,7 +274,24 @@ public class FeatureEngineeringService {
             .homePossessionProxy(estimatePossession(homeTeamHomeMatches, homeTeam, true))
             .awayPossessionProxy(estimatePossession(awayTeamAwayMatches, awayTeam, false))
 
+            // Elo ratings (from SeasonTeamStats)
+            .homeEloRating(getEloRating(homeTeam, season))
+            .awayEloRating(getEloRating(awayTeam, season))
+
+            // Recency-weighted form (exponential decay)
+            .homeWeightedForm(calcWeightedFormPoints(homeTeamHomeMatches, homeTeam, formWindow))
+            .awayWeightedForm(calcWeightedFormPoints(awayTeamAwayMatches, awayTeam, formWindow))
+
             .build();
+
+      // ── Compute derived interaction features ──────────────────
+      features.setFormDifference(features.getHomeFormPoints() - features.getAwayFormPoints());
+      features.setGoalDiffDifference(features.getHomeGoalDifference() - features.getAwayGoalDifference());
+      features.setH2hDominance(features.getH2hHomeWinRate() - features.getH2hAwayWinRate());
+      features.setRestAdvantage(features.getHomeDaysSinceLastMatch() - features.getAwayDaysSinceLastMatch());
+      features.setEloDifference(features.getHomeEloRating() - features.getAwayEloRating());
+
+      return features;
    }
 
    // ── Season Determination ──────────────────────────────────────────────
@@ -645,5 +683,59 @@ public class FeatureEngineeringService {
       }
 
       return leaguePositionService.getTeamPositionAsOfDate(teamName, season, asOfDate);
+   }
+
+   // ── Elo Rating ────────────────────────────────────────────────────────
+
+   /**
+    * Get the current Elo rating for a team in a given season.
+    * Returns default 1500.0 if SeasonTeamStats is not available.
+    */
+   private double getEloRating(String teamName, String season) {
+      if (seasonTeamStatsRepository == null) {
+         return SeasonTeamStats.DEFAULT_ELO_RATING;
+      }
+      try {
+         return seasonTeamStatsRepository
+               .findBySeasonIdAndTeamNameIgnoreCase(season, teamName)
+               .map(SeasonTeamStats::getEloRating)
+               .orElse(SeasonTeamStats.DEFAULT_ELO_RATING);
+      } catch (Exception e) {
+         log.debug("Could not fetch Elo rating for {} in season {}: {}", teamName, season, e.getMessage());
+         return SeasonTeamStats.DEFAULT_ELO_RATING;
+      }
+   }
+
+   // ── Recency-Weighted Form ─────────────────────────────────────────────
+
+   /**
+    * Calculate recency-weighted form points using exponential decay.
+    * Most recent match has the highest weight, decaying by factor 0.7 per match.
+    *
+    * <p>This gives more importance to the most recent results while still
+    * considering slightly older ones, unlike equal-weight form which treats
+    * all 5 matches identically.</p>
+    *
+    * @param matches List of matches (newest first, as per DB ordering)
+    * @param teamName Team to calculate for
+    * @param window Number of matches to consider
+    * @return Weighted form score (0.0 to 3.0 scale, matching points per game)
+    */
+   private double calcWeightedFormPoints(List<Match> matches, String teamName, int window) {
+      if (matches.isEmpty()) return 0.0;
+
+      double decayFactor = 0.7;
+      double weightedSum = 0.0;
+      double totalWeight = 0.0;
+
+      int limit = Math.min(window, matches.size());
+      for (int i = 0; i < limit; i++) {
+         double weight = Math.pow(decayFactor, i); // 1.0, 0.7, 0.49, 0.343, 0.24
+         int points = matches.get(i).getPointsForTeam(teamName);
+         weightedSum += points * weight;
+         totalWeight += weight;
+      }
+
+      return totalWeight > 0 ? weightedSum / totalWeight : 0.0;
    }
 }

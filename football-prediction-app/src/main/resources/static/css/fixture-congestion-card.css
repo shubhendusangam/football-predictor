@@ -1,0 +1,170 @@
+/* ==========================================
+   FIXTURE CONGESTION CARD STYLES
+   Football Forecaster - Congestion Component
+   ========================================== */
+
+.congestion-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+.congestion-card:hover {
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5));
+    border-color: var(--accent-yellow, #fbbf24);
+    transform: translateY(-2px);
+}
+
+/* Header */
+.congestion-card__header {
+    display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;
+}
+.congestion-card__title {
+    font-size: 1.125rem; font-weight: 600; color: var(--text-primary, #f1f5f9); margin: 0;
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.congestion-card__badge {
+    padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.05em;
+}
+.congestion-card__badge--high   { background: rgba(239,68,68,0.15); color: var(--accent-red, #ef4444); }
+.congestion-card__badge--medium { background: rgba(251,191,36,0.15); color: var(--accent-yellow, #fbbf24); }
+.congestion-card__badge--low    { background: rgba(34,197,94,0.15); color: var(--accent-green, #22c55e); }
+.congestion-card__badge--unknown{ background: rgba(148,163,184,0.15); color: var(--text-muted, #94a3b8); }
+
+/* Fatigue Gauge */
+.congestion-card__gauge {
+    display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+}
+.congestion-card__gauge-track {
+    width: 100%; height: 1rem; background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem; overflow: hidden; position: relative;
+}
+.congestion-card__gauge-fill {
+    height: 100%; border-radius: 0.5rem;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.congestion-card__gauge-fill--high   { background: linear-gradient(90deg, #ef4444, #dc2626); }
+.congestion-card__gauge-fill--medium { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.congestion-card__gauge-fill--low    { background: linear-gradient(90deg, #22c55e, #16a34a); }
+.congestion-card__gauge-labels {
+    display: flex; justify-content: space-between; width: 100%;
+    font-size: 0.65rem; color: var(--text-muted, #94a3b8);
+}
+.congestion-card__gauge-value {
+    font-size: 2rem; font-weight: 700; color: var(--text-primary, #f1f5f9);
+}
+.congestion-card__gauge-label {
+    font-size: 0.75rem; color: var(--text-muted, #94a3b8);
+}
+
+/* Timeline */
+.congestion-card__timeline {
+    display: flex; align-items: center; justify-content: center; gap: 0; padding: 0.5rem 0;
+    overflow-x: auto;
+}
+.congestion-card__match-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent-blue, #3b82f6); flex-shrink: 0;
+    border: 2px solid var(--bg-secondary, #1e293b);
+    position: relative;
+}
+.congestion-card__match-dot--latest {
+    background: var(--accent-green, #22c55e);
+    width: 14px; height: 14px;
+}
+.congestion-card__gap {
+    display: flex; flex-direction: column; align-items: center; min-width: 40px;
+    flex-shrink: 0;
+}
+.congestion-card__gap-line {
+    width: 100%; height: 2px; background: var(--border-color, #334155);
+}
+.congestion-card__gap-days {
+    font-size: 0.65rem; font-weight: 600; margin-top: 2px;
+}
+.congestion-card__gap-days--short  { color: var(--accent-red, #ef4444); }
+.congestion-card__gap-days--normal { color: var(--accent-yellow, #fbbf24); }
+.congestion-card__gap-days--long   { color: var(--accent-green, #22c55e); }
+
+/* Win Rate Grid */
+.congestion-card__rates {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem;
+}
+.congestion-card__rate-item {
+    background: var(--bg-tertiary, #0f172a); border-radius: 0.5rem;
+    padding: 0.75rem; text-align: center;
+}
+.congestion-card__rate-label {
+    font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-muted, #94a3b8); display: block; margin-bottom: 0.25rem;
+}
+.congestion-card__rate-value {
+    font-size: 1.25rem; font-weight: 700; display: block;
+}
+.congestion-card__rate-value--high   { color: var(--accent-red, #ef4444); }
+.congestion-card__rate-value--normal { color: var(--accent-yellow, #fbbf24); }
+.congestion-card__rate-value--low    { color: var(--accent-green, #22c55e); }
+.congestion-card__rate-count {
+    font-size: 0.6rem; color: var(--text-muted, #94a3b8); display: block; margin-top: 0.15rem;
+}
+
+/* Impact */
+.congestion-card__impact {
+    background: var(--bg-tertiary, #0f172a); border-radius: 0.5rem;
+    padding: 0.75rem 1rem; font-size: 0.8rem; color: var(--text-secondary, #cbd5e1);
+    display: flex; align-items: center; gap: 0.5rem;
+}
+.congestion-card__impact-icon { font-size: 1rem; }
+
+/* Footer */
+.congestion-card__footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-top: 0.5rem; border-top: 1px solid var(--border-color, #334155);
+    font-size: 0.7rem; color: var(--text-muted, #94a3b8);
+}
+
+/* Comparison */
+.congestion-comparison {
+    display: flex; flex-direction: column; gap: 1rem;
+}
+.congestion-comparison__advantage {
+    text-align: center; padding: 0.75rem; border-radius: 0.5rem;
+    font-weight: 600; font-size: 0.85rem;
+    background: var(--bg-tertiary, #0f172a); color: var(--text-primary, #f1f5f9);
+}
+.congestion-comparison__cards {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+}
+
+/* Loading */
+.congestion-card--loading { min-height: 300px; }
+.congestion-card__skeleton-content { display: flex; flex-direction: column; gap: 1rem; padding: 1rem 0; }
+.congestion-card__skeleton {
+    background: linear-gradient(90deg, var(--bg-tertiary, #0f172a) 25%, var(--bg-secondary, #1e293b) 50%, var(--bg-tertiary, #0f172a) 75%);
+    background-size: 200% 100%; animation: congestion-shimmer 1.5s ease-in-out infinite; border-radius: 0.375rem;
+}
+.congestion-card__skeleton--title { height: 1.5rem; width: 60%; }
+.congestion-card__skeleton--gauge { height: 4rem; width: 100%; }
+.congestion-card__skeleton--bar   { height: 2rem; width: 100%; }
+@keyframes congestion-shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+/* Error */
+.congestion-card--error { min-height: 200px; display: flex; align-items: center; justify-content: center; }
+.congestion-card__error { text-align: center; padding: 1rem; }
+.congestion-card__error-icon { font-size: 2rem; display: block; margin-bottom: 0.5rem; }
+.congestion-card__error-message { font-size: 0.875rem; color: var(--text-secondary, #cbd5e1); margin: 0; }
+
+/* Responsive */
+@media (max-width: 640px) {
+    .congestion-card { padding: 1rem; }
+    .congestion-card__rates { grid-template-columns: 1fr; }
+    .congestion-comparison__cards { grid-template-columns: 1fr; }
+    .congestion-card__header { flex-direction: column; align-items: flex-start; }
+}
+

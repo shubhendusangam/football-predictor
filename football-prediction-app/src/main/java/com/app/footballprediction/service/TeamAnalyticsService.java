@@ -52,7 +52,7 @@ public class TeamAnalyticsService {
      */
     @Cacheable(value = "teamAnalytics", key = "#teamName.toLowerCase()")
     public TeamAnalyticsDto getTeamAnalytics(String teamName) {
-        log.info("Building analytics for team: {}", teamName);
+        log.debug("Building analytics for team: {}", teamName);
         long startTime = System.currentTimeMillis();
 
         try {
@@ -91,7 +91,7 @@ public class TeamAnalyticsService {
                     .build();
 
             long duration = System.currentTimeMillis() - startTime;
-            log.info("Built analytics for {} in {}ms", resolvedTeamName, duration);
+            log.debug("Built analytics for {} in {}ms", resolvedTeamName, duration);
 
             return analytics;
 
@@ -245,7 +245,7 @@ public class TeamAnalyticsService {
                 }
             }
 
-            log.info("Generated {} upcoming match predictions for {} from external API",
+            log.debug("Generated {} upcoming match predictions for {} from external API",
                     upcomingMatches.size(), teamName);
             return upcomingMatches;
 
@@ -343,7 +343,7 @@ public class TeamAnalyticsService {
             }
 
             if (!simulatedMatches.isEmpty()) {
-                log.info("Generated {} simulated upcoming fixtures for {} (non-PL team)",
+                log.debug("Generated {} simulated upcoming fixtures for {} (non-PL team)",
                         simulatedMatches.size(), teamName);
             }
 
@@ -643,12 +643,21 @@ public class TeamAnalyticsService {
                 .filter(Prediction::isResolved)
                 .collect(Collectors.toList());
 
+        long unresolvedCount = allPredictions.size() - resolvedPredictions.size();
+        if (unresolvedCount > 0) {
+            log.debug("Team '{}': {} total predictions, {} resolved, {} unresolved (pending backfill)",
+                    teamName, allPredictions.size(), resolvedPredictions.size(), unresolvedCount);
+        }
+
         if (resolvedPredictions.isEmpty()) {
+            log.debug("Team '{}': No resolved predictions found — Model Accuracy tab will show empty state. " +
+                     "Total predictions in DB: {}", teamName, allPredictions.size());
             return ModelAccuracy.builder()
                     .totalPredictions(0)
                     .correctPredictions(0)
                     .overallAccuracy(0.0)
                     .accuracyTrend("UNKNOWN")
+                    .unresolvedPredictions((int) unresolvedCount)
                     .build();
         }
 
@@ -705,6 +714,7 @@ public class TeamAnalyticsService {
                 .averageConfidence(Math.round(avgConfidence * 100.0) / 100.0)
                 .accuracyByResult(accuracyByResult)
                 .accuracyTrend(trend)
+                .unresolvedPredictions((int) unresolvedCount)
                 .build();
     }
 

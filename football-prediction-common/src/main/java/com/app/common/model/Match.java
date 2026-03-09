@@ -30,6 +30,7 @@ public class Match {
    private String awayTeam;
    private String season;        // e.g., "2023-24"
    private String referee;       // Match referee
+   private String kickoffTime;   // e.g., "15:00" from CSV "Time" column
 
    // ── Full-Time Result ───────────────────────────────────
    private Integer fullTimeHomeGoals;   // FTHG

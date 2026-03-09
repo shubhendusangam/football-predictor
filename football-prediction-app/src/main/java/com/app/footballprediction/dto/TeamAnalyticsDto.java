@@ -161,6 +161,8 @@ public class TeamAnalyticsDto {
         private double averageConfidence;
         private AccuracyByResult accuracyByResult;
         private String accuracyTrend;  // IMPROVING, STABLE, DECLINING
+        /** Number of predictions that haven't been resolved yet (match not played or result not synced). */
+        private int unresolvedPredictions;
     }
 
     /**

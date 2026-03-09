@@ -1,13 +1,13 @@
 # Football Prediction Common Module
 
-> **Part of the [Football Prediction Platform](../README.md)** - Shared foundation layer providing entities, repositories, and feature engineering.
+> **Part of the [Football Prediction Platform](../README.md)** - Shared foundation layer providing entities, repositories, services, and feature engineering.
 
 ---
 
 ## Module Overview
 
 ### Purpose
-The `football-prediction-common` module serves as the **shared foundation layer** for the Football Prediction Platform. It provides core domain entities, data access repositories, feature engineering services, and utility functions that are consumed by both the main application (`football-prediction-app`) and the model training service (`model-training-service`).
+The `football-prediction-common` module serves as the **shared foundation layer** for the Football Prediction Platform. It provides core domain entities, data access repositories, feature engineering services, Elo rating calculations, ingestion event infrastructure, and utility functions that are consumed by both the main application (`football-prediction-app`) and the model training service (`model-training-service`).
 
 ### Scope within the System
 ```
@@ -27,10 +27,12 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 │            ┌─────────────────────┐                              │
 │            │ football-prediction-│  ◄── THIS MODULE             │
 │            │ common              │                              │
-│            │ • Entities          │                              │
-│            │ • Repositories      │                              │
-│            │ • Services          │                              │
-│            │ • Utilities         │                              │
+│            │ • Entities (12)     │                              │
+│            │ • Repositories (11) │                              │
+│            │ • Services (3)      │                              │
+│            │ • Utilities (3)     │                              │
+│            │ • Ingestion Events  │                              │
+│            │ • Weka Integration  │                              │
 │            └─────────────────────┘                              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
@@ -51,7 +53,9 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 - [Package Structure](#package-structure)
 - [Domain Entities](#domain-entities)
 - [Feature Engineering Pipeline](#feature-engineering-pipeline)
+- [Elo Rating System](#elo-rating-system)
 - [Repository Layer](#repository-layer)
+- [Ingestion Infrastructure](#ingestion-infrastructure)
 - [Data Dependencies](#data-dependencies)
 - [Performance Design](#performance-design)
 - [Edge Case Handling](#edge-case-handling)
@@ -62,12 +66,12 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 ## Responsibilities
 
 ### 1. Domain Entity Management
-- Define JPA entities for core domain objects
+- Define JPA entities for core domain objects (12 entities)
 - Enforce database constraints and indexing
 - Provide entity-level business methods
 
 ### 2. Data Access Layer
-- Spring Data JPA repositories for all entities
+- Spring Data JPA repositories for all entities (11 repositories)
 - Temporal queries with date-based filtering
 - Season-scoped queries for insights engine
 - Head-to-head (H2H) historical queries
@@ -77,8 +81,29 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 - Support training mode (with labels) and prediction mode (without labels)
 - Implement temporal cutoffs to prevent data leakage
 
-### 4. Utility Functions
+### 4. Elo Rating System
+- Dynamic Elo rating calculation and updates
+- Season-wise Elo tracking
+- Elo-based probability adjustments for predictions
+
+### 5. League Position Service
+- Real-time league position lookups
+- Season-scoped standings queries
+
+### 6. Ingestion Infrastructure
+- Canonical data mapping for multiple data sources
+- Event-driven architecture (ingestion completed, match updated, cache invalidation)
+- Internal DTOs for data normalization
+- Data provider interfaces for extensibility
+
+### 7. Weka ML Integration
+- Weka schema building for ML model training
+- Feature-to-Weka instance conversion
+
+### 8. Utility Functions
 - Prediction utilities (rounding, confidence calculation)
+- Team name normalization across data sources
+- Feature drift monitoring
 - Safe value handling for null protection
 - Label-to-text conversion
 
@@ -90,49 +115,87 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 
 ```
 com.app.common/
-├── model/                    # JPA Entities
-│   ├── Match.java           # Core match data
-│   ├── Team.java            # Team metadata
-│   ├── League.java          # League configuration
-│   ├── LeagueStanding.java  # Season standings
-│   ├── Prediction.java      # Prediction tracking
-│   ├── MatchFeatures.java   # ML feature DTO
-│   ├── AdminAuditLog.java   # Admin action logging
-│   └── SystemSettings.java  # Application settings
+├── model/                           # JPA Entities (12)
+│   ├── Match.java                   # Core match data with statistics
+│   ├── Team.java                    # Team metadata with logos
+│   ├── League.java                  # League configuration
+│   ├── LeagueStanding.java         # Season standings
+│   ├── Prediction.java             # Prediction tracking
+│   ├── PredictionEvaluation.java   # Prediction evaluation metrics
+│   ├── MatchFeatures.java          # ML feature DTO (25 features)
+│   ├── ModelAccuracy.java          # Model accuracy tracking
+│   ├── ModelTrainingHistory.java   # Training run history
+│   ├── SeasonTeamStats.java        # Per-season team statistics
+│   ├── AdminAuditLog.java          # Admin action logging
+│   └── SystemSettings.java         # Application settings
 │
-├── dto/                      # Data Transfer Objects
-│   └── ShotQualityDTO.java  # Shot quality metrics DTO
+├── dto/                             # Data Transfer Objects
+│   └── ShotQualityDTO.java         # Shot quality metrics DTO
 │
-├── repository/               # Spring Data JPA
-│   ├── MatchRepository.java          # Match queries
-│   ├── TeamRepository.java           # Team queries
-│   ├── LeagueRepository.java         # League queries
-│   ├── LeagueStandingRepository.java # Standings queries
-│   ├── PredictionRepository.java     # Prediction tracking
-│   ├── AdminAuditLogRepository.java  # Audit queries
-│   └── SystemSettingsRepository.java # Settings queries
+├── repository/                      # Spring Data JPA (11)
+│   ├── MatchRepository.java                # Match queries
+│   ├── TeamRepository.java                 # Team queries
+│   ├── LeagueRepository.java               # League queries
+│   ├── LeagueStandingRepository.java       # Standings queries
+│   ├── PredictionRepository.java           # Prediction tracking
+│   ├── PredictionEvaluationRepository.java # Evaluation queries
+│   ├── ModelAccuracyRepository.java        # Accuracy history
+│   ├── ModelTrainingHistoryRepository.java # Training history
+│   ├── SeasonTeamStatsRepository.java      # Season team stats
+│   ├── AdminAuditLogRepository.java        # Audit queries
+│   └── SystemSettingsRepository.java       # Settings queries
 │
-├── service/                  # Shared Business Logic
-│   └── FeatureEngineeringService.java  # 25-feature ML pipeline
+├── service/                         # Shared Business Logic (3)
+│   ├── FeatureEngineeringService.java  # 25-feature ML pipeline
+│   ├── EloRatingService.java           # Elo rating calculations
+│   └── LeaguePositionService.java      # League position lookups
 │
-├── ingestion/                # Data Ingestion
-│   └── mapper/
-│       └── CanonicalMapper.java  # CSV field mapping
+├── ingestion/                       # Data Ingestion Infrastructure
+│   ├── dto/
+│   │   ├── InternalMatchDto.java       # Canonical match DTO
+│   │   └── InternalStandingDto.java    # Canonical standing DTO
+│   ├── event/
+│   │   ├── CacheInvalidationEvent.java # Cache invalidation trigger
+│   │   ├── IngestionCompletedEvent.java # Ingestion complete signal
+│   │   ├── MatchUpdatedEvent.java      # Match data updated event
+│   │   └── StatsRefreshEvent.java      # Stats refresh trigger
+│   ├── mapper/
+│   │   └── CanonicalMapper.java        # CSV/API field mapping
+│   └── provider/
+│       ├── MatchDataProvider.java      # Match data provider interface
+│       └── StandingsDataProvider.java  # Standings provider interface
 │
-└── util/                     # Utilities
-    └── PredictionUtils.java  # Helper functions
+├── weka/                            # Weka ML Integration
+│   └── WekaSchemaBuilder.java       # Weka ARFF schema builder
+│
+└── util/                            # Utilities (3)
+    ├── PredictionUtils.java         # Prediction helper functions
+    ├── TeamNameNormalizer.java      # Team name normalization
+    └── FeatureDriftMonitor.java     # Feature distribution monitoring
 ```
 
 ### Data Flow
 
 ```
-                  External Data (CSV/API)
+                  External Data (CSV/API/ESPN)
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Ingestion Layer                           │
+│  ┌──────────────────────┐  ┌────────────────────────────┐   │
+│  │ CanonicalMapper      │  │ MatchDataProvider (iface)  │   │
+│  │ • CSV field mapping  │  │ StandingsDataProvider      │   │
+│  └──────────┬───────────┘  └────────────┬───────────────┘   │
+│             └──────────┬────────────────┘                    │
+│                        ▼                                     │
+│              InternalMatchDto / InternalStandingDto           │
+└────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Repository Layer                         │
 │  ┌─────────────────┐  ┌─────────────────┐                   │
-│  │ MatchRepository │  │ TeamRepository  │  ...              │
+│  │ MatchRepository │  │ TeamRepository  │  + 9 more         │
 │  └────────┬────────┘  └────────┬────────┘                   │
 │           │                    │                            │
 │           └────────┬───────────┘                            │
@@ -143,12 +206,24 @@ com.app.common/
 │         │ • buildFeaturesForPrediction│                     │
 │         └──────────────┬──────────────┘                     │
 │                        │                                    │
-│                        ▼                                    │
-│              MatchFeatures DTO (25 features)                │
+│         ┌──────────────┼──────────────┐                     │
+│         ▼              ▼              ▼                     │
+│  EloRatingService  WekaSchema   MatchFeatures DTO           │
+│  • Elo calculation  Builder     (25 features)               │
+│  • Rating updates                                           │
 └─────────────────────────────────────────────────────────────┘
                          │
                          ▼
           Consumed by App / Training Service
+                         │
+                         ▼
+              ┌──────────────────────┐
+              │  Event Infrastructure │
+              │  • IngestionCompleted │
+              │  • MatchUpdated       │
+              │  • CacheInvalidation  │
+              │  • StatsRefresh       │
+              └──────────────────────┘
 ```
 
 ---
@@ -170,6 +245,7 @@ public class Match {
     private String homeTeam;
     private String awayTeam;
     private String season;
+    private String referee;
 
     private Integer fullTimeHomeGoals;
     private Integer fullTimeAwayGoals;
@@ -196,7 +272,7 @@ Data transfer object containing 25 ML features.
 
 ```java
 public class MatchFeatures {
-    // Phase 1: Form & Goals
+    // Phase 1: Form & Goals (10 features)
     private double homeFormPoints;
     private double awayFormPoints;
     private double homeGoalsScoredAvg;
@@ -209,13 +285,13 @@ public class MatchFeatures {
     private double h2hDrawRate;
     private double h2hAwayWinRate;
 
-    // Phase 2: Match Statistics
+    // Phase 2: Match Statistics (4 features)
     private double homeShotsOnTargetAvg;
     private double awayShotsOnTargetAvg;
     private double homeCornersAvg;
     private double awayCornersAvg;
 
-    // Phase 3: Momentum & Fatigue
+    // Phase 3: Momentum & Fatigue (11 features)
     private double homeGoalDifference;
     private double awayGoalDifference;
     private double homeOverallFormPoints;
@@ -232,20 +308,21 @@ public class MatchFeatures {
 }
 ```
 
-### ShotQualityDTO
+### Additional Entities
 
-Shot quality metrics for team analytics.
-
-```java
-public class ShotQualityDTO {
-    private String teamName;
-    private Boolean isHome;
-    private double qualityScore;      // 0-10 scale
-    private double shotAccuracy;      // percentage
-    private double conversionRate;    // percentage
-    private List<ShotTrendPoint> shotsTrend;  // last 10 matches
-}
-```
+| Entity | Purpose |
+|--------|---------|
+| **Team** | Team metadata (name, logo URL, short name) |
+| **League** | League configuration (code, name, current season) |
+| **LeagueStanding** | Season standings (position, points, form) |
+| **Prediction** | Prediction tracking (predicted vs actual result) |
+| **PredictionEvaluation** | Prediction evaluation metrics and scoring |
+| **ModelAccuracy** | Model accuracy history per evaluation run |
+| **ModelTrainingHistory** | Training run logs with parameters and metrics |
+| **SeasonTeamStats** | Per-season team statistics (Elo, form, streaks, goals) |
+| **AdminAuditLog** | Admin actions audit trail |
+| **SystemSettings** | Application configuration key-value pairs |
+| **ShotQualityDTO** | Shot quality metrics for team analytics |
 
 ---
 
@@ -266,7 +343,7 @@ The `FeatureEngineeringService` computes 25 features organized in 3 phases:
 | `homeTotalGoalsAvg` | `AVG(home_goals + away_goals) OVER last 5` | Total goals per game |
 | `h2hHomeWinRate` | `COUNT(home_wins) / COUNT(h2h_matches)` | H2H home win rate |
 | `h2hDrawRate` | `COUNT(draws) / COUNT(h2h_matches)` | H2H draw rate |
-| `h2hAwayWinRate` | `COUNT(away_wins) / COUNT(h2h_matches)` | H2H away win rate |
+| `h2hAwayWinRate` | `COUNT(away_wins) / COUNT(h2h_matches)` | H2D away win rate |
 
 ### Phase 2: Match Statistics (4 features)
 
@@ -314,6 +391,22 @@ MatchFeatures features = buildFeatures(homeTeam, awayTeam, LocalDate.now());
 
 ---
 
+## Elo Rating System
+
+The `EloRatingService` provides dynamic team strength ratings.
+
+```java
+public class EloRatingService {
+    // Elo rating calculation with K-factor adjustment
+    // Season-wise Elo tracking
+    // Initial Elo: 1500 for new teams
+    // Home advantage built into Elo calculation
+    // Elo-based win probability: 1 / (1 + 10^((ratingB - ratingA) / 400))
+}
+```
+
+---
+
 ## Repository Layer
 
 ### MatchRepository
@@ -344,6 +437,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     // Season team list
     @Query("SELECT DISTINCT m.homeTeam FROM Match m WHERE m.season = :season")
     Set<String> findDistinctHomeTeamsBySeason(String season);
+
+    // All matches chronological (for training)
+    List<Match> findAllByOrderByMatchDateAsc();
 }
 ```
 
@@ -360,17 +456,54 @@ ORDER BY m.matchDate DESC
 
 ---
 
+## Ingestion Infrastructure
+
+The ingestion package provides a shared event-driven architecture for data ingestion:
+
+### Events
+| Event | Purpose |
+|-------|---------|
+| `IngestionCompletedEvent` | Signals that a data ingestion batch is complete |
+| `MatchUpdatedEvent` | Signals that a match record was created or updated |
+| `CacheInvalidationEvent` | Triggers cache invalidation after data changes |
+| `StatsRefreshEvent` | Triggers stats recalculation after data updates |
+
+### DTOs
+| DTO | Purpose |
+|-----|---------|
+| `InternalMatchDto` | Canonical match data format for all data sources |
+| `InternalStandingDto` | Canonical standing data format |
+
+### Providers
+| Interface | Purpose |
+|-----------|---------|
+| `MatchDataProvider` | Contract for match data sources (CSV, API, ESPN) |
+| `StandingsDataProvider` | Contract for standings data sources |
+
+### Mapper
+| Class | Purpose |
+|-------|---------|
+| `CanonicalMapper` | Maps CSV/API fields to canonical internal DTOs |
+
+---
+
 ## Data Dependencies
 
 ### Database Tables
 
 | Table | Purpose | Key Columns |
 |-------|---------|-------------|
-| `matches` | Historical match data | `id`, `match_date`, `home_team`, `away_team`, `season`, `full_time_result` |
+| `matches` | Historical match data | `id`, `match_date`, `home_team`, `away_team`, `season`, `full_time_result`, `referee` |
 | `teams` | Team metadata | `id`, `name`, `logo_url`, `short_name` |
 | `leagues` | League configuration | `id`, `code`, `name`, `current_season` |
 | `league_standings` | Season standings | `league_id`, `season`, `team_name`, `position`, `points` |
 | `predictions` | Prediction tracking | `match_id`, `predicted_result`, `actual_result`, `is_correct` |
+| `prediction_evaluations` | Evaluation metrics | `id`, `evaluation_date`, `accuracy`, `f1_score` |
+| `model_accuracy` | Accuracy history | `id`, `recorded_at`, `accuracy`, `total_predictions` |
+| `model_training_history` | Training logs | `id`, `trained_at`, `duration_ms`, `accuracy`, `model_type` |
+| `season_team_stats` | Season team stats | `id`, `season`, `team_id`, `elo_rating`, `form_points` |
+| `admin_audit_logs` | Admin actions | `id`, `action`, `username`, `timestamp` |
+| `system_settings` | App config | `id`, `key`, `value` |
 
 ### Index Strategy
 
@@ -443,12 +576,10 @@ private double calcShotsOnTargetAvg(List<Match> matches, boolean isHome) {
 ```java
 private double calcH2HWinRate(List<Match> h2hMatches, String teamName) {
     if (h2hMatches.isEmpty()) return 0.33;  // Neutral prior (1/3)
-    // ...
 }
 
 private int calcDaysSinceLastMatch(List<Match> matches, LocalDate beforeDate) {
     if (matches.isEmpty()) return 14;  // Default: 2 weeks rest
-    // ...
 }
 ```
 
@@ -507,13 +638,15 @@ To use this module in other modules:
 
 | Metric | Value |
 |--------|-------|
-| Lines of Code | ~3,500 |
-| Entities | 8 |
-| Repositories | 7 |
-| Services | 1 |
+| Entities | 12 |
+| Repositories | 11 |
+| Services | 3 |
+| Utilities | 3 |
 | ML Features | 25 |
+| Ingestion Events | 4 |
+| Ingestion DTOs | 2 |
+| Provider Interfaces | 2 |
 
 ---
 
 **[← Back to Main README](../README.md)**
-

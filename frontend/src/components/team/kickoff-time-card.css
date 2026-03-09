@@ -1,0 +1,411 @@
+/* ==========================================
+   KICKOFF TIME ANALYSIS CARD STYLES
+   Football Forecaster - Kickoff Time Component
+   ========================================== */
+
+/* ==========================================
+   CARD BASE STYLES
+   ========================================== */
+
+.kickoff-time-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.kickoff-time-card:hover {
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5));
+    border-color: var(--accent-yellow, #fbbf24);
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   HEADER STYLES
+   ========================================== */
+
+.kickoff-time-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.kickoff-time-card__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.kickoff-time-card__badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: rgba(168, 85, 247, 0.15);
+    color: var(--accent-purple, #a855f7);
+}
+
+/* ==========================================
+   SUMMARY SECTION
+   ========================================== */
+
+.kickoff-time-card__summary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.kickoff-time-card__summary-item {
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+}
+
+.kickoff-time-card__summary-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted, #94a3b8);
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.kickoff-time-card__summary-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    display: block;
+}
+
+.kickoff-time-card__summary-value--best {
+    color: var(--accent-green, #22c55e);
+}
+
+.kickoff-time-card__summary-value--worst {
+    color: var(--accent-red, #ef4444);
+}
+
+/* ==========================================
+   CHART SECTION
+   ========================================== */
+
+.kickoff-time-card__chart {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.kickoff-time-card__chart-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    margin: 0;
+}
+
+/* ==========================================
+   SLOT ROW
+   ========================================== */
+
+.kickoff-time-card__slot {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.kickoff-time-card__slot-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.kickoff-time-card__slot-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-primary, #f1f5f9);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.kickoff-time-card__slot-icon {
+    font-size: 0.9rem;
+}
+
+.kickoff-time-card__slot-win-pct {
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.kickoff-time-card__slot-win-pct--strong {
+    color: var(--accent-green, #22c55e);
+}
+
+.kickoff-time-card__slot-win-pct--average {
+    color: var(--accent-yellow, #fbbf24);
+}
+
+.kickoff-time-card__slot-win-pct--weak {
+    color: var(--accent-red, #ef4444);
+}
+
+.kickoff-time-card__slot-win-pct--nodata {
+    color: var(--text-muted, #94a3b8);
+}
+
+/* ==========================================
+   BAR CHART
+   ========================================== */
+
+.kickoff-time-card__bar-container {
+    position: relative;
+    height: 1.5rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.kickoff-time-card__bar {
+    height: 100%;
+    border-radius: 0.375rem;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 0;
+}
+
+.kickoff-time-card__bar--strong {
+    background: linear-gradient(90deg, var(--accent-green, #22c55e), #16a34a);
+}
+
+.kickoff-time-card__bar--average {
+    background: linear-gradient(90deg, var(--accent-yellow, #fbbf24), #f59e0b);
+}
+
+.kickoff-time-card__bar--weak {
+    background: linear-gradient(90deg, var(--accent-red, #ef4444), #dc2626);
+}
+
+.kickoff-time-card__bar--nodata {
+    background: var(--bg-quaternary, #1e293b);
+}
+
+/* Baseline marker for overall win rate */
+.kickoff-time-card__baseline {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--text-primary, #f1f5f9);
+    opacity: 0.6;
+    z-index: 1;
+}
+
+.kickoff-time-card__baseline::after {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    width: 8px;
+    height: 8px;
+    background: var(--text-primary, #f1f5f9);
+    border-radius: 50%;
+    opacity: 0.8;
+}
+
+/* ==========================================
+   SLOT DETAILS
+   ========================================== */
+
+.kickoff-time-card__slot-details {
+    display: flex;
+    gap: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.kickoff-time-card__slot-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.kickoff-time-card__slot-detail--wins {
+    color: var(--accent-green, #22c55e);
+}
+
+.kickoff-time-card__slot-detail--draws {
+    color: var(--accent-yellow, #fbbf24);
+}
+
+.kickoff-time-card__slot-detail--losses {
+    color: var(--accent-red, #ef4444);
+}
+
+/* ==========================================
+   BASELINE LEGEND
+   ========================================== */
+
+.kickoff-time-card__legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-muted, #94a3b8);
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.kickoff-time-card__legend-line {
+    width: 16px;
+    height: 2px;
+    background: var(--text-primary, #f1f5f9);
+    opacity: 0.6;
+    display: inline-block;
+}
+
+/* ==========================================
+   FOOTER
+   ========================================== */
+
+.kickoff-time-card__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.kickoff-time-card__confidence {
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.kickoff-time-card__confidence--high {
+    color: var(--accent-green, #22c55e);
+}
+
+.kickoff-time-card__confidence--medium {
+    color: var(--accent-yellow, #fbbf24);
+}
+
+.kickoff-time-card__confidence--low {
+    color: var(--accent-red, #ef4444);
+}
+
+.kickoff-time-card__data-scope {
+    font-size: 0.7rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+
+.kickoff-time-card--loading {
+    min-height: 300px;
+}
+
+.kickoff-time-card__skeleton-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 1rem 0;
+}
+
+.kickoff-time-card__skeleton {
+    background: linear-gradient(90deg,
+        var(--bg-tertiary, #0f172a) 25%,
+        var(--bg-secondary, #1e293b) 50%,
+        var(--bg-tertiary, #0f172a) 75%);
+    background-size: 200% 100%;
+    animation: kickoff-shimmer 1.5s ease-in-out infinite;
+    border-radius: 0.375rem;
+}
+
+.kickoff-time-card__skeleton--title {
+    height: 1.5rem;
+    width: 60%;
+}
+
+.kickoff-time-card__skeleton--bar {
+    height: 2.5rem;
+    width: 100%;
+}
+
+.kickoff-time-card__skeleton--summary {
+    height: 3rem;
+    width: 45%;
+}
+
+@keyframes kickoff-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.kickoff-time-card--error {
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.kickoff-time-card__error {
+    text-align: center;
+    padding: 1rem;
+}
+
+.kickoff-time-card__error-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.kickoff-time-card__error-message {
+    font-size: 0.875rem;
+    color: var(--text-secondary, #cbd5e1);
+    margin: 0;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 640px) {
+    .kickoff-time-card {
+        padding: 1rem;
+    }
+
+    .kickoff-time-card__summary {
+        grid-template-columns: 1fr;
+    }
+
+    .kickoff-time-card__slot-details {
+        flex-wrap: wrap;
+    }
+
+    .kickoff-time-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+

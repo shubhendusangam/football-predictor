@@ -3,6 +3,7 @@ package com.app.footballprediction.listener;
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.service.ApiDataSyncService;
+import com.app.footballprediction.service.CsvIngestionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,11 +33,14 @@ class StartupDataSyncListenerTest {
     @Mock
     private ApiDataSyncService apiDataSyncService;
 
+    @Mock
+    private CsvIngestionService csvIngestionService;
+
     private StartupDataSyncListener listener;
 
     @BeforeEach
     void setUp() {
-        listener = new StartupDataSyncListener(matchRepository, apiDataSyncService);
+        listener = new StartupDataSyncListener(matchRepository, apiDataSyncService, csvIngestionService);
 
         // Set default configuration values
         ReflectionTestUtils.setField(listener, "startupSyncEnabled", true);

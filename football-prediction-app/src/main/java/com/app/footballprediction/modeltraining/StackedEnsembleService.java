@@ -16,82 +16,93 @@ import java.io.*;
 import java.util.*;
 
 /**
- * Advanced ensemble model combining RandomForest, Gradient Boosting (AdaBoost),
- * and Logistic Regression.
+ * Advanced ensemble model combining RandomForest, AdaBoost with REPTree,
+ * and Logistic Regression using proper stacking with out-of-fold (OOF) predictions.
  *
- * Architecture:
- * 1. RandomForest - 100 trees
- * 2. AdaBoostM1 - Gradient boosting with decision trees (simulates XGBoost)
- * 3. Logistic Regression - Meta-model that combines predictions
+ * <p><strong>Architecture:</strong></p>
+ * <ol>
+ *   <li>RandomForest - 200 trees (base model 1)</li>
+ *   <li>AdaBoostM1 with REPTree - 100 iterations (base model 2)</li>
+ *   <li>Logistic Regression - Meta-model trained on OOF predictions</li>
+ * </ol>
  *
- * The meta-model (Logistic Regression) learns to optimally weight the predictions
- * from the base models through stacking.
+ * <p><strong>Stacking via OOF:</strong> Instead of a simple holdout split,
+ * k-fold cross-validation generates predictions for each training instance
+ * using models that never saw that instance, eliminating data leakage
+ * and utilizing all training data for the meta-model.</p>
  */
 @Service
 @Slf4j
 public class StackedEnsembleService implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
 
-    // Base models
+    /** Number of folds for out-of-fold prediction generation */
+    private static final int STACKING_FOLDS = 5;
+
+    // Base models (trained on full data after OOF generation)
     private RandomForest randomForest;
     private AdaBoostM1 gradientBoosting;
 
-    // Meta model
+    // Meta model (trained on OOF predictions)
     private Logistic logisticRegression;
 
     // Training header for predictions
     private Instances trainingHeader;
 
     /**
-     * Train the stacked ensemble model.
+     * Train the stacked ensemble model using out-of-fold predictions.
+     *
+     * <p>Process:
+     * <ol>
+     *   <li>Merge trainData and validationData (OOF replaces holdout)</li>
+     *   <li>Generate OOF predictions via k-fold CV for meta-model training</li>
+     *   <li>Train final base models on ALL training data</li>
+     *   <li>Train Logistic Regression meta-model on OOF predictions</li>
+     * </ol>
      *
      * @param trainData Training dataset
-     * @param validationData Validation dataset for stacking
+     * @param validationData Additional data (merged with trainData since OOF replaces holdout)
      * @throws Exception if training fails
      */
     public void trainStackedEnsemble(Instances trainData, Instances validationData) throws Exception {
+        // Merge trainData + validationData since we use OOF instead of holdout
+        Instances fullTrainData = new Instances(trainData);
+        for (int i = 0; i < validationData.numInstances(); i++) {
+            fullTrainData.add(validationData.instance(i));
+        }
+
         log.info("═══════════════════════════════════════════════════════════");
-        log.info("Training Stacked Ensemble:");
-        log.info("  - RandomForest (100 trees)");
-        log.info("  - Gradient Boosting (AdaBoostM1, 100 iterations)");
-        log.info("  - Logistic Regression (meta-model)");
+        log.info("Training Stacked Ensemble (with {}-fold OOF predictions):", STACKING_FOLDS);
+        log.info("  - RandomForest (200 trees)");
+        log.info("  - AdaBoost with REPTree (100 iterations)");
+        log.info("  - Logistic Regression (meta-model on OOF predictions)");
+        log.info("  - Total training instances: {}", fullTrainData.numInstances());
         log.info("═══════════════════════════════════════════════════════════");
 
-        this.trainingHeader = new Instances(trainData, 0);
+        this.trainingHeader = new Instances(fullTrainData, 0);
 
-        // Step 1: Train RandomForest
-        log.info("Step 1/3: Training RandomForest...");
-        randomForest = new RandomForest();
-        randomForest.setNumIterations(100);  // 100 trees
-        randomForest.setNumFeatures(5);      // sqrt(25) ≈ 5 features per split
-        randomForest.setSeed(42);
-        randomForest.buildClassifier(trainData);
-        log.info("  ✓ RandomForest trained with 100 trees");
+        // Step 1: Generate out-of-fold predictions via k-fold CV
+        log.info("Step 1/3: Generating out-of-fold predictions ({}-fold CV)...", STACKING_FOLDS);
+        Instances metaData = generateOutOfFoldPredictions(fullTrainData);
+        log.info("  ✓ Generated {} out-of-fold meta-instances", metaData.numInstances());
 
-        // Step 2: Train Gradient Boosting (AdaBoostM1 simulates XGBoost)
-        log.info("Step 2/3: Training Gradient Boosting (AdaBoostM1)...");
-        gradientBoosting = new AdaBoostM1();
+        // Step 2: Train final base models on ALL training data
+        log.info("Step 2/3: Training final base models on full training data...");
+        randomForest = createRandomForest();
+        randomForest.buildClassifier(fullTrainData);
+        log.info("  ✓ RandomForest trained with 200 trees, 7 features/split, maxDepth=20");
 
-        // Use REPTree as base learner (similar to gradient boosting trees)
-        REPTree baseTree = new REPTree();
-        baseTree.setMaxDepth(6);  // Similar to XGBoost max_depth
-        baseTree.setMinNum(2);
-        baseTree.setNoPruning(false);
+        gradientBoosting = createAdaBoost();
+        gradientBoosting.buildClassifier(fullTrainData);
+        log.info("  ✓ AdaBoost trained with 100 iterations, REPTree base (maxDepth=6)");
 
-        gradientBoosting.setClassifier(baseTree);
-        gradientBoosting.setNumIterations(100);  // 100 boosting iterations
-        gradientBoosting.setSeed(42);
-        gradientBoosting.buildClassifier(trainData);
-        log.info("  ✓ Gradient Boosting trained with 100 iterations");
-
-        // Step 3: Train Logistic Regression meta-model
-        log.info("Step 3/3: Training Logistic Regression meta-model...");
-        Instances metaData = createMetaDataset(validationData);
+        // Step 3: Train Logistic Regression meta-model on OOF predictions
+        log.info("Step 3/3: Training Logistic Regression meta-model on OOF data...");
         logisticRegression = new Logistic();
-        logisticRegression.setMaxIts(100);  // Maximum iterations
+        logisticRegression.setMaxIts(200);
         logisticRegression.buildClassifier(metaData);
-        log.info("  ✓ Logistic Regression meta-model trained");
+        log.info("  ✓ Logistic Regression meta-model trained on {} OOF instances", metaData.numInstances());
 
         log.info("═══════════════════════════════════════════════════════════");
         log.info("✓ Stacked ensemble training complete!");
@@ -99,54 +110,140 @@ public class StackedEnsembleService implements Serializable {
     }
 
     /**
-     * Create meta-dataset with predictions from base models.
+     * Generate out-of-fold predictions using k-fold cross-validation.
+     * Each instance gets predictions from models that were NOT trained on it,
+     * preventing data leakage in the stacking meta-model.
      */
-    private Instances createMetaDataset(Instances originalData) throws Exception {
-        // Create attributes for meta-dataset
-        ArrayList<Attribute> metaAttributes = new ArrayList<>();
+    private Instances generateOutOfFoldPredictions(Instances data) throws Exception {
+        int numInstances = data.numInstances();
+        int foldSize = numInstances / STACKING_FOLDS;
 
-        // RandomForest predictions (3 probabilities)
-        metaAttributes.add(new Attribute("rf_prob_home"));
-        metaAttributes.add(new Attribute("rf_prob_draw"));
-        metaAttributes.add(new Attribute("rf_prob_away"));
+        // Storage for OOF predictions
+        double[][] rfOofProbs = new double[numInstances][3];
+        double[][] gbOofProbs = new double[numInstances][3];
 
-        // Gradient Boosting predictions (3 probabilities)
-        metaAttributes.add(new Attribute("gb_prob_home"));
-        metaAttributes.add(new Attribute("gb_prob_draw"));
-        metaAttributes.add(new Attribute("gb_prob_away"));
+        for (int fold = 0; fold < STACKING_FOLDS; fold++) {
+            int foldStart = fold * foldSize;
+            int foldEnd = (fold == STACKING_FOLDS - 1) ? numInstances : (fold + 1) * foldSize;
 
-        // Class attribute (same as original)
-        metaAttributes.add(originalData.classAttribute());
+            // Split into fold-train and fold-validation
+            Instances foldTrain = new Instances(data, 0);
+            Instances foldVal = new Instances(data, 0);
 
-        // Create meta-dataset
+            for (int i = 0; i < numInstances; i++) {
+                if (i >= foldStart && i < foldEnd) {
+                    foldVal.add(data.instance(i));
+                } else {
+                    foldTrain.add(data.instance(i));
+                }
+            }
+
+            // Train fold-level base models
+            RandomForest foldRF = createRandomForest();
+            foldRF.buildClassifier(foldTrain);
+
+            AdaBoostM1 foldGB = createAdaBoost();
+            foldGB.buildClassifier(foldTrain);
+
+            // Generate OOF predictions for the held-out fold
+            for (int i = foldStart; i < foldEnd; i++) {
+                Instance instance = data.instance(i);
+                rfOofProbs[i] = foldRF.distributionForInstance(instance);
+                gbOofProbs[i] = foldGB.distributionForInstance(instance);
+            }
+
+            log.debug("  Fold {}/{}: train={}, val={}", fold + 1, STACKING_FOLDS,
+                    foldTrain.numInstances(), foldVal.numInstances());
+        }
+
+        // Build meta-dataset from all OOF predictions
+        return buildMetaDataset(data, rfOofProbs, gbOofProbs);
+    }
+
+    /**
+     * Build the meta-dataset from out-of-fold predictions.
+     */
+    private Instances buildMetaDataset(Instances originalData, double[][] rfProbs, double[][] gbProbs) {
+        ArrayList<Attribute> metaAttributes = createMetaAttributes(originalData);
+
         Instances metaData = new Instances("MetaData", metaAttributes, originalData.numInstances());
         metaData.setClassIndex(metaAttributes.size() - 1);
 
-        // Generate predictions from base models
         for (int i = 0; i < originalData.numInstances(); i++) {
-            Instance original = originalData.instance(i);
-
-            // Get RandomForest predictions
-            double[] rfProbs = randomForest.distributionForInstance(original);
-
-            // Get Gradient Boosting predictions
-            double[] gbProbs = gradientBoosting.distributionForInstance(original);
-
-            // Create meta-instance
             double[] metaValues = new double[7];
-            metaValues[0] = rfProbs[0];  // RF prob H
-            metaValues[1] = rfProbs[1];  // RF prob D
-            metaValues[2] = rfProbs[2];  // RF prob A
-            metaValues[3] = gbProbs[0];  // GB prob H
-            metaValues[4] = gbProbs[1];  // GB prob D
-            metaValues[5] = gbProbs[2];  // GB prob A
-            metaValues[6] = original.classValue(); // Actual label
+            metaValues[0] = rfProbs[i][0];
+            metaValues[1] = rfProbs[i][1];
+            metaValues[2] = rfProbs[i][2];
+            metaValues[3] = gbProbs[i][0];
+            metaValues[4] = gbProbs[i][1];
+            metaValues[5] = gbProbs[i][2];
+            metaValues[6] = originalData.instance(i).classValue();
 
             Instance metaInstance = new DenseInstance(1.0, metaValues);
             metaData.add(metaInstance);
         }
 
         return metaData;
+    }
+
+    /**
+     * Create meta-attributes for the stacking meta-dataset.
+     *
+     * <p><strong>Important:</strong> The class attribute must be a fresh copy,
+     * NOT the same object from the original dataset. Sharing the Attribute
+     * object between two Instances causes Weka's internal string store to
+     * become corrupted, leading to {@code IndexOutOfBoundsException} when
+     * RandomForest later calls {@code getRandomNumberGenerator()} on the
+     * original data.</p>
+     */
+    private ArrayList<Attribute> createMetaAttributes(Instances originalData) {
+        ArrayList<Attribute> metaAttributes = new ArrayList<>();
+        metaAttributes.add(new Attribute("rf_prob_home"));
+        metaAttributes.add(new Attribute("rf_prob_draw"));
+        metaAttributes.add(new Attribute("rf_prob_away"));
+        metaAttributes.add(new Attribute("gb_prob_home"));
+        metaAttributes.add(new Attribute("gb_prob_draw"));
+        metaAttributes.add(new Attribute("gb_prob_away"));
+
+        // Create a FRESH copy of the class attribute to avoid sharing the
+        // same Attribute object between the meta-dataset and the original
+        // training data. Weka's Attribute maintains an internal string store
+        // that can get corrupted when the same object is used in multiple
+        // Instances datasets.
+        Attribute originalClass = originalData.classAttribute();
+        ArrayList<String> classValues = new ArrayList<>();
+        for (int i = 0; i < originalClass.numValues(); i++) {
+            classValues.add(originalClass.value(i));
+        }
+        metaAttributes.add(new Attribute(originalClass.name(), classValues));
+        return metaAttributes;
+    }
+
+    /**
+     * Create a configured RandomForest instance (reusable factory).
+     */
+    private RandomForest createRandomForest() {
+        RandomForest rf = new RandomForest();
+        rf.setNumIterations(200);
+        rf.setNumFeatures(7);       // sqrt(42) ≈ 6.5 features per split
+        rf.setMaxDepth(20);
+        rf.setSeed(42);
+        return rf;
+    }
+
+    /**
+     * Create a configured AdaBoost instance with REPTree base learner (reusable factory).
+     */
+    private AdaBoostM1 createAdaBoost() {
+        AdaBoostM1 gb = new AdaBoostM1();
+        REPTree baseTree = new REPTree();
+        baseTree.setMaxDepth(6);
+        baseTree.setMinNum(2);
+        baseTree.setNoPruning(false);
+        gb.setClassifier(baseTree);
+        gb.setNumIterations(100);
+        gb.setSeed(42);
+        return gb;
     }
 
     /**
@@ -160,27 +257,12 @@ public class StackedEnsembleService implements Serializable {
             throw new IllegalStateException("Model not trained. Call trainStackedEnsemble() first.");
         }
 
-        // Get RandomForest predictions
+        // Get base model predictions
         double[] rfProbs = randomForest.distributionForInstance(instance);
-
-        // Get Gradient Boosting predictions
         double[] gbProbs = gradientBoosting.distributionForInstance(instance);
 
         // Create meta-instance
-        ArrayList<Attribute> metaAttributes = new ArrayList<>();
-        metaAttributes.add(new Attribute("rf_prob_home"));
-        metaAttributes.add(new Attribute("rf_prob_draw"));
-        metaAttributes.add(new Attribute("rf_prob_away"));
-        metaAttributes.add(new Attribute("gb_prob_home"));
-        metaAttributes.add(new Attribute("gb_prob_draw"));
-        metaAttributes.add(new Attribute("gb_prob_away"));
-
-        // Add class attribute
-        ArrayList<String> classValues = new ArrayList<>();
-        classValues.add("H");
-        classValues.add("D");
-        classValues.add("A");
-        metaAttributes.add(new Attribute("result", classValues));
+        ArrayList<Attribute> metaAttributes = createMetaAttributes(trainingHeader);
 
         Instances metaHeader = new Instances("MetaPrediction", metaAttributes, 0);
         metaHeader.setClassIndex(metaAttributes.size() - 1);
@@ -197,7 +279,7 @@ public class StackedEnsembleService implements Serializable {
         Instance metaInstance = new DenseInstance(1.0, metaValues);
         metaInstance.setDataset(metaHeader);
 
-        // Get final prediction from logistic regression
+        // Get final prediction from logistic regression meta-model
         return logisticRegression.distributionForInstance(metaInstance);
     }
 
@@ -263,4 +345,3 @@ public class StackedEnsembleService implements Serializable {
         return randomForest != null && gradientBoosting != null && logisticRegression != null;
     }
 }
-

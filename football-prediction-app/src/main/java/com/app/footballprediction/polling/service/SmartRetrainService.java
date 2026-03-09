@@ -9,7 +9,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,6 +45,14 @@ public class SmartRetrainService {
 
     @Value("${retrain.cooldown.hours:24}")
     private int cooldownHours;
+
+    @Value("${model.output.path:./data/match_predictor.model}")
+    private String modelOutputPath;
+
+    @Value("${model.backup.path:./data/model_backups}")
+    private String modelBackupPath;
+
+    private static final int MAX_BACKUPS = 10;
 
     // Training state
     private final AtomicBoolean trainingInProgress = new AtomicBoolean(false);
@@ -123,6 +137,9 @@ public class SmartRetrainService {
         long startTime = System.currentTimeMillis();
 
         try {
+            // Backup current model before retraining
+            String modelVersion = backupCurrentModel();
+
             String report = modelTrainingService.trainAndEvaluate();
 
             long duration = System.currentTimeMillis() - startTime;
@@ -235,6 +252,113 @@ public class SmartRetrainService {
         log.info("Manual model retrain triggered");
         pollingService.markRetrainTriggered("Manual trigger by admin");
         return triggerAsyncTraining();
+    }
+
+    // ── Model Versioning & Backup ─────────────────────────────────────────
+
+    /**
+     * Backup the current model file before retraining.
+     * Creates a timestamped copy in the backup directory.
+     *
+     * @return Model version string (timestamp-based)
+     */
+    private String backupCurrentModel() {
+        String version = DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss").format(LocalDateTime.now());
+
+        try {
+            File modelFile = new File(modelOutputPath);
+            if (!modelFile.exists()) {
+                log.debug("No existing model to backup");
+                return version;
+            }
+
+            File backupDir = new File(modelBackupPath);
+            if (!backupDir.exists() && !backupDir.mkdirs()) {
+                log.warn("Failed to create backup directory: {}", modelBackupPath);
+                return version;
+            }
+
+            String backupFileName = String.format("model_%s.model", version);
+            Path backupPath = Path.of(modelBackupPath, backupFileName);
+            Files.copy(modelFile.toPath(), backupPath, StandardCopyOption.REPLACE_EXISTING);
+
+            log.info("📦 Model backed up: {} → {}", modelFile.getName(), backupPath);
+
+            // Clean old backups (keep last MAX_BACKUPS)
+            cleanOldBackups(backupDir);
+
+            return version;
+
+        } catch (IOException e) {
+            log.warn("Failed to backup model: {}", e.getMessage());
+            return version;
+        }
+    }
+
+    /**
+     * Clean old model backups, keeping only the most recent MAX_BACKUPS.
+     */
+    private void cleanOldBackups(File backupDir) {
+        File[] backups = backupDir.listFiles((dir, name) -> name.endsWith(".model"));
+        if (backups == null || backups.length <= MAX_BACKUPS) return;
+
+        // Sort by last modified (oldest first)
+        java.util.Arrays.sort(backups, (a, b) -> Long.compare(a.lastModified(), b.lastModified()));
+
+        int toDelete = backups.length - MAX_BACKUPS;
+        for (int i = 0; i < toDelete; i++) {
+            if (backups[i].delete()) {
+                log.debug("Deleted old model backup: {}", backups[i].getName());
+            }
+        }
+    }
+
+    /**
+     * Rollback to a specific model backup version.
+     *
+     * @param version Version string (e.g., "20260309-140530")
+     * @return true if rollback succeeded
+     */
+    public boolean rollbackToVersion(String version) {
+        try {
+            String backupFileName = String.format("model_%s.model", version);
+            Path backupPath = Path.of(modelBackupPath, backupFileName);
+
+            if (!Files.exists(backupPath)) {
+                log.error("Backup not found: {}", backupPath);
+                return false;
+            }
+
+            // Backup current model first
+            backupCurrentModel();
+
+            // Restore the specified backup
+            Files.copy(backupPath, Path.of(modelOutputPath), StandardCopyOption.REPLACE_EXISTING);
+
+            // Reload model
+            modelTrainingService.loadModelFromDisk();
+
+            log.info("✅ Model rolled back to version: {}", version);
+            return true;
+
+        } catch (Exception e) {
+            log.error("❌ Rollback failed: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    /**
+     * List available model backup versions.
+     */
+    public java.util.List<String> listBackupVersions() {
+        File backupDir = new File(modelBackupPath);
+        File[] backups = backupDir.listFiles((dir, name) -> name.endsWith(".model"));
+        if (backups == null) return java.util.List.of();
+
+        return java.util.Arrays.stream(backups)
+                .sorted((a, b) -> Long.compare(b.lastModified(), a.lastModified()))
+                .map(f -> f.getName().replace("model_", "").replace(".model", ""))
+                .toList();
     }
 }
 

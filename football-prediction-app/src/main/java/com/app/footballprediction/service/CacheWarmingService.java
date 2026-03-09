@@ -38,9 +38,9 @@ public class CacheWarmingService {
             return;
         }
 
-        log.info("╔══════════════════════════════════════════╗");
-        log.info("║  🔥 Starting Cache Warmup Process...     ║");
-        log.info("╚══════════════════════════════════════════╝");
+        log.debug("╔══════════════════════════════════════════╗");
+        log.debug("║  🔥 Starting Cache Warmup Process...     ║");
+        log.debug("╚══════════════════════════════════════════╝");
 
         long startTime = System.currentTimeMillis();
         int successCount = 0;
@@ -57,11 +57,7 @@ public class CacheWarmingService {
 
             long duration = System.currentTimeMillis() - startTime;
 
-            log.info("╔══════════════════════════════════════════╗");
-            log.info("║  ✅ Cache Warmup Complete!               ║");
-            log.info("║  → Warmed {}/{} caches in {}ms           ║", successCount, 3, duration);
-            log.info("║  → Cache hit rate should improve!        ║");
-            log.info("╚══════════════════════════════════════════╝");
+            log.info("✅ Cache warmup complete: warmed {}/{} caches in {}ms", successCount, 3, duration);
 
         } catch (Exception e) {
             log.warn("Cache warmup partially failed: {}", e.getMessage());
@@ -70,9 +66,9 @@ public class CacheWarmingService {
 
     private boolean warmUpStandings() {
         try {
-            log.info("  → Warming up STANDINGS cache...");
+            log.debug("  → Warming up STANDINGS cache...");
             footballDataApiService.getStandings(defaultCompetition);
-            log.info("  ✅ STANDINGS cache warmed");
+            log.debug("  ✅ STANDINGS cache warmed");
             return true;
         } catch (Exception e) {
             log.warn("  ⚠️  Failed to warm STANDINGS cache: {}", e.getMessage());
@@ -82,9 +78,9 @@ public class CacheWarmingService {
 
     private boolean warmUpScheduledMatches() {
         try {
-            log.info("  → Warming up MATCHES cache...");
+            log.debug("  → Warming up MATCHES cache...");
             footballDataApiService.getScheduledMatches(defaultCompetition);
-            log.info("  ✅ MATCHES cache warmed");
+            log.debug("  ✅ MATCHES cache warmed");
             return true;
         } catch (Exception e) {
             log.warn("  ⚠️  Failed to warm MATCHES cache: {}", e.getMessage());
@@ -94,9 +90,9 @@ public class CacheWarmingService {
 
     private boolean warmUpTrendingInsights() {
         try {
-            log.info("  → Warming up TRENDING INSIGHTS cache...");
+            log.debug("  → Warming up TRENDING INSIGHTS cache...");
             trendingInsightsService.getTrendingInsights();
-            log.info("  ✅ TRENDING INSIGHTS cache warmed");
+            log.debug("  ✅ TRENDING INSIGHTS cache warmed");
             return true;
         } catch (Exception e) {
             log.warn("  ⚠️  Failed to warm TRENDING INSIGHTS cache: {}", e.getMessage());

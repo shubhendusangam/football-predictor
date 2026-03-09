@@ -13,6 +13,7 @@ import com.app.footballprediction.ingestion.orchestrator.IngestionRouter;
 import com.app.footballprediction.ingestion.service.IdempotentUpsertService;
 import com.app.footballprediction.polling.model.PollingResult;
 import com.app.footballprediction.polling.model.SyncStatus;
+import com.app.footballprediction.service.CsvIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -52,6 +53,7 @@ public class MatchPollingService {
     private final MatchRepository matchRepository;
     private final SystemSettingsRepository systemSettingsRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final CsvIngestionService csvIngestionService;
 
     @Value("${polling.competition:PL}")
     private String competition;
@@ -113,6 +115,18 @@ public class MatchPollingService {
 
             // Step 3: Perform idempotent upsert
             UpsertResult upsertResult = upsertService.upsertMatches(completedMatches);
+
+            // Step 3.5: Enrich matches with statistics from CSV files
+            // The external API only returns scores (FTHG, FTAG) but not detailed stats
+            // (shots, corners, cards, fouls). CSV files have this data.
+            try {
+                int enriched = csvIngestionService.enrichMissingStats();
+                if (enriched > 0) {
+                    log.info("📊 Enriched {} matches with detailed statistics from CSV", enriched);
+                }
+            } catch (Exception e) {
+                log.warn("⚠️ Stats enrichment from CSV failed (non-fatal): {}", e.getMessage());
+            }
 
             // Step 4: Update tracking counters
             matchesInsertedToday.addAndGet(upsertResult.getInserted());
@@ -196,7 +210,16 @@ public class MatchPollingService {
             "matches",
             "predictions",
             "standings",
-            "seasonStats"
+            "seasonStats",
+            "expectedGoals",
+            "xgPrediction",
+            "shotQuality",
+            "cornerStats",
+            "cornerPrediction",
+            "foulsAnalysis",
+            "halfAnalysis",
+            "kickoffTimeAnalysis",
+            "fixtureCongestion"
         );
         eventPublisher.publishEvent(new CacheInvalidationEvent(
             this,

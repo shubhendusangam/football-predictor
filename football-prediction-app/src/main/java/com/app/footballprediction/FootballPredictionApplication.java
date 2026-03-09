@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.beans.factory.annotation.Value;
 
 import com.app.footballprediction.modeltraining.ModelTrainingService;
@@ -20,6 +21,7 @@ import com.app.footballprediction.service.CsvIngestionService;
 @EnableJpaRepositories(basePackages = {"com.app.footballprediction", "com.app.common"})
 @EntityScan(basePackages = {"com.app.footballprediction", "com.app.common"})
 @EnableScheduling
+@EnableAsync
 @RequiredArgsConstructor
 @Slf4j
 public class FootballPredictionApplication implements ApplicationRunner {
@@ -52,16 +54,16 @@ public class FootballPredictionApplication implements ApplicationRunner {
       // ── Step 1: Ingest CSV data ────────────────────────────────
       log.info("📂 Loading historical match data...");
       csvIngestionService.ingestAll();
-      log.info("   ✓ Match data loaded successfully");
 
       // ── Step 1.5: Update fouls data for existing matches ───────
-      log.info("📊 Updating fouls/discipline data...");
       int foulsUpdated = csvIngestionService.updateFoulsData();
-      if (foulsUpdated > 0) {
-         log.info("   ✓ Updated {} matches with fouls data", foulsUpdated);
-      } else {
-         log.info("   ✓ Fouls data already up to date");
-      }
+      log.debug("Fouls data update: {} matches updated", foulsUpdated);
+
+      // ── Step 1.6: Enrich matches with missing statistics ───────
+      // Matches inserted via API polling lack detailed stats (shots, corners, etc.)
+      // This re-reads CSV files to fill in any missing statistics
+      int statsEnriched = csvIngestionService.enrichMissingStats();
+      log.debug("Stats enrichment: {} matches enriched", statsEnriched);
 
       // ── Step 2: Model loading / training ──────────────────────
       log.info("🤖 Initializing ML model...");
@@ -69,7 +71,7 @@ public class FootballPredictionApplication implements ApplicationRunner {
       if (!modelTrainingEnabled) {
          log.info("   ⚠ Model training disabled (test mode)");
       } else if (modelTrainingService.isModelLoaded()) {
-         log.info("   ✓ Model loaded successfully");
+         log.info("   ✓ Model loaded from disk");
       } else {
          log.info("   ⏳ Training new model (30-60s)...");
          modelTrainingService.trainAndEvaluate();
@@ -82,22 +84,10 @@ public class FootballPredictionApplication implements ApplicationRunner {
    // ── Private helpers ───────────────────────────────────────────
 
    private void printStartupBanner() {
-      log.info("");
-      log.info("╔══════════════════════════════════════════════════╗");
-      log.info("║  ⚽ AI Football Match Predictor                  ║");
-      log.info("║  Version 2.0 | Spring Boot + Weka ML             ║");
-      log.info("╚══════════════════════════════════════════════════╝");
-      log.info("");
+      log.info("⚽ AI Football Match Predictor v2.0 — Starting...");
    }
 
    private void printReadyBanner() {
-      log.info("");
-      log.info("┌──────────────────────────────────────────────────┐");
-      log.info("│  ✅ Application Ready                            │");
-      log.info("├──────────────────────────────────────────────────┤");
-      log.info("│  🌐 http://localhost:8080                        │");
-      log.info("│  📊 http://localhost:8080/h2-console             │");
-      log.info("└──────────────────────────────────────────────────┘");
-      log.info("");
+      log.info("✅ Application Ready — http://localhost:8080");
    }
 }

@@ -19,6 +19,13 @@ import {
     fetchAndRenderCornerPredictionCard
 } from '../components/match/CornerPredictionCard.js';
 
+import {
+    renderMatchXGCard,
+    renderMatchXGLoading,
+    renderMatchXGError,
+    fetchAndRenderMatchXGCard
+} from '../components/match/MatchXGCard.js';
+
 // ══════════════════════════════════════════════════════════════════════
 // UTILITY FUNCTIONS
 // ══════════════════════════════════════════════════════════════════════
@@ -125,14 +132,20 @@ class MatchPreviewPage {
                 </div>
                 <div class="match-preview-page__content">
                     <div id="corner-prediction-container"></div>
+                    <div id="xg-prediction-container"></div>
                 </div>
             </div>
         `;
 
-        // Show loading in container
+        // Show loading in containers
         const cornerContainer = document.getElementById('corner-prediction-container');
         if (cornerContainer) {
             renderCornerPredictionLoading(cornerContainer);
+        }
+
+        const xgContainer = document.getElementById('xg-prediction-container');
+        if (xgContainer) {
+            renderMatchXGLoading(xgContainer);
         }
     }
 
@@ -186,6 +199,10 @@ class MatchPreviewPage {
                         <h3 class="match-preview-page__section-title">⚑ Corner Prediction</h3>
                         <div id="corner-prediction-container" class="match-preview-page__card-container"></div>
                     </div>
+                    <div class="match-preview-page__section">
+                        <h3 class="match-preview-page__section-title">🎯 Expected Goals (xG) Prediction</h3>
+                        <div id="xg-prediction-container" class="match-preview-page__card-container"></div>
+                    </div>
                 </div>
                 <div class="match-preview-page__footer">
                     <p class="match-preview-page__note">
@@ -199,6 +216,12 @@ class MatchPreviewPage {
         const cornerContainer = document.getElementById('corner-prediction-container');
         if (cornerContainer) {
             renderCornerPredictionCard(cornerContainer, data);
+        }
+
+        // Render xG prediction card
+        const xgContainer = document.getElementById('xg-prediction-container');
+        if (xgContainer) {
+            fetchAndRenderMatchXGCard(xgContainer, homeTeam, awayTeam);
         }
     }
 
@@ -280,6 +303,38 @@ export async function renderCornerPredictionSection(container, homeTeam, awayTea
 }
 
 /**
+ * Render xG prediction section standalone
+ * Utility function for integration into existing pages
+ *
+ * @param {HTMLElement} container - Container element
+ * @param {string} homeTeam - Home team name
+ * @param {string} awayTeam - Away team name
+ * @returns {Promise<Object>} xG Prediction data
+ */
+export async function renderXGPredictionSection(container, homeTeam, awayTeam) {
+    if (!container || !homeTeam || !awayTeam) {
+        console.error('[MatchPreviewPage] Container and team names are required');
+        return null;
+    }
+
+    const section = document.createElement('div');
+    section.className = 'xg-prediction-section';
+    section.innerHTML = `
+        <div class="xg-prediction-section__header">
+            <h3 class="xg-prediction-section__title">🎯 Expected Goals (xG) Prediction</h3>
+        </div>
+        <div id="standalone-xg-prediction" class="xg-prediction-section__card"></div>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(section);
+
+    const predictionContainer = document.getElementById('standalone-xg-prediction');
+
+    return fetchAndRenderMatchXGCard(predictionContainer, homeTeam, awayTeam);
+}
+
+/**
  * Factory function to create and initialize MatchPreviewPage
  * @param {string} containerId - Container element ID
  * @param {string} homeTeam - Home team name
@@ -299,6 +354,7 @@ export { MatchPreviewPage };
 if (typeof window !== 'undefined') {
     window.MatchPreviewPage = MatchPreviewPage;
     window.renderCornerPredictionSection = renderCornerPredictionSection;
+    window.renderXGPredictionSection = renderXGPredictionSection;
     window.createMatchPreviewPage = createMatchPreviewPage;
 }
 

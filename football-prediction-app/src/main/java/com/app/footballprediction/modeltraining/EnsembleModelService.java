@@ -217,9 +217,9 @@ public class EnsembleModelService {
     public GridSearchResult gridSearchRandomForest(Instances data) throws Exception {
         log.info("Starting Grid Search for Random Forest...");
 
-        int[] numTreesOptions = {50, 100, 150, 200};
-        int[] numFeaturesOptions = {3, 4, 5, 6};
-        int[] maxDepthOptions = {0, 10, 20}; // 0 = unlimited
+        int[] numTreesOptions = {100, 150, 200, 300, 500};
+        int[] numFeaturesOptions = {5, 6, 7, 8, 10};
+        int[] maxDepthOptions = {0, 15, 20, 30}; // 0 = unlimited
 
         GridSearchResult bestResult = null;
         double bestAccuracy = 0;

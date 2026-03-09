@@ -3,6 +3,7 @@ package com.app.footballprediction.listener;
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.service.ApiDataSyncService;
+import com.app.footballprediction.service.CsvIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -31,6 +32,7 @@ public class StartupDataSyncListener {
 
     private final MatchRepository matchRepository;
     private final ApiDataSyncService apiDataSyncService;
+    private final CsvIngestionService csvIngestionService;
 
     @Value("${startup.sync.enabled:true}")
     private boolean startupSyncEnabled;
@@ -85,21 +87,15 @@ public class StartupDataSyncListener {
      * Log startup banner with configuration details.
      */
     private void logStartupBanner() {
-        log.info("═══════════════════════════════════════════════════════════════════════════════");
-        log.info("🚀 Application started - Checking data freshness...");
-        log.info("   Threshold: {} days", thresholdDays);
-        log.info("   Sync mode: {}", syncMode);
-        log.info("   Competition: {}", competition);
-        log.info("═══════════════════════════════════════════════════════════════════════════════");
+        log.info("🚀 Checking data freshness (threshold: {} days, mode: {}, competition: {})",
+                thresholdDays, syncMode, competition);
     }
 
     /**
      * Log completion banner.
      */
     private void logCompletionBanner() {
-        log.info("═══════════════════════════════════════════════════════════════════════════════");
-        log.info("🏁 Startup data check completed");
-        log.info("═══════════════════════════════════════════════════════════════════════════════");
+        log.debug("🏁 Startup data check completed");
     }
 
     /**
@@ -158,14 +154,12 @@ public class StartupDataSyncListener {
      * Log data freshness status.
      */
     private void logDataStatus(DataFreshnessStatus status) {
-        log.info("📊 Data Status:");
-        log.info("   Latest match date: {}",
-                status.latestMatchDate != null ? status.latestMatchDate : "N/A");
-        log.info("   Days since last match: {}",
-                status.daysSinceLastMatch == Integer.MAX_VALUE ? "N/A" : status.daysSinceLastMatch);
-        log.info("   Total matches in DB: {}", status.totalMatches);
-        log.info("   Sync needed: {}", status.syncNeeded);
-        log.info("   Reason: {}", status.reason);
+        log.info("📊 Data status: latest={}, age={} days, total={}, syncNeeded={} ({})",
+                status.latestMatchDate != null ? status.latestMatchDate : "N/A",
+                status.daysSinceLastMatch == Integer.MAX_VALUE ? "N/A" : status.daysSinceLastMatch,
+                status.totalMatches,
+                status.syncNeeded,
+                status.reason);
     }
 
     /**
@@ -184,23 +178,33 @@ public class StartupDataSyncListener {
             }
 
             // Normalize season data to ensure consistent format (YYYY-YY with dash)
-            log.info("🔧 Normalizing season data format...");
+            log.debug("🔧 Normalizing season data format...");
             java.util.Map<String, Integer> normResult = apiDataSyncService.normalizeAllSeasonData();
-            log.info("   Normalized: {} matches, {} standings, {} forms calculated",
+            log.debug("   Normalized: {} matches, {} standings, {} forms calculated",
                     normResult.get("matchesNormalized"),
                     normResult.get("standingsNormalized"),
                     normResult.get("formsCalculated"));
+
+            // Enrich API-synced matches with detailed statistics from CSV
+            // The external API only returns scores, not stats (shots, corners, cards, fouls)
+            try {
+                int enriched = csvIngestionService.enrichMissingStats();
+                if (enriched > 0) {
+                    log.debug("📊 Enriched {} matches with detailed statistics from CSV", enriched);
+                }
+            } catch (Exception e2) {
+                log.warn("⚠️ Stats enrichment from CSV failed (non-fatal): {}", e2.getMessage());
+            }
 
             long duration = System.currentTimeMillis() - startTime;
 
             // Re-check data status after sync
             DataFreshnessStatus newStatus = checkDataFreshness();
 
-            log.info("✅ Startup sync completed successfully!");
-            log.info("   Duration: {}ms ({} seconds)", duration, duration / 1000);
-            log.info("   Latest match now: {}",
-                    newStatus.latestMatchDate != null ? newStatus.latestMatchDate : "N/A");
-            log.info("   Total matches: {}", newStatus.totalMatches);
+            log.info("✅ Startup sync completed in {}s — latest match: {}, total: {}",
+                    duration / 1000,
+                    newStatus.latestMatchDate != null ? newStatus.latestMatchDate : "N/A",
+                    newStatus.totalMatches);
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;

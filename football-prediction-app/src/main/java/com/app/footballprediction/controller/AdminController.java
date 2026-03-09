@@ -9,7 +9,10 @@ import com.app.common.repository.LeagueStandingRepository;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.service.AdminService;
 import com.app.footballprediction.service.ApiDataSyncService;
+import com.app.footballprediction.service.MatchResultProcessor;
+import com.app.footballprediction.service.ModelAccuracyService;
 import com.app.footballprediction.service.PredictionTrackingService;
+import com.app.footballprediction.config.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -37,6 +40,9 @@ public class AdminController {
     private final ApiDataSyncService apiDataSyncService;
     private final MatchRepository matchRepository;
     private final LeagueStandingRepository standingRepository;
+    private final MatchResultProcessor matchResultProcessor;
+    private final ModelAccuracyService modelAccuracyService;
+    private final RateLimitFilter rateLimitFilter;
 
     // ======================= AUTHENTICATION =======================
 
@@ -696,5 +702,97 @@ public class AdminController {
 
             return ResponseEntity.internalServerError().body(response);
         }
+    }
+
+    // ======================= PREDICTION BACKFILL =======================
+
+    /**
+     * Manually trigger prediction backfill.
+     * Resolves all unresolved predictions against finished matches
+     * and recalculates model accuracy metrics.
+     *
+     * POST /api/admin/backfill-predictions
+     */
+    @PostMapping("/backfill-predictions")
+    public ResponseEntity<Map<String, Object>> backfillPredictions(Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+        long startTime = System.currentTimeMillis();
+
+        try {
+            log.info("Prediction backfill triggered by: {}",
+                    authentication != null ? authentication.getName() : "unknown");
+
+            // Step 1: Resolve all unresolved predictions
+            int resolved = matchResultProcessor.processAllUnresolvedPredictions();
+
+            // Step 2: Recalculate accuracy metrics if any predictions were resolved
+            if (resolved > 0) {
+                modelAccuracyService.recalculateAllAccuracy();
+            }
+
+            long duration = System.currentTimeMillis() - startTime;
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Prediction backfill: resolved " + resolved + " predictions in " + duration + "ms",
+                    null, null, null, null, true, null);
+            }
+
+            response.put("status", "success");
+            response.put("predictionsResolved", resolved);
+            response.put("accuracyRecalculated", resolved > 0);
+            response.put("duration", duration + "ms");
+            response.put("message", resolved > 0
+                    ? "✅ Backfill complete: resolved " + resolved + " predictions"
+                    : "✅ All predictions already resolved");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            log.error("Error during prediction backfill", e);
+            long duration = System.currentTimeMillis() - startTime;
+
+            response.put("status", "error");
+            response.put("duration", duration + "ms");
+            response.put("message", "❌ Backfill failed: " + e.getMessage());
+
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    // ======================= SECURITY & RATE LIMITING =======================
+
+    /**
+     * Get rate limiting statistics.
+     *
+     * GET /api/admin/rate-limit/stats
+     */
+    @GetMapping("/rate-limit/stats")
+    public ResponseEntity<?> getRateLimitStats() {
+        return ResponseEntity.ok(rateLimitFilter.getStatistics());
+    }
+
+    /**
+     * Get security configuration summary.
+     *
+     * GET /api/admin/security/status
+     */
+    @GetMapping("/security/status")
+    public ResponseEntity<?> getSecurityStatus() {
+        Map<String, Object> status = new java.util.LinkedHashMap<>();
+        status.put("authentication", "HTTP Basic (admin endpoints)");
+        status.put("csrf", "Disabled (stateless REST API)");
+        status.put("sessions", "Stateless");
+        status.put("cors", "Configured");
+        status.put("securityHeaders", Map.of(
+            "X-Content-Type-Options", "nosniff",
+            "X-Frame-Options", "DENY (SAMEORIGIN for H2 console)",
+            "Referrer-Policy", "strict-origin-when-cross-origin",
+            "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()",
+            "Content-Security-Policy", "enabled"
+        ));
+        status.put("rateLimiting", rateLimitFilter.getStatistics());
+        return ResponseEntity.ok(status);
     }
 }

@@ -213,12 +213,17 @@ public class LegacyApiProvider implements MatchDataProvider, StandingsDataProvid
             .awayTeamCrest(apiMatch.getAwayTeam().getCrest())
             .fetchedAt(Instant.now());
 
-        // Parse date
+        // Parse date and kick-off time
         if (apiMatch.getUtcDate() != null) {
             try {
                 LocalDate matchDate = LocalDate.parse(apiMatch.getUtcDate().substring(0, 10));
                 builder.matchDate(matchDate);
                 builder.season(determineSeason(matchDate));
+
+                // Extract kick-off time (e.g., "2026-02-15T15:00:00Z" → "15:00")
+                if (apiMatch.getUtcDate().length() >= 16) {
+                    builder.kickoffTime(apiMatch.getUtcDate().substring(11, 16));
+                }
             } catch (Exception e) {
                 log.warn("Failed to parse date {}: {}", apiMatch.getUtcDate(), e.getMessage());
             }

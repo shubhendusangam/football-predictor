@@ -2,10 +2,14 @@ package com.app.modeltraining;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {"com.app.modeltraining"})
 @EnableScheduling
+@EntityScan(basePackages = {"com.app.common.model"})
+@EnableJpaRepositories(basePackages = {"com.app.common.repository"})
 public class ModelTrainingServiceApplication {
 
     public static void main(String[] args) {

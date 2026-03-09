@@ -102,6 +102,67 @@ public class MatchFeatures {
    @Builder.Default
    private double awayPossessionProxy = 0.5;
 
+   // ── Phase 6 features (Elo Ratings) ─────────────────────
+   /**
+    * Home team's current Elo rating (default 1500).
+    */
+   @Builder.Default
+   private double homeEloRating = 1500.0;
+
+   /**
+    * Away team's current Elo rating (default 1500).
+    */
+   @Builder.Default
+   private double awayEloRating = 1500.0;
+
+   // ── Phase 7 features (Derived Interaction Features) ────
+   /**
+    * formDifference = homeFormPoints - awayFormPoints.
+    * Positive means home team has better recent form.
+    */
+   @Builder.Default
+   private double formDifference = 0.0;
+
+   /**
+    * goalDiffDifference = homeGoalDifference - awayGoalDifference.
+    * Captures relative attacking/defensive balance.
+    */
+   @Builder.Default
+   private double goalDiffDifference = 0.0;
+
+   /**
+    * h2hDominance = h2hHomeWinRate - h2hAwayWinRate.
+    * Positive means home team historically dominates this matchup.
+    */
+   @Builder.Default
+   private double h2hDominance = 0.0;
+
+   /**
+    * restAdvantage = homeDaysSinceLastMatch - awayDaysSinceLastMatch.
+    * Positive means home team had more rest.
+    */
+   @Builder.Default
+   private double restAdvantage = 0.0;
+
+   /**
+    * eloDifference = homeEloRating - awayEloRating.
+    * Positive means home team is rated higher.
+    */
+   @Builder.Default
+   private double eloDifference = 0.0;
+
+   /**
+    * Recency-weighted form for home team (exponential decay, most recent weighted highest).
+    */
+   @Builder.Default
+   private double homeWeightedForm = 0.0;
+
+   /**
+    * Recency-weighted form for away team (exponential decay, most recent weighted highest).
+    */
+   @Builder.Default
+   private double awayWeightedForm = 0.0;
+
    // ── Label (training only) ──────────────────────────────
    private String actualResult;        // "H", "D", "A" — null at prediction time
 }

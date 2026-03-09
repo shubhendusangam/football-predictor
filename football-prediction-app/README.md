@@ -7,7 +7,7 @@
 ## Module Overview
 
 ### Purpose
-The `football-prediction-app` is the **main application module** of the Football Prediction Platform. It serves as the primary interface for users, providing REST APIs for match predictions, comprehensive analytics dashboards, team statistics, and a modern web UI. This module orchestrates all user-facing functionality and integrates with external APIs for live data.
+The `football-prediction-app` is the **main application module** of the Football Prediction Platform. It serves as the primary interface for users, providing REST APIs for match predictions, comprehensive analytics dashboards, team statistics, expected goals (xG), referee analysis, fixture congestion tracking, kickoff time analysis, and a modern web UI. This module orchestrates all user-facing functionality and integrates with external APIs for live data, along with a real-time SSE event system and smart data ingestion pipeline.
 
 ### Scope within the System
 
@@ -21,9 +21,14 @@ The `football-prediction-app` is the **main application module** of the Football
 │  │                                                         │      MODULE   │
 │  │  ┌─────────────────────────────────────────────────┐    │                │
 │  │  │                 Controllers                      │    │                │
-│  │  │  • PredictionController   • DashboardController  │    │                │
-│  │  │  • AnalyticsController    • TeamStatsController  │    │                │
-│  │  │  • ExternalApiController  • AdminController      │    │                │
+│  │  │  • PredictionController   • TeamStatsController  │    │                │
+│  │  │  • SeasonTeamStatsController                     │    │                │
+│  │  │  • SeasonsController      • RefereeController    │    │                │
+│  │  └─────────────────────────────────────────────────┘    │                │
+│  │  ┌─────────────────────────────────────────────────┐    │                │
+│  │  │           Polling / Ingestion / SSE              │    │                │
+│  │  │  • SyncStatusController   • SseController        │    │                │
+│  │  │  • IngestionAdminController                      │    │                │
 │  │  └─────────────────────────────────────────────────┘    │                │
 │  │                          │                              │                │
 │  │                          ▼                              │                │
@@ -31,14 +36,18 @@ The `football-prediction-app` is the **main application module** of the Football
 │  │  │                  Services                        │    │                │
 │  │  │  • PreMatchInsightsService  • H2HInsightsService │    │                │
 │  │  │  • TrendingInsightsService  • TeamStatsService   │    │                │
-│  │  │  • ShotQualityService       • FoulsAnalysisService│    │                │
+│  │  │  • ShotQualityService       • FoulsAnalysisService│   │                │
+│  │  │  • ExpectedGoalsService     • CornerStatsService │    │                │
+│  │  │  • CardsPredictionService   • HalfAnalysisService│    │                │
+│  │  │  • RefereeStatsService      • KickoffTimeService │    │                │
+│  │  │  • FixtureCongestionService • ModelAccuracyService│   │                │
 │  │  │  • LeagueStandingService    • DashboardService   │    │                │
 │  │  └─────────────────────────────────────────────────┘    │                │
 │  │                          │                              │                │
 │  │                          ▼                              │                │
 │  │  ┌───────────────┐  ┌────────────────┐                  │                │
 │  │  │ Caffeine Cache│  │ ML Model       │                  │                │
-│  │  │ (16 caches)   │  │ Integration    │                  │                │
+│  │  │ (19 caches)   │  │ Integration    │                  │                │
 │  │  └───────────────┘  └────────────────┘                  │                │
 │  │                                                         │                │
 │  └─────────────────────────────────────────────────────────┘                │
@@ -48,7 +57,8 @@ The `football-prediction-app` is the **main application module** of the Football
 │  ┌─────────────────┐  ┌───────────────┐  ┌──────────────────┐              │
 │  │ Common Module   │  │ H2 Database   │  │ External APIs    │              │
 │  │ • Entities      │  │ • matches     │  │ • football-data  │              │
-│  │ • Repositories  │  │ • teams       │  │ • News RSS feeds │              │
+│  │ • Repositories  │  │ • teams       │  │ • ESPN           │              │
+│  │ • Services      │  │ • predictions │  │ • News RSS feeds │              │
 │  └─────────────────┘  └───────────────┘  └──────────────────┘              │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -85,6 +95,7 @@ The `football-prediction-app` is the **main application module** of the Football
 - Calculate prediction probabilities (Home/Draw/Away)
 - Determine confidence levels (HIGH/MEDIUM/LOW)
 - Return pre-match insights with predictions
+- Prediction explainability with factor breakdown
 
 ### 2. Season-aware Analytics
 - Hot teams (3+ winning streaks per season)
@@ -159,6 +170,49 @@ The `football-prediction-app` is the **main application module** of the Football
 - Pattern classification (Fast Starter/Strong Finisher/Balanced)
 - Confidence levels based on matches analyzed
 
+### 12. Expected Goals (xG)
+- Team xG based on shots on target × league conversion rate
+- Over/underperformance relative to xG
+- Match xG predictions with over/under goal probabilities
+- Home/Away split xG analysis
+- Recency-weighted xG calculation
+- Home advantage factor (1.10× multiplier)
+
+### 13. Referee Analytics
+- Per-referee statistics (yellows, reds, goals per match)
+- Strictness rating relative to league average
+- Result distribution per referee
+- Strictest and most lenient referee rankings
+- Match referee impact analysis
+
+### 14. Fixture Congestion & Fatigue
+- Fatigue index (0-100) based on recent match gaps
+- Win rate segmented by short/normal/long rest
+- Congestion comparison for match previews
+- Rest advantage detection between teams
+
+### 15. Kickoff Time Analysis
+- Performance breakdown by time slot (Early/Afternoon/Late/Evening)
+- Win/draw/loss breakdown per slot
+- Goal averages per time slot
+- Strong/Average/Weak classification per slot
+- Best and worst kickoff times
+
+### 16. Smart Data Polling & SSE
+- Daily automated match data polling
+- Smart retrain trigger on new data
+- Server-Sent Events (SSE) for match completion notifications
+- System status and sync status monitoring
+- Match day status tracking
+
+### 17. Data Ingestion Pipeline
+- Idempotent upsert service for match data
+- Shadow validation for data integrity
+- Ingestion orchestration and routing
+- ESPN integration for data enrichment
+- Cache invalidation on data changes
+- Feature flag service for controlled rollouts
+
 ---
 
 ## Architecture
@@ -192,6 +246,7 @@ The `football-prediction-app` is the **main application module** of the Football
 │                            DATA LAYER                                    │
 │  • H2 Database               • ML Model File                            │
 │  • External APIs             • RSS Feeds                                │
+│  • ESPN API                  • SSE Event Stream                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -204,17 +259,11 @@ com.app.footballprediction/
 ├── FootballPredictionApplication.java    # Spring Boot entry point
 │
 ├── controller/                           # REST API Layer
-│   ├── PredictionController.java         # Match predictions
-│   ├── AnalyticsController.java          # Pre-match & H2H insights
-│   ├── DashboardController.java          # Dashboard widgets
-│   ├── TeamStatsController.java          # Team statistics & analytics
-│   ├── CornerStatsController.java        # Corner statistics & predictions
-│   ├── CardsController.java              # Cards prediction & discipline
-│   ├── HalfAnalysisController.java       # Half-time analysis
-│   ├── ExternalApiController.java        # External API proxy
-│   ├── AdminController.java              # Admin operations
-│   ├── NewsController.java               # News aggregation
-│   └── SeasonsController.java            # Season management
+│   ├── PredictionController.java         # Main API (predictions, model, cache, data, dashboard)
+│   ├── TeamStatsController.java          # Team statistics, analytics, shot quality, fouls
+│   ├── SeasonTeamStatsController.java    # Season team stats, Elo/form rankings, streaks
+│   ├── SeasonsController.java            # Season management and stats
+│   └── RefereeController.java            # Referee statistics and rankings
 │
 ├── service/                              # Business Logic Layer
 │   ├── PreMatchInsightsService.java      # Pre-match analysis
@@ -224,53 +273,231 @@ com.app.footballprediction/
 │   ├── LeagueStatsService.java           # League-wide statistics
 │   ├── TeamStatsService.java             # Team statistics
 │   ├── TeamAnalyticsService.java         # Full team analytics
+│   ├── TeamValidationService.java        # Team name validation
 │   ├── ShotQualityService.java           # Shot efficiency metrics
 │   ├── FoulsAnalysisService.java         # Fouls & discipline analysis
 │   ├── CornerStatsService.java           # Corner statistics & predictions
 │   ├── CardsPredictionService.java       # Cards prediction & team discipline
 │   ├── HalfAnalysisService.java          # First/second half analysis
-│   ├── DashboardService.java             # Dashboard aggregation
+│   ├── ExpectedGoalsService.java         # Expected goals (xG) analytics
+│   ├── RefereeStatsService.java          # Referee statistics & rankings
+│   ├── FixtureCongestionService.java     # Fixture congestion & fatigue analysis
+│   ├── KickoffTimeService.java           # Kickoff time performance analysis
+│   ├── EloPredictionService.java         # Elo-based prediction adjustments
 │   ├── FootballDataApiService.java       # football-data.org integration
 │   ├── NewsService.java                  # RSS news aggregation
 │   ├── CsvIngestionService.java          # CSV data loading
 │   ├── CacheWarmingService.java          # Cache pre-population
 │   ├── CacheStatisticsService.java       # Cache monitoring
 │   ├── PredictionTrackingService.java    # Accuracy tracking
+│   ├── ModelAccuracyService.java         # Model performance metrics
+│   ├── ModelSelfTrainingService.java     # In-app model training
+│   ├── MatchCompletionService.java       # Match completion processing
+│   ├── MatchResultProcessor.java         # Result processing pipeline
+│   ├── InsightsValidationService.java    # Insights data validation
+│   ├── FeatureRecalculationService.java  # Feature recomputation
+│   ├── HistoricalPredictionGenerator.java # Backfill predictions
 │   ├── SeasonStatsService.java           # Season statistics
+│   ├── SeasonTeamStatsService.java       # Per-season team stats
+│   ├── ApiDataSyncService.java           # API data synchronization
 │   ├── TeamService.java                  # Team CRUD
 │   └── AdminService.java                 # Admin operations
 │
 ├── dto/                                  # Data Transfer Objects
 │   ├── PredictRequest.java
 │   ├── PredictResponse.java
+│   ├── PredictionExplanation.java
 │   ├── PreMatchInsightsResponse.java
 │   ├── TrendingInsightsResponse.java
 │   ├── H2HInsightsResponse.java
 │   ├── LeagueStandingsResponse.java
+│   ├── LeagueStatsResponse.java
 │   ├── TeamStatsResponse.java
+│   ├── TeamFormResponse.java
+│   ├── TeamDTO.java
+│   ├── TeamAnalyticsDto.java
 │   ├── FoulsAnalysisDTO.java             # Fouls & discipline metrics
 │   ├── CornerStatsDTO.java               # Corner statistics
 │   ├── CornerPredictionDTO.java          # Corner match prediction
 │   ├── CardsPredictionDTO.java           # Cards prediction
 │   ├── TeamDisciplineDTO.java            # Team discipline metrics
 │   ├── HalfAnalysisDTO.java              # Half-time analysis
-│   └── dashboard/                        # Dashboard-specific DTOs
+│   ├── ExpectedGoalsDTO.java             # Expected goals (xG)
+│   ├── MatchXGPredictionDTO.java         # Match xG prediction
+│   ├── RefereeStats.java                 # Referee statistics
+│   ├── FixtureCongestionDTO.java         # Fixture congestion data
+│   ├── CongestionComparisonDTO.java      # Congestion comparison
+│   ├── KickoffTimeAnalysisDTO.java       # Kickoff time analysis
+│   ├── KickoffTimeStatsDTO.java          # Kickoff time stats
+│   ├── SeasonStatsResponse.java
+│   ├── SeasonTeamStatsResponse.java
+│   ├── UpcomingPredictionResponse.java
+│   ├── dashboard/                        # Dashboard-specific DTOs
+│   │   ├── ModelAccuracyResponse.java
+│   │   ├── TodaysPredictionsResponse.java
+│   │   ├── TopTeamsResponse.java
+│   │   └── UpcomingMatchesResponse.java
+│   └── external/                         # External API DTOs
+│       ├── FootballApiResponse.java
+│       ├── NewsResponse.java
+│       └── StandingsResponse.java
 │
 ├── config/                               # Configuration
-│   ├── CacheConfig.java                  # Caffeine cache setup
-│   ├── TeamLogoSeeder.java               # Team logo initialization
-│   └── WebConfig.java                    # CORS, static resources
+│   ├── CacheConfig.java                  # Caffeine cache setup (19 caches)
+│   ├── FootballApiConfig.java            # Football-data.org API config
+│   ├── SecurityConfig.java              # Security configuration
+│   ├── RateLimitFilter.java             # API rate limiting
+│   ├── RequestLoggingFilter.java        # Request logging
+│   ├── GlobalExceptionHandler.java      # Global error handling
+│   ├── TeamLogoSeeder.java              # Team logo initialization
+│   ├── WebConfig.java                   # CORS, static resources
+│   └── WekaModelConfig.java             # ML model configuration
 │
 ├── modeltraining/                        # ML Integration
-│   └── ModelTrainingService.java         # Model loading & prediction
+│   ├── ModelTrainingService.java         # Model loading & prediction
+│   ├── StackedEnsembleService.java       # Stacked ensemble model
+│   ├── EnsembleModelService.java         # Ensemble model management
+│   ├── CrossValidationResult.java        # CV result model
+│   ├── GridSearchResult.java             # Grid search result model
+│   └── ModelComparisonResult.java        # Model comparison result
 │
-└── scheduler/                            # Scheduled Tasks
-    └── DataUpdateScheduler.java          # Periodic data refresh
+├── ingestion/                            # Data Ingestion Pipeline
+│   ├── config/
+│   │   └── FeatureFlagService.java       # Feature flags for rollouts
+│   ├── controller/
+│   │   └── IngestionAdminController.java # Ingestion admin API
+│   ├── listener/
+│   │   └── CacheInvalidationListener.java # Cache invalidation on data change
+│   ├── model/
+│   │   ├── IngestionResult.java
+│   │   ├── ShadowValidationResult.java
+│   │   └── UpsertResult.java
+│   ├── orchestrator/
+│   │   ├── IngestionOrchestrator.java    # Main orchestration
+│   │   ├── IngestionRouter.java          # Data routing
+│   │   └── ShadowValidator.java          # Shadow validation
+│   ├── provider/
+│   │   └── legacy/                       # Legacy data providers
+│   └── service/
+│       ├── IdempotentUpsertService.java  # Idempotent data upserts
+│       └── IngestionMetricsService.java  # Ingestion metrics
+│
+├── integration/                          # External Integrations
+│   └── espn/                             # ESPN data integration
+│       ├── client/                       # ESPN API client
+│       ├── dto/                          # ESPN DTOs
+│       ├── mapper/                       # ESPN data mappers
+│       └── service/                      # ESPN service layer
+│
+├── polling/                              # Smart Polling & SSE
+│   ├── controller/
+│   │   └── SyncStatusController.java     # Sync status & manual triggers
+│   ├── dto/
+│   │   ├── MatchDayStatus.java
+│   │   └── SystemStatusResponse.java
+│   ├── listener/
+│   │   └── DashboardRefreshListener.java # Dashboard auto-refresh
+│   ├── model/
+│   │   ├── PollingResult.java
+│   │   └── SyncStatus.java
+│   ├── scheduler/
+│   │   └── DailyMatchPollingJob.java     # Daily polling cron job
+│   ├── service/
+│   │   ├── MatchDayService.java          # Match day status
+│   │   ├── MatchPollingService.java      # Data polling logic
+│   │   └── SmartRetrainService.java      # Smart retrain triggers
+│   └── sse/
+│       ├── MatchCompletionEvent.java     # SSE event model
+│       ├── SseController.java            # SSE endpoints
+│       └── SseEmitterService.java        # SSE emitter management
+│
+├── listener/                             # Application Listeners
+│   ├── PredictionBackfillListener.java   # Backfill on startup
+│   └── StartupDataSyncListener.java      # Data sync on startup
+│
+├── scheduler/                            # Scheduled Tasks
+│   ├── DataUpdateScheduler.java          # Periodic data refresh
+│   └── PredictionRecalculationScheduler.java # Prediction recalculation
+│
+└── util/                                 # Utilities
+    └── SeasonUtils.java                  # Season date utilities
 ```
 
 ---
 
 ## Core Services
+
+### ExpectedGoalsService
+
+Calculates xG statistics and match predictions using a shots-on-target proxy model.
+
+```java
+public class ExpectedGoalsService {
+
+    public ExpectedGoalsDTO getExpectedGoals(String teamName) {
+        // xG = avgShotsOnTarget × league conversion rate (0.28)
+        // Over/underperformance = actualGoals - xG
+        // Team-specific conversion rate for comparison
+    }
+
+    public MatchXGPredictionDTO predictXG(String homeTeam, String awayTeam) {
+        // Match xG with home advantage factor (1.10×)
+        // Over/under goal probabilities
+    }
+}
+```
+
+### RefereeStatsService
+
+Computes referee statistics from match history.
+
+```java
+public class RefereeStatsService {
+
+    public RefereeStats getRefereeStats(String refereeName) {
+        // Average yellow/red cards per match
+        // Strictness relative to league average
+        // Result distribution
+    }
+
+    public List<RefereeStats> getStrictestReferees() { ... }
+    public List<RefereeStats> getLenientReferees() { ... }
+}
+```
+
+### FixtureCongestionService
+
+Analyzes fixture congestion and fatigue impact.
+
+```java
+public class FixtureCongestionService {
+
+    public FixtureCongestionDTO analyzeFixtureCongestion(String teamName, LocalDate asOfDate) {
+        // Fatigue index (0-100)
+        // Win rate by rest period (short/normal/long)
+    }
+
+    public CongestionComparisonDTO compareCongestion(String home, String away) {
+        // Head-to-head fatigue comparison
+        // Advantage detection
+    }
+}
+```
+
+### KickoffTimeService
+
+Analyzes team performance by kick-off time slot.
+
+```java
+public class KickoffTimeService {
+
+    public KickoffTimeAnalysisDTO analyzeByKickoffTime(String teamName) {
+        // Time slots: Early (12-13:30), Afternoon (14-16), Late (16:30-18:30), Evening (19-21)
+        // Win/draw/loss breakdown per slot
+        // Strong/Average/Weak classification
+    }
+}
+```
 
 ### ShotQualityService
 
@@ -284,10 +511,6 @@ public class ShotQualityService {
         // Shot accuracy percentage
         // Conversion rate (goals/shots)
         // Last 10 matches trend data
-    }
-
-    public ShotQualityDTO getSplitShotQuality(String teamName) {
-        // Returns home and away metrics separately
     }
 }
 ```
@@ -303,20 +526,8 @@ public class ShotQualityService {
 
 Analyzes team discipline and foul patterns.
 
-```java
-public class FoulsAnalysisService {
-
-    public FoulsAnalysisDTO getFoulsAnalysis(String teamName, Boolean isHome) {
-        // Discipline score (0-10)
-        // Fouls committed/drawn averages
-        // Win rate by foul count
-    }
-}
-```
-
 **Discipline Score Calculation:**
 ```java
-// Lower fouls = higher discipline score
 double normalizedFouls = (maxFouls - avgFouls) / (maxFouls - minFouls);
 disciplineScore = normalizedFouls * 10;
 ```
@@ -324,23 +535,6 @@ disciplineScore = normalizedFouls * 10;
 ### CornerStatsService
 
 Calculates corner kick statistics and match predictions.
-
-```java
-public class CornerStatsService {
-
-    public CornerStatsDTO getCornerStats(String teamName, Boolean isHome) {
-        // Average corners won/conceded
-        // Corner dominance percentage
-        // Weighted average with recency decay
-    }
-
-    public CornerPredictionDTO predictCorners(String homeTeam, String awayTeam) {
-        // Expected total corners
-        // Home vs Away corner breakdown
-        // Over/under probabilities (9.5, 10.5, 11.5)
-    }
-}
-```
 
 **Key Metrics:**
 | Metric | Formula |
@@ -353,23 +547,6 @@ public class CornerStatsService {
 
 Predicts yellow/red cards with referee influence.
 
-```java
-public class CardsPredictionService {
-
-    public CardsPredictionDTO predictCards(String home, String away, String referee) {
-        // Expected yellow cards per team
-        // Red card probability
-        // Risk level (HIGH/MEDIUM/LOW)
-    }
-
-    public TeamDisciplineDTO getTeamDiscipline(String teamName) {
-        // Discipline rating (0-10)
-        // Recent bookings summary
-        // Card trends
-    }
-}
-```
-
 **Key Metrics:**
 | Metric | Formula |
 |--------|---------|
@@ -380,18 +557,6 @@ public class CardsPredictionService {
 ### HalfAnalysisService
 
 Analyzes team performance by half (first vs second).
-
-```java
-public class HalfAnalysisService {
-
-    public HalfAnalysisDTO analyzeByHalf(String teamName) {
-        // First/second half goal percentages
-        // Win rates from HT positions
-        // Comeback rate
-        // Pattern classification
-    }
-}
-```
 
 **Key Metrics:**
 | Metric | Description |
@@ -408,10 +573,8 @@ All trending insights are **strictly season-scoped**:
 @Cacheable(value = "trendingInsights", key = "#season")
 public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
     Set<String> seasonTeams = getTeamsForSeason(season);
-
     List<HotTeam> hotTeams = calculateHotTeams(seasonTeams, beforeDate, season);
     List<ColdTeam> coldTeams = calculateColdTeams(seasonTeams, beforeDate, season);
-    // ...
 }
 ```
 
@@ -436,78 +599,179 @@ public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
 
 ## API Endpoints
 
-### Prediction Endpoints
+### Prediction Endpoints (PredictionController - `/api`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/predict` | POST | Predict match outcome |
-| `/api/predict/batch` | POST | Batch predictions |
+| `/api/h2h` | GET | Head-to-head analysis |
+| `/api/insights/trending` | GET | Season trending insights |
+| `/api/insights/seasons` | GET | Available seasons |
+| `/api/predictions` | GET | Historical predictions |
+| `/api/predictions/today` | GET | Today's predictions |
+| `/api/matches/history` | GET | Match history |
+| `/api/matches/{id}` | GET | Match details |
+| `/api/matches/upcoming` | GET | Upcoming matches |
 
-### Analytics Endpoints
+### Model Management Endpoints (PredictionController - `/api`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/analytics/pre-match` | GET | Pre-match insights |
-| `/api/analytics/trends` | GET | Season trending insights |
-| `/api/analytics/h2h` | GET | Head-to-head analysis |
+| `/api/model/train` | POST | Train basic model |
+| `/api/model/train/advanced` | POST | Train with advanced settings |
+| `/api/model/train/cv` | POST | Train with cross-validation |
+| `/api/model/train/boosting` | POST | Train with boosting |
+| `/api/model/train/ensemble` | POST | Train ensemble model |
+| `/api/model/train/stacked` | POST | Train stacked ensemble |
+| `/api/model/grid-search` | POST | Grid search hyperparameters |
+| `/api/model/compare` | GET | Compare model types |
+| `/api/model/status` | GET | Model status |
+| `/api/model/accuracy` | GET | Model accuracy |
+| `/api/model/performance` | GET | Detailed performance |
+| `/api/model/feature-importance` | GET | Feature importance |
+| `/api/model/sliding-accuracy` | GET | Sliding window accuracy |
+| `/api/model/temporal-cv` | GET | Temporal cross-validation |
+| `/api/model/retraining-history` | GET | Retraining history |
+| `/api/model/evaluations` | GET | Evaluation history |
+| `/api/model/retrain` | POST | Trigger retraining |
+| `/api/model/train-smote` | POST | Train with SMOTE |
 
-### Team Statistics Endpoints
+### Team Statistics Endpoints (TeamStatsController - `/api/teams`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/teams/{name}/stats` | GET | Team statistics |
+| `/api/teams/{name}/analytics` | GET | Full team analytics |
 | `/api/teams/{name}/shot-quality` | GET | Shot quality metrics |
 | `/api/teams/{name}/fouls-analysis` | GET | Fouls & discipline |
 | `/api/teams/{name}/corner-stats` | GET | Corner statistics |
 | `/api/teams/{name}/half-analysis` | GET | Half-time analysis |
+| `/api/teams/{name}/expected-goals` | GET | Expected goals (xG) |
+| `/api/teams/{name}/expected-goals/split` | GET | xG home/away split |
+| `/api/teams/{name}/kickoff-analysis` | GET | Kickoff time analysis |
+| `/api/teams/{name}/fixture-congestion` | GET | Fixture congestion |
 | `/api/teams/{name}/discipline` | GET | Team discipline metrics |
+| `/api/teams/logos` | GET | All team logos |
+| `/api/teams/search` | GET | Search teams |
+| `/api/teams/summary` | GET | All teams summary |
+| `/api/teams/compare` | GET | Compare two teams |
 
-### Corner & Cards Prediction Endpoints
+### Match Prediction Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/matches/predict-corners` | GET | Corner prediction for match |
-| `/api/matches/predict-cards` | GET | Cards prediction for match |
+| `/api/matches/predict-corners` | GET | Corner prediction |
+| `/api/matches/predict-cards` | GET | Cards prediction |
+| `/api/matches/predict-xg` | GET | xG prediction |
+| `/api/matches/congestion-comparison` | GET | Fatigue comparison |
 
-### Dashboard Endpoints
+### Referee Endpoints (RefereeController - `/api/referees`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/referees` | GET | All referee names |
+| `/api/referees/stats` | GET | All referee statistics |
+| `/api/referees/{name}` | GET | Specific referee stats |
+| `/api/referees/strictest` | GET | Strictest referees |
+| `/api/referees/lenient` | GET | Most lenient referees |
+
+### Season Endpoints (SeasonsController - `/api/seasons`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/seasons` | GET | All available seasons |
+| `/api/seasons/{year}/stats` | GET | Season statistics |
+
+### Season Team Stats (SeasonTeamStatsController - `/api/season`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/season/{id}/team/{teamId}/stats` | GET | Team stats for season |
+| `/api/season/{id}/team/stats` | GET | All team stats for season |
+| `/api/season/{id}/stats` | GET | Season overview stats |
+| `/api/season/{id}/elo-rankings` | GET | Elo rankings |
+| `/api/season/{id}/form-rankings` | GET | Form rankings |
+| `/api/season/{id}/winning-streaks` | GET | Winning streaks |
+| `/api/season/{id}/losing-streaks` | GET | Losing streaks |
+| `/api/season/{id}/recalculate` | POST | Recalculate stats |
+| `/api/season/team/{teamId}/history` | GET | Team history across seasons |
+
+### Dashboard Endpoints (PredictionController - `/api/dashboard`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/dashboard/upcoming-matches` | GET | Upcoming fixtures |
 | `/api/dashboard/league-standings` | GET | League table |
+| `/api/dashboard/todays-predictions` | GET | Today's predictions |
+| `/api/dashboard/top-teams` | GET | Top performing teams |
 | `/api/dashboard/model-accuracy` | GET | Model accuracy stats |
+| `/api/dashboard/stats` | GET | Dashboard statistics |
+| `/api/dashboard/accuracy` | GET | Accuracy overview |
+| `/api/dashboard/activity` | GET | Recent activity |
+| `/api/dashboard/available-leagues` | GET | Available leagues |
+| `/api/dashboard/available-seasons` | GET | Available seasons |
 
-### Admin Endpoints (Authenticated)
+### Cache Management Endpoints (PredictionController - `/api/cache`)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/admin/verify` | GET | Verify credentials |
-| `/api/admin/dashboard` | GET | Admin stats |
-| `/api/admin/toggle-engine` | POST | Toggle predictions |
-| `/api/admin/retrain` | POST | Trigger retraining |
+| `/api/cache/clear` | POST | Clear all caches |
+| `/api/cache/clear/{name}` | POST | Clear specific cache |
+| `/api/cache/status` | GET | Cache status |
+| `/api/cache/warmup` | GET/POST | Cache warm-up |
+| `/api/cache/stats/{name}` | GET | Cache statistics |
+| `/api/cache/invalidate/{name}` | POST | Invalidate cache |
+
+### Data Management Endpoints (PredictionController - `/api/data`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/data/reload` | POST | Reload data |
+| `/api/data/reset` | POST | Reset data |
+| `/api/data/update` | POST | Update data |
+
+### Polling & SSE Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/events/match-completion` | GET (SSE) | Match completion event stream |
+| `/api/events/match-completion/{date}` | GET (SSE) | Date-specific event stream |
+| `/api/events/status` | GET | SSE connection status |
+| `/api/sync-status` | GET | Sync status |
+| `/api/sync-status/detailed` | GET | Detailed sync status |
+| `/api/match-day-status` | GET | Match day status |
+| `/api/system-status` | GET | System health |
+| `/api/poll/trigger` | POST | Manual poll trigger |
+| `/api/poll/trigger-with-retrain` | POST | Poll + retrain |
+| `/api/retrain/trigger` | POST | Manual retrain |
+| `/api/retrain/status` | GET | Retrain status |
+| `/api/retrain/pending-data` | GET | Pending data for retrain |
 
 ---
 
 ## Caching Configuration
 
 ```java
-// CacheConfig.java - 16 cache definitions
-public static final String CACHE_STANDINGS = "standings";           // 5 min TTL
-public static final String CACHE_MATCHES = "matches";               // 5 min TTL
-public static final String CACHE_NEWS = "news";                     // 15 min TTL
-public static final String CACHE_PREDICTIONS = "predictions";       // 1 min TTL
-public static final String CACHE_TEAM_STATS = "teamStats";         // 10 min TTL
-public static final String CACHE_TEAM_FORM = "teamForm";           // 10 min TTL
-public static final String CACHE_TEAM_LOGOS = "teamLogos";         // 60 min TTL
-public static final String CACHE_SHOT_QUALITY = "shotQuality";     // 10 min TTL
-public static final String CACHE_FOULS_ANALYSIS = "foulsAnalysis"; // 10 min TTL
-public static final String CACHE_H2H_INSIGHTS = "h2hInsights";     // 10 min TTL
-public static final String CACHE_TRENDING_INSIGHTS = "trendingInsights";  // 5 min TTL
-public static final String CACHE_API_RESPONSES = "apiResponses";   // 5 min TTL
-public static final String CACHE_SEASONS = "seasons";              // 60 min TTL
-public static final String CACHE_SEASON_STATS = "seasonStats";     // 30 min TTL
-public static final String CACHE_TEAM_ANALYTICS = "teamAnalytics"; // 15 min TTL
+// CacheConfig.java - 19 cache definitions
+public static final String CACHE_TEAM_ANALYTICS = "teamAnalytics";         // 15 min TTL
 public static final String CACHE_PRE_MATCH_INSIGHTS = "preMatchInsights";  // 10 min TTL
+public static final String CACHE_LEAGUE_STATS = "leagueStats";             // 10 min TTL
+public static final String CACHE_ELO_RATINGS = "eloRatings";               // 10 min TTL
+public static final String CACHE_SHOT_QUALITY = "shotQuality";             // 10 min TTL
+public static final String CACHE_FOULS_ANALYSIS = "foulsAnalysis";         // 10 min TTL
+public static final String CACHE_CORNER_STATS = "cornerStats";             // 10 min TTL
+public static final String CACHE_CORNER_PREDICTION = "cornerPrediction";   // 10 min TTL
+public static final String CACHE_CARDS_PREDICTION = "cardsPrediction";     // 10 min TTL
+public static final String CACHE_TEAM_DISCIPLINE = "teamDiscipline";       // 10 min TTL
+public static final String CACHE_HALF_ANALYSIS = "halfAnalysis";           // 10 min TTL
+public static final String CACHE_EXPECTED_GOALS = "expectedGoals";         // 10 min TTL
+public static final String CACHE_XG_PREDICTION = "xgPrediction";           // 10 min TTL
+public static final String CACHE_KICKOFF_TIME_ANALYSIS = "kickoffTimeAnalysis"; // 10 min TTL
+public static final String CACHE_FIXTURE_CONGESTION = "fixtureCongestion"; // 10 min TTL
+public static final String CACHE_API_SYNC = "apiSync";                     // 5 min TTL
+public static final String CACHE_REFEREE_STATS = "refereeStats";           // 10 min TTL
+public static final String CACHE_ALL_REFEREES = "allReferees";             // 10 min TTL
+public static final String CACHE_ALL_REFEREE_STATS = "allRefereeStats";   // 10 min TTL
 ```
 
 ### Cache Warming
@@ -532,7 +796,6 @@ public void warmCaches() {
 ```java
 public static String getConfidence(double[] probabilities) {
     double maxProb = Arrays.stream(probabilities).max().orElse(0);
-
     if (maxProb >= 0.55) return "HIGH";
     if (maxProb >= 0.45) return "MEDIUM";
     return "LOW";
@@ -545,16 +808,12 @@ public static String getConfidence(double[] probabilities) {
 private List<HotTeam> calculateHotTeams(Set<String> teams, LocalDate beforeDate, String season) {
     for (String team : teams) {
         List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
-
         if (matches.size() < HOT_FORM_WINDOW) continue;  // Min 5 matches required
-
         int winStreak = calcWinStreak(matches, team);
-
         if (winStreak >= HOT_STREAK_THRESHOLD) {  // 3+ consecutive wins
             hotTeams.add(buildHotTeam(team, matches, winStreak));
         }
     }
-
     return hotTeams.stream().limit(TOP_N_RESULTS).toList();  // LIMIT 5
 }
 ```
@@ -569,7 +828,6 @@ private List<HotTeam> calculateHotTeams(Set<String> teams, LocalDate beforeDate,
 
 ```java
 Map<String, List<Match>> matchCache = new HashMap<>();
-
 for (String team : teams) {
     List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
     matchCache.put(team, matches);  // Cache for reuse
@@ -581,7 +839,6 @@ for (String team : teams) {
 ```java
 Map<String, String> teamLogos = teamRepository.findAll().stream()
     .collect(Collectors.toMap(Team::getName, Team::getLogoUrl));
-
 for (Match match : matches) {
     String homeLogo = teamLogos.get(match.getHomeTeam());  // O(1) lookup
 }
@@ -651,11 +908,23 @@ if (request.getHomeTeam() == null || request.getHomeTeam().isBlank()) {
 
 | Test Class | Coverage |
 |------------|----------|
-| `PredictionControllerTest` | Prediction endpoints |
-| `TrendingInsightsServiceTest` | Season-aware insights |
-| `ShotQualityServiceTest` | Shot quality calculations |
-| `FoulsAnalysisServiceTest` | Fouls analysis |
-| `PossessionProxyCalculatorTest` | Possession estimation |
+| `TrendingInsightsServiceTest` | Season-aware trending insights |
+| `PreMatchInsightsServiceTest` | Pre-match analysis |
+| `FoulsAnalysisServiceTest` | Fouls & discipline |
+| `CardsPredictionServiceTest` | Cards prediction |
+| `HalfAnalysisServiceTest` | Half-time analysis |
+| `HalfAnalysisControllerTest` | Controller integration |
+| `EloPredictionServiceTest` | Elo prediction logic |
+| `ModelAccuracyServiceTest` | Model accuracy tracking |
+| `TeamAnalyticsServiceTest` | Team analytics |
+| `TeamStatsServiceTest` | Team statistics |
+| `H2HInsightsServiceTest` | H2H analysis |
+| `LeagueStandingServiceTest` | League standings |
+| `InsightsValidationServiceTest` | Data validation |
+| `MatchCompletionServiceTest` | Match completion |
+| `ApiDataSyncServiceTest` | API sync |
+| `DailyPollingSystemTest` | Polling system |
+| `SystemStatusApiTest` | System status API |
 
 ### Test Scenarios
 
@@ -722,14 +991,13 @@ scheduler.cron=0 0 6 * * MON,FRI
 
 | Metric | Value |
 |--------|-------|
-| Lines of Code | ~15,000 |
-| Controllers | 8 |
-| Services | 20 |
-| REST Endpoints | 45+ |
-| Cache Definitions | 16 |
-| DTOs | 25+ |
+| Controllers | 5 (main) + 3 (polling/ingestion/SSE) |
+| Services | 37+ |
+| REST Endpoints | 70+ |
+| Cache Definitions | 19 |
+| DTOs | 30+ |
+| Config Classes | 9 |
 
 ---
 
 **[← Back to Main README](../README.md)**
-

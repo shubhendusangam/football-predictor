@@ -50,14 +50,15 @@ public class CsvIngestionService {
 
       for (String path : paths) {
          String trimmed = path.trim();
-         log.info("Ingesting CSV: {}", trimmed);
+         log.debug("Ingesting CSV: {}", trimmed);
          int count = ingestFile(trimmed);
-         log.info("  → {} new matches loaded from {}", count, trimmed);
+         log.debug("  → {} new matches loaded from {}", count, trimmed);
          totalLoaded += count;
       }
 
       // Log final DB state after ingestion finishes.
-      log.info("CSV ingestion complete. Total matches in DB: {}", matchRepository.count());
+      log.info("CSV ingestion complete: {} files processed, {} new matches loaded, {} total in DB",
+            paths.length, totalLoaded, matchRepository.count());
    }
 
    /**
@@ -69,12 +70,12 @@ public class CsvIngestionService {
     */
    public int ingestFile(String classpathLocation) {
       long start = System.currentTimeMillis();
-      log.info("Starting ingestion: {}", classpathLocation);
+      log.debug("Starting ingestion: {}", classpathLocation);
 
       // Extract season from filename
       String season = extractSeasonFromFilename(classpathLocation);
       if (season != null) {
-         log.info("Detected season: {}", season);
+         log.debug("Detected season: {}", season);
       }
 
       List<Match> toSave = new ArrayList<>();
@@ -131,7 +132,7 @@ public class CsvIngestionService {
       }
 
       long duration = System.currentTimeMillis() - start;
-      log.info("Finished ingestion: {} → {} saved, {} skipped, {}ms",
+      log.debug("Finished ingestion: {} → {} saved, {} skipped, {}ms",
             classpathLocation, toSave.size(), skippedCount, duration);
 
       matchRepository.saveAll(toSave);
@@ -150,21 +151,163 @@ public class CsvIngestionService {
 
       for (String path : paths) {
          String trimmed = path.trim();
-         log.info("Updating fouls data from CSV: {}", trimmed);
+         log.debug("Updating fouls data from CSV: {}", trimmed);
          int count = updateFoulsFromFile(trimmed);
-         log.info("  → {} matches updated with fouls data from {}", count, trimmed);
+         log.debug("  → {} matches updated with fouls data from {}", count, trimmed);
          totalUpdated += count;
       }
 
-      log.info("Fouls data update complete. Total updated: {}", totalUpdated);
+      log.info("Fouls data update complete: {} files processed, {} matches updated", paths.length, totalUpdated);
       return totalUpdated;
+   }
+
+   /**
+    * Enriches existing matches with missing statistics from CSV files.
+    *
+    * <p>When matches are inserted via the external API (football-data.org), they only
+    * contain scores (FTHG, FTAG, HTHG, HTAG) but NOT detailed match statistics
+    * (shots, shots on target, corners, cards, fouls, etc.). This method re-reads
+    * the CSV files and fills in any missing statistics for those matches.</p>
+    *
+    * <p>This is essential for features like Expected Goals (xG), Corner Stats,
+    * Shot Quality, etc. that depend on detailed match statistics.</p>
+    *
+    * @return Number of matches enriched with statistics
+    */
+   public int enrichMissingStats() {
+      String[] paths = csvPaths.split(",");
+      int totalEnriched = 0;
+
+      for (String path : paths) {
+         String trimmed = path.trim();
+         int count = enrichStatsFromFile(trimmed);
+         if (count > 0) {
+            log.debug("  → {} matches enriched with statistics from {}", count, trimmed);
+         }
+         totalEnriched += count;
+      }
+
+      if (totalEnriched > 0) {
+         log.info("Stats enrichment complete. Total matches enriched: {}", totalEnriched);
+      } else {
+         log.debug("Stats enrichment complete. No matches needed enrichment.");
+      }
+      return totalEnriched;
+   }
+
+   /**
+    * Enriches existing matches from a single CSV with missing statistics.
+    * Checks for missing: HS, AS, HST, AST, HC, AC, HY, AY, HR, AR, HF, AF.
+    * Only updates matches that exist in DB but lack these stats.
+    */
+   private int enrichStatsFromFile(String classpathLocation) {
+      List<Match> toUpdate = new ArrayList<>();
+
+      try (CSVReader reader = new CSVReader(new InputStreamReader(new ClassPathResource(classpathLocation).getInputStream()))) {
+
+         String[] headers = reader.readNext();
+         if (headers == null) return 0;
+
+         Map<String, Integer> colIndex = buildColumnIndex(headers);
+
+         // Need at least some stats columns to be useful
+         boolean hasAnyStats = colIndex.containsKey("HS") || colIndex.containsKey("HST") ||
+                               colIndex.containsKey("HC") || colIndex.containsKey("HY") ||
+                               colIndex.containsKey("HF");
+         if (!hasAnyStats) return 0;
+
+         String[] row;
+         int lineNum = 1;
+
+         while ((row = reader.readNext()) != null) {
+            lineNum++;
+            if (row.length < 8 || row[0].isBlank()) continue;
+
+            try {
+               LocalDate date = parseDate(getString(row, colIndex, "Date"));
+               if (date == null) continue;
+
+               String homeTeam = getString(row, colIndex, "HomeTeam");
+               String awayTeam = getString(row, colIndex, "AwayTeam");
+               if (homeTeam == null || awayTeam == null) continue;
+
+               Match existing = matchRepository.findByMatchDateAndHomeTeamAndAwayTeam(date, homeTeam, awayTeam);
+               if (existing == null) continue;
+
+               // Check if any stats are missing on the existing match
+               boolean updated = false;
+
+               if (existing.getHomeShots() == null && colIndex.containsKey("HS")) {
+                  Integer hs = getInt(row, colIndex, "HS");
+                  Integer as = getInt(row, colIndex, "AS");
+                  if (hs != null) { existing.setHomeShots(hs); existing.setAwayShots(as); updated = true; }
+               }
+               if (existing.getHomeShotsOnTarget() == null && colIndex.containsKey("HST")) {
+                  Integer hst = getInt(row, colIndex, "HST");
+                  Integer ast = getInt(row, colIndex, "AST");
+                  if (hst != null) { existing.setHomeShotsOnTarget(hst); existing.setAwayShotsOnTarget(ast); updated = true; }
+               }
+               if (existing.getHomeCorners() == null && colIndex.containsKey("HC")) {
+                  Integer hc = getInt(row, colIndex, "HC");
+                  Integer ac = getInt(row, colIndex, "AC");
+                  if (hc != null) { existing.setHomeCorners(hc); existing.setAwayCorners(ac); updated = true; }
+               }
+               if (existing.getHomeYellowCards() == null && colIndex.containsKey("HY")) {
+                  Integer hy = getInt(row, colIndex, "HY");
+                  Integer ay = getInt(row, colIndex, "AY");
+                  if (hy != null) { existing.setHomeYellowCards(hy); existing.setAwayYellowCards(ay); updated = true; }
+               }
+               if (existing.getHomeRedCards() == null && colIndex.containsKey("HR")) {
+                  Integer hr = getInt(row, colIndex, "HR");
+                  Integer ar = getInt(row, colIndex, "AR");
+                  if (hr != null) { existing.setHomeRedCards(hr); existing.setAwayRedCards(ar); updated = true; }
+               }
+               if (existing.getHomeFouls() == null && colIndex.containsKey("HF")) {
+                  Integer hf = getInt(row, colIndex, "HF");
+                  Integer af = getInt(row, colIndex, "AF");
+                  if (hf != null) { existing.setHomeFouls(hf); existing.setAwayFouls(af); updated = true; }
+               }
+               if (existing.getHalfTimeHomeGoals() == null && colIndex.containsKey("HTHG")) {
+                  Integer hthg = getInt(row, colIndex, "HTHG");
+                  Integer htag = getInt(row, colIndex, "HTAG");
+                  String htr = getString(row, colIndex, "HTR");
+                  if (hthg != null) { existing.setHalfTimeHomeGoals(hthg); existing.setHalfTimeAwayGoals(htag); existing.setHalfTimeResult(htr); updated = true; }
+               }
+               if (existing.getReferee() == null && colIndex.containsKey("Referee")) {
+                  String ref = getString(row, colIndex, "Referee");
+                  if (ref != null) { existing.setReferee(ref); updated = true; }
+               }
+               if (existing.getKickoffTime() == null && colIndex.containsKey("Time")) {
+                  String time = getString(row, colIndex, "Time");
+                  if (time != null) { existing.setKickoffTime(time); updated = true; }
+               }
+
+               if (updated) {
+                  toUpdate.add(existing);
+               }
+
+            } catch (Exception e) {
+               log.warn("Skipping row {} in {} during stats enrichment: {}", lineNum, classpathLocation, e.getMessage());
+            }
+         }
+
+      } catch (IOException | CsvValidationException e) {
+         log.error("Failed to read CSV {} during stats enrichment: {}", classpathLocation, e.getMessage());
+         return 0;
+      }
+
+      if (!toUpdate.isEmpty()) {
+         matchRepository.saveAll(toUpdate);
+      }
+
+      return toUpdate.size();
    }
 
    /**
     * Update fouls data for matches from a single CSV file.
     */
    private int updateFoulsFromFile(String classpathLocation) {
-      log.info("Updating fouls data from: {}", classpathLocation);
+      log.debug("Updating fouls data from: {}", classpathLocation);
 
       List<Match> toUpdate = new ArrayList<>();
 
@@ -180,7 +323,7 @@ public class CsvIngestionService {
 
          // Check if HF/AF columns exist in this CSV
          if (!colIndex.containsKey("HF") || !colIndex.containsKey("AF")) {
-            log.info("CSV {} does not contain HF/AF columns, skipping", classpathLocation);
+            log.debug("CSV {} does not contain HF/AF columns, skipping", classpathLocation);
             return 0;
          }
 
@@ -231,7 +374,7 @@ public class CsvIngestionService {
 
       if (!toUpdate.isEmpty()) {
          matchRepository.saveAll(toUpdate);
-         log.info("Updated {} matches with fouls data from {}", toUpdate.size(), classpathLocation);
+         log.debug("Updated {} matches with fouls data from {}", toUpdate.size(), classpathLocation);
       }
 
       return toUpdate.size();
@@ -288,6 +431,7 @@ public class CsvIngestionService {
             .fullTimeResult(ftr)
             .season(season)  // Set season from filename
             .referee(getString(row, col, "Referee"))
+            .kickoffTime(getString(row, col, "Time"))
             // Optional Phase 1
             .halfTimeHomeGoals(getInt(row, col, "HTHG"))
             .halfTimeAwayGoals(getInt(row, col, "HTAG"))

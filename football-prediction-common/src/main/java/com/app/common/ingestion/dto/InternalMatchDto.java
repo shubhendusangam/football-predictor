@@ -128,6 +128,12 @@ public class InternalMatchDto {
      */
     private String venue;
 
+    /**
+     * Kick-off time (e.g., "15:00", "20:00").
+     * Extracted from UTC date or CSV Time column.
+     */
+    private String kickoffTime;
+
     // ══════════════════════════════════════════════════════════════
     // Statistics (optional, may be null)
     // ══════════════════════════════════════════════════════════════

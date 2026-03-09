@@ -1,0 +1,580 @@
+/* ==========================================
+   EXPECTED GOALS (xG) CARD STYLES
+   Football Forecaster - xG Component
+   ========================================== */
+
+/* ==========================================
+   CARD BASE STYLES
+   ========================================== */
+
+.xg-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.4));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.xg-card:hover {
+    box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.5));
+    border-color: var(--accent-orange, #f97316);
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   HEADER STYLES
+   ========================================== */
+
+.xg-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.xg-card__title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.xg-card__venue-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.xg-card__venue-badge--home {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.xg-card__venue-badge--away {
+    background-color: rgba(59, 130, 246, 0.15);
+    color: var(--accent-blue, #3b82f6);
+}
+
+.xg-card__venue-badge--all {
+    background-color: rgba(168, 85, 247, 0.15);
+    color: var(--accent-purple, #a855f7);
+}
+
+/* ==========================================
+   SECTION TITLE
+   ========================================== */
+
+.xg-card__section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ==========================================
+   ANIMATED COUNTER SECTION
+   ========================================== */
+
+.xg-card__counter-section {
+    padding: 1rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color, #334155);
+}
+
+.xg-card__counter-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+    text-align: center;
+}
+
+.xg-card__counter-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: center;
+}
+
+.xg-card__counter-item--diff {
+    border-left: 1px solid var(--border-color, #334155);
+    padding-left: 1rem;
+}
+
+.xg-card__counter-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.xg-card__counter-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.3s ease;
+}
+
+.xg-card__counter-value--xg {
+    color: var(--accent-blue, #3b82f6);
+}
+
+.xg-card__counter-value--actual {
+    color: var(--accent-green, #22c55e);
+}
+
+.xg-card__counter-value--strong-over {
+    color: var(--accent-green, #22c55e);
+}
+
+.xg-card__counter-value--slight-over {
+    color: #86efac;
+}
+
+.xg-card__counter-value--neutral {
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.xg-card__counter-value--slight-under {
+    color: #fca5a5;
+}
+
+.xg-card__counter-value--strong-under {
+    color: var(--accent-red, #ef4444);
+}
+
+.xg-card__counter-sublabel {
+    font-size: 0.7rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* ==========================================
+   PERFORMANCE BADGE
+   ========================================== */
+
+.xg-card__performance-badge {
+    padding: 0.15rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.65rem !important;
+    font-weight: 600;
+}
+
+.xg-card__performance-badge--strong-over {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.xg-card__performance-badge--slight-over {
+    background-color: rgba(134, 239, 172, 0.15);
+    color: #86efac;
+}
+
+.xg-card__performance-badge--neutral {
+    background-color: rgba(148, 163, 184, 0.15);
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.xg-card__performance-badge--slight-under {
+    background-color: rgba(252, 165, 165, 0.15);
+    color: #fca5a5;
+}
+
+.xg-card__performance-badge--strong-under {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red, #ef4444);
+}
+
+/* ==========================================
+   COMPARISON BAR STYLES
+   ========================================== */
+
+.xg-card__comparison {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.xg-card__bar-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+}
+
+.xg-card__bar-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.xg-card__bar-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.xg-card__bar-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    font-variant-numeric: tabular-nums;
+}
+
+.xg-card__bar-container {
+    height: 8px;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.xg-card__bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.xg-card__bar--xg {
+    background: linear-gradient(90deg, var(--accent-blue, #3b82f6), #60a5fa);
+}
+
+.xg-card__bar--actual {
+    background: linear-gradient(90deg, var(--accent-green, #22c55e), #4ade80);
+}
+
+/* ==========================================
+   LEAGUE COMPARISON
+   ========================================== */
+
+.xg-card__league-comparison {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.375rem;
+    font-size: 0.8rem;
+}
+
+.xg-card__league-comparison-label {
+    color: var(--text-muted, #64748b);
+}
+
+.xg-card__league-comparison-value--positive {
+    color: var(--accent-green, #22c55e);
+    font-weight: 600;
+}
+
+.xg-card__league-comparison-value--negative {
+    color: var(--accent-red, #ef4444);
+    font-weight: 600;
+}
+
+.xg-card__league-comparison-value--neutral {
+    color: var(--text-secondary, #cbd5e1);
+    font-weight: 600;
+}
+
+/* ==========================================
+   CONVERSION RATE STYLES
+   ========================================== */
+
+.xg-card__conversion {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.xg-card__conversion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.xg-card__conversion-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.xg-card__conversion-value {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.xg-card__conversion-value--above {
+    color: var(--accent-green, #22c55e);
+}
+
+.xg-card__conversion-value--below {
+    color: var(--accent-red, #ef4444);
+}
+
+.xg-card__conversion-value--average {
+    color: var(--text-secondary, #cbd5e1);
+}
+
+.xg-card__conversion-bar-container {
+    height: 8px;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 4px;
+    overflow: visible;
+    position: relative;
+}
+
+.xg-card__conversion-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.xg-card__conversion-bar--above {
+    background: linear-gradient(90deg, var(--accent-green, #22c55e), #4ade80);
+}
+
+.xg-card__conversion-bar--below {
+    background: linear-gradient(90deg, var(--accent-red, #ef4444), #f87171);
+}
+
+.xg-card__conversion-bar--average {
+    background: linear-gradient(90deg, var(--accent-yellow, #fbbf24), #fcd34d);
+}
+
+.xg-card__conversion-marker {
+    position: absolute;
+    top: -6px;
+    transform: translateX(-50%);
+    width: 2px;
+    height: 20px;
+    background: var(--text-muted, #64748b);
+}
+
+.xg-card__conversion-marker-label {
+    position: absolute;
+    top: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.6rem;
+    color: var(--text-muted, #64748b);
+    white-space: nowrap;
+}
+
+.xg-card__conversion-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.65rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* ==========================================
+   DEFENSIVE XG SECTION
+   ========================================== */
+
+.xg-card__defensive {
+    padding: 0.75rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+}
+
+.xg-card__defensive-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.xg-card__defensive-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: center;
+}
+
+.xg-card__defensive-label {
+    font-size: 0.7rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.xg-card__defensive-value {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* ==========================================
+   STATS GRID
+   ========================================== */
+
+.xg-card__stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.xg-card__stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    text-align: center;
+}
+
+.xg-card__stat-icon {
+    font-size: 1.25rem;
+}
+
+.xg-card__stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.xg-card__stat-label {
+    font-size: 0.65rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* ==========================================
+   FOOTER / CONFIDENCE
+   ========================================== */
+
+.xg-card__footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color, #334155);
+}
+
+.xg-card__confidence {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+.xg-card__confidence--high {
+    background-color: rgba(34, 197, 94, 0.15);
+    color: var(--accent-green, #22c55e);
+}
+
+.xg-card__confidence--medium {
+    background-color: rgba(251, 191, 36, 0.15);
+    color: var(--accent-yellow, #fbbf24);
+}
+
+.xg-card__confidence--low {
+    background-color: rgba(239, 68, 68, 0.15);
+    color: var(--accent-red, #ef4444);
+}
+
+/* ==========================================
+   LOADING STATE
+   ========================================== */
+
+.xg-card--loading {
+    opacity: 0.7;
+}
+
+.xg-card__skeleton {
+    background: linear-gradient(90deg, var(--bg-tertiary, #0f172a) 25%, rgba(255, 255, 255, 0.05) 50%, var(--bg-tertiary, #0f172a) 75%);
+    background-size: 200% 100%;
+    animation: xg-skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 0.375rem;
+}
+
+.xg-card__skeleton--title {
+    height: 1.5rem;
+    width: 60%;
+}
+
+.xg-card__skeleton--counter {
+    height: 4rem;
+    width: 100%;
+}
+
+.xg-card__skeleton--bar {
+    height: 2rem;
+    width: 100%;
+}
+
+.xg-card__skeleton--circle {
+    height: 3rem;
+    width: 100%;
+}
+
+.xg-card__skeleton-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+@keyframes xg-skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* ==========================================
+   ERROR STATE
+   ========================================== */
+
+.xg-card--error {
+    border-color: var(--accent-red, #ef4444);
+}
+
+.xg-card__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    text-align: center;
+}
+
+.xg-card__error-icon {
+    font-size: 2rem;
+}
+
+.xg-card__error-message {
+    color: var(--text-secondary, #cbd5e1);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 640px) {
+    .xg-card__counter-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .xg-card__counter-item--diff {
+        border-left: none;
+        border-top: 1px solid var(--border-color, #334155);
+        padding-left: 0;
+        padding-top: 0.75rem;
+    }
+
+    .xg-card__stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+

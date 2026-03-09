@@ -152,6 +152,14 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                                                String homeTeam,
                                                String awayTeam);
 
+   /**
+    * Case-insensitive search for a match by date and teams.
+    * Used by MatchResultProcessor for robust prediction resolution.
+    */
+   Match findByMatchDateAndHomeTeamIgnoreCaseAndAwayTeamIgnoreCase(LocalDate date,
+                                                                    String homeTeam,
+                                                                    String awayTeam);
+
    /** Total match count — used for startup logging. */
    long count();
 
@@ -379,4 +387,52 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
          "AND m.full_time_result IS NOT NULL " +
          "ORDER BY m.match_date DESC LIMIT 1", nativeQuery = true)
    String findSeasonForDate(@Param("date") LocalDate date);
+
+   /**
+    * Find all finished matches on a specific date.
+    * Used by PredictionRecalculationScheduler to detect today's completed matches.
+    */
+   @Query("SELECT m FROM Match m WHERE m.matchDate = :date AND m.fullTimeResult IS NOT NULL " +
+         "ORDER BY m.matchDate DESC")
+   List<Match> findFinishedMatchesByDate(@Param("date") LocalDate date);
+
+   /**
+    * Count finished matches on a specific date.
+    * Quick check to know if there are any completed matches today.
+    */
+   @Query("SELECT COUNT(m) FROM Match m WHERE m.matchDate = :date AND m.fullTimeResult IS NOT NULL")
+   long countFinishedMatchesByDate(@Param("date") LocalDate date);
+
+   /**
+    * Count scheduled (not yet finished) matches on a specific date.
+    * Used to determine if matches are still in progress or pending today.
+    */
+   @Query("SELECT COUNT(m) FROM Match m WHERE m.matchDate = :date AND m.fullTimeResult IS NULL")
+   long countUnfinishedMatchesByDate(@Param("date") LocalDate date);
+
+   // ══════════════════════════════════════════════════════════════════════
+   // BACKFILL OPTIMIZATION QUERIES
+   // ══════════════════════════════════════════════════════════════════════
+
+   /**
+    * Find all finished matches whose ID is NOT in the given set of match IDs.
+    * Used by HistoricalPredictionGenerator to skip matches that already have predictions.
+    * Much more efficient than checking per-match in Java.
+    */
+   @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL " +
+         "AND m.id NOT IN :excludeIds ORDER BY m.matchDate ASC")
+   List<Match> findFinishedMatchesExcludingIds(@Param("excludeIds") java.util.Collection<Long> excludeIds);
+
+   /**
+    * Find all finished matches when no IDs to exclude (first-time backfill).
+    */
+   @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL ORDER BY m.matchDate ASC")
+   List<Match> findAllFinishedMatchesAsc();
+
+   /**
+    * Find all finished matches before a date, keyed for map lookup.
+    * Used by MatchResultProcessor for bulk pre-loading instead of per-prediction queries.
+    */
+   @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL AND m.matchDate <= :beforeDate")
+   List<Match> findAllFinishedMatchesBeforeDate(@Param("beforeDate") LocalDate beforeDate);
 }

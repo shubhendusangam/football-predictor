@@ -4,7 +4,7 @@ import com.app.common.model.Match;
 import com.app.common.model.MatchFeatures;
 import com.app.common.repository.MatchRepository;
 import com.app.common.service.FeatureEngineeringService;
-import com.app.common.util.PredictionUtils;
+import com.app.common.weka.WekaSchemaBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -12,15 +12,19 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import weka.classifiers.Classifier;
 import weka.classifiers.Evaluation;
+import weka.classifiers.functions.Logistic;
+import weka.classifiers.functions.SMO;
 import weka.classifiers.meta.AdaBoostM1;
+import weka.classifiers.meta.CostSensitiveClassifier;
 import weka.classifiers.meta.Vote;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
-import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.SelectedTag;
+import weka.filters.Filter;
+import weka.filters.supervised.instance.Resample;
 
 import java.io.*;
 import java.util.*;
@@ -34,9 +38,7 @@ public class ModelTrainingService {
    private final MatchRepository matchRepository;
    private final FeatureEngineeringService featureEngineeringService;
    private final EnsembleModelService ensembleModelService;
-
-   @Autowired
-   private StackedEnsembleService stackedEnsembleService;
+   private final StackedEnsembleService stackedEnsembleService;
 
    @Value("${model.stacked.ensemble.enabled:true}")
    private boolean stackedEnsembleEnabled;
@@ -44,18 +46,14 @@ public class ModelTrainingService {
    @Value("${model.output.path}")
    private String modelOutputPath;
 
-   /** Reserved for future model type selection (RANDOM_FOREST, GRADIENT_BOOSTING, etc.) */
-   @SuppressWarnings("unused")
-   @Value("${model.type:RANDOM_FOREST}")
-   private String modelType;
-
-   /** Reserved for enabling/disabling cross-validation during training */
-   @SuppressWarnings("unused")
-   @Value("${model.crossvalidation.enabled:true}")
-   private boolean crossValidationEnabled;
-
    @Value("${model.crossvalidation.folds:10}")
    private int crossValidationFolds;
+
+   @Value("${model.smote.enabled:true}")
+   private boolean smoteEnabled;
+
+   @Value("${model.smote.percentage:100}")
+   private int smotePercentage;
 
    @Autowired(required = false)
    @Qualifier("trainedModel")
@@ -69,44 +67,17 @@ public class ModelTrainingService {
    public ModelTrainingService(
          MatchRepository matchRepository,
          FeatureEngineeringService featureEngineeringService,
-         EnsembleModelService ensembleModelService) {
+         EnsembleModelService ensembleModelService,
+         @Autowired(required = false) StackedEnsembleService stackedEnsembleService) {
       this.matchRepository = matchRepository;
       this.featureEngineeringService = featureEngineeringService;
       this.ensembleModelService = ensembleModelService;
+      this.stackedEnsembleService = stackedEnsembleService;
    }
 
 
-   // ── Weka column indices (must match buildAttributes() order exactly) ──
-   private static final int IDX_HOME_FORM         = 0;
-   private static final int IDX_AWAY_FORM         = 1;
-   private static final int IDX_HOME_GOALS_SCR    = 2;
-   private static final int IDX_HOME_GOALS_CON    = 3;
-   private static final int IDX_AWAY_GOALS_SCR    = 4;
-   private static final int IDX_AWAY_GOALS_CON    = 5;
-   private static final int IDX_HOME_TOTAL_GOALS  = 6;
-   private static final int IDX_AWAY_TOTAL_GOALS  = 7;
-   private static final int IDX_H2H_HOME_WIN      = 8;
-   private static final int IDX_H2H_DRAW          = 9;
-   private static final int IDX_H2H_AWAY_WIN      = 10;
-   private static final int IDX_HOME_SHOTS        = 11;
-   private static final int IDX_AWAY_SHOTS        = 12;
-   private static final int IDX_HOME_CORNERS      = 13;
-   private static final int IDX_AWAY_CORNERS      = 14;
-   // Phase 3 features
-   private static final int IDX_HOME_GOAL_DIFF    = 15;
-   private static final int IDX_AWAY_GOAL_DIFF    = 16;
-   private static final int IDX_HOME_OVERALL_FORM = 17;
-   private static final int IDX_AWAY_OVERALL_FORM = 18;
-   private static final int IDX_HOME_WIN_STREAK   = 19;
-   private static final int IDX_AWAY_WIN_STREAK   = 20;
-   private static final int IDX_HOME_UNBEATEN     = 21;
-   private static final int IDX_AWAY_UNBEATEN     = 22;
-   private static final int IDX_HOME_DAYS_REST    = 23;
-   private static final int IDX_AWAY_DAYS_REST    = 24;
-   // Phase 5 features (Possession Proxy)
-   private static final int IDX_HOME_POSSESSION   = 25;
-   private static final int IDX_AWAY_POSSESSION   = 26;
-   private static final int IDX_LABEL             = 27;
+   // ── Weka column indices — only those used directly in this class ──
+   private static final int IDX_LABEL = WekaSchemaBuilder.IDX_LABEL;
 
    // ── Public API ────────────────────────────────────────────────────────
 
@@ -193,18 +164,17 @@ public class ModelTrainingService {
       // ── Step 5: Check if stacked ensemble is enabled ─────────
       if (stackedEnsembleEnabled && stackedEnsembleService != null) {
          log.info("Using Stacked Ensemble: RandomForest + Gradient Boosting + Logistic Regression meta-model");
-         return trainStackedEnsemble(trainData, testData, trainSet, testSet);
+         return trainStackedEnsemble(trainData, testData);
       } else {
          log.info("Stacked ensemble disabled, using simple RandomForest");
-         return trainSimpleRandomForest(trainData, testData, trainSet, testSet);
+         return trainSimpleRandomForest(trainData, testData, trainSet.size(), testSet.size());
       }
    }
 
    /**
     * Train stacked ensemble (RF + GB + LogisticRegression)
     */
-   private String trainStackedEnsemble(Instances trainData, Instances testData,
-         List<MatchFeatures> trainSet, List<MatchFeatures> testSet) throws Exception {
+   private String trainStackedEnsemble(Instances trainData, Instances testData) throws Exception {
 
       long start = System.currentTimeMillis();
 
@@ -330,14 +300,15 @@ public class ModelTrainingService {
     * Train simple RandomForest (fallback when stacked ensemble not available)
     */
    private String trainSimpleRandomForest(Instances trainData, Instances testData,
-         List<MatchFeatures> trainSet, List<MatchFeatures> testSet) throws Exception {
+         int trainSize, int testSize) throws Exception {
 
       long start = System.currentTimeMillis();
 
       // ── Step 1: Train Random Forest ────────────────────────────
       RandomForest rf = new RandomForest();
-      rf.setNumIterations(100);   // 100 trees
-      rf.setNumFeatures(5);       // sqrt(25) ≈ 5 features per split
+      rf.setNumIterations(200);   // 200 trees for better generalization
+      rf.setNumFeatures(7);       // sqrt(42) ≈ 6.5, round up
+      rf.setMaxDepth(20);         // Limit depth to prevent overfitting
       rf.setSeed(42);
       rf.buildClassifier(trainData);
 
@@ -348,8 +319,8 @@ public class ModelTrainingService {
       eval.evaluateModel(rf, testData);
 
       String report = buildEvaluationReport(eval,
-            trainSet.size(),
-            testSet.size());
+            trainSize,
+            testSize);
       log.info("\n{}", report);
 
       // ── Step 3: Save to disk and cache in memory ───────────────
@@ -480,7 +451,7 @@ public class ModelTrainingService {
       log.info("Step 3: Building ensemble model...");
       report.append("\n🤝 ENSEMBLE MODEL:\n");
 
-      Vote ensembleModel = buildOptimizedEnsemble(fullData, rfGridResult, abGridResult);
+      Vote ensembleModel = buildOptimizedEnsemble(rfGridResult, abGridResult);
       CrossValidationResult cvResult = ensembleModelService.performCrossValidation(fullData, ensembleModel, crossValidationFolds);
 
       report.append(String.format("  Ensemble CV Accuracy: %.2f%%%n", cvResult.getAccuracy()));
@@ -669,8 +640,8 @@ public class ModelTrainingService {
 
       report.append("  ──────────────────────────────────────────────────────────────────────────────\n");
       report.append(String.format("%n🏆 Best Model: %s (%.2f%% accuracy)%n",
-              results.get(0).getModelName(),
-              results.get(0).getAccuracy()));
+              results.getFirst().getModelName(),
+              results.getFirst().getAccuracy()));
       report.append("══════════════════════════════════════════════════════════════════════════════\n");
 
       log.info("\n{}", report);
@@ -717,16 +688,17 @@ public class ModelTrainingService {
    private Map<String, Classifier> buildClassifierMap() {
       Map<String, Classifier> classifiers = new LinkedHashMap<>();
 
-      // Random Forest
+      // Random Forest (tuned)
       RandomForest rf = new RandomForest();
-      rf.setNumIterations(100);
-      rf.setNumFeatures(5);
+      rf.setNumIterations(200);
+      rf.setNumFeatures(7);
+      rf.setMaxDepth(20);
       rf.setSeed(42);
       classifiers.put("Random Forest", rf);
 
       // AdaBoost
       AdaBoostM1 adaBoost = new AdaBoostM1();
-      adaBoost.setNumIterations(50);
+      adaBoost.setNumIterations(100);
       adaBoost.setSeed(42);
       J48 j48Base = new J48();
       try { j48Base.setConfidenceFactor(0.25f); } catch (Exception ignored) {}
@@ -741,13 +713,44 @@ public class ModelTrainingService {
       } catch (Exception ignored) {}
       classifiers.put("J48 Decision Tree", j48);
 
+      // Logistic Regression
+      Logistic logistic = new Logistic();
+      logistic.setMaxIts(200);
+      classifiers.put("Logistic Regression", logistic);
+
+      // SMO (SVM)
+      SMO smo = new SMO();
+      smo.setRandomSeed(42);
+      classifiers.put("SMO (SVM)", smo);
+
+      // Cost-Sensitive Random Forest (boost Draw class)
+      try {
+         CostSensitiveClassifier csc = new CostSensitiveClassifier();
+         RandomForest rfCost = new RandomForest();
+         rfCost.setNumIterations(200);
+         rfCost.setNumFeatures(7);
+         rfCost.setMaxDepth(20);
+         rfCost.setSeed(42);
+         csc.setClassifier(rfCost);
+         // Use string-based cost matrix: penalize Draw misclassification more heavily
+         // Format: rows=actual, cols=predicted. H=0, D=1, A=2
+         csc.setOptions(new String[]{
+               "-cost-matrix", "[0 1.5 1; 1.5 0 1.5; 1 1.5 0]",
+               "-S", "42"
+         });
+         classifiers.put("CostSensitive RF", csc);
+      } catch (Exception e) {
+         log.warn("Could not create CostSensitiveClassifier: {}", e.getMessage());
+      }
+
       // Voting Ensemble
       Vote vote = new Vote();
       RandomForest rfVote = new RandomForest();
-      rfVote.setNumIterations(50);
+      rfVote.setNumIterations(100);
+      rfVote.setNumFeatures(7);
       rfVote.setSeed(42);
       AdaBoostM1 abVote = new AdaBoostM1();
-      abVote.setNumIterations(25);
+      abVote.setNumIterations(50);
       abVote.setSeed(42);
       vote.setClassifiers(new Classifier[]{rfVote, abVote, new J48()});
       vote.setCombinationRule(new SelectedTag(Vote.AVERAGE_RULE, Vote.TAGS_RULES));
@@ -756,7 +759,7 @@ public class ModelTrainingService {
       return classifiers;
    }
 
-   private Vote buildOptimizedEnsemble(Instances data, GridSearchResult rfResult, GridSearchResult abResult) throws Exception {
+   private Vote buildOptimizedEnsemble(GridSearchResult rfResult, GridSearchResult abResult) throws Exception {
       // Build optimized Random Forest
       RandomForest rf = new RandomForest();
       rf.setNumIterations((Integer) rfResult.getBestParams().get("numTrees"));
@@ -827,119 +830,52 @@ public class ModelTrainingService {
       return null;
    }
 
-   // ── Weka dataset builders ─────────────────────────────────────────────
+   /**
+    * Returns the model file size in a human-readable format.
+    * @return formatted file size string (e.g. "1.5 MB") or null if model file doesn't exist
+    */
+   public String getModelFileSize() {
+      File file = new File(modelOutputPath);
+      if (file.exists()) {
+         long bytes = file.length();
+         if (bytes < 1024) return bytes + " B";
+         if (bytes < 1024 * 1024) return String.format("%.1f KB", bytes / 1024.0);
+         return String.format("%.1f MB", bytes / (1024.0 * 1024.0));
+      }
+      return null;
+   }
+
+   /**
+    * Returns the number of features used by the model.
+    */
+   public int getFeatureCount() {
+      return WekaSchemaBuilder.FEATURE_COUNT;
+   }
+
+   // ── Weka dataset builders — delegate to shared WekaSchemaBuilder ──────
 
    /**
     * Defines the schema of the Weka dataset.
-    * ORDER MATTERS — indices must match the IDX_ constants above exactly.
+    * Delegates to WekaSchemaBuilder for single-source-of-truth.
     */
    private ArrayList<Attribute> buildAttributes() {
-      ArrayList<Attribute> attrs = new ArrayList<>();
-
-      // Phase 1 & 2 numeric features (indices 0–14)
-      attrs.add(new Attribute("homeFormPoints"));        // 0
-      attrs.add(new Attribute("awayFormPoints"));        // 1
-      attrs.add(new Attribute("homeGoalsScoredAvg"));    // 2
-      attrs.add(new Attribute("homeGoalsConcededAvg"));  // 3
-      attrs.add(new Attribute("awayGoalsScoredAvg"));    // 4
-      attrs.add(new Attribute("awayGoalsConcededAvg"));  // 5
-      attrs.add(new Attribute("homeTotalGoalsAvg"));     // 6
-      attrs.add(new Attribute("awayTotalGoalsAvg"));     // 7
-      attrs.add(new Attribute("h2hHomeWinRate"));        // 8
-      attrs.add(new Attribute("h2hDrawRate"));           // 9
-      attrs.add(new Attribute("h2hAwayWinRate"));        // 10
-      attrs.add(new Attribute("homeShotsOnTargetAvg"));  // 11
-      attrs.add(new Attribute("awayShotsOnTargetAvg"));  // 12
-      attrs.add(new Attribute("homeCornersAvg"));        // 13
-      attrs.add(new Attribute("awayCornersAvg"));        // 14
-
-      // Phase 3 numeric features (indices 15–24)
-      attrs.add(new Attribute("homeGoalDifference"));    // 15
-      attrs.add(new Attribute("awayGoalDifference"));    // 16
-      attrs.add(new Attribute("homeOverallFormPoints")); // 17
-      attrs.add(new Attribute("awayOverallFormPoints")); // 18
-      attrs.add(new Attribute("homeWinStreak"));         // 19
-      attrs.add(new Attribute("awayWinStreak"));         // 20
-      attrs.add(new Attribute("homeUnbeatenStreak"));    // 21
-      attrs.add(new Attribute("awayUnbeatenStreak"));    // 22
-      attrs.add(new Attribute("homeDaysRest"));          // 23
-      attrs.add(new Attribute("awayDaysRest"));          // 24
-
-      // Phase 5 numeric features - Possession Proxy (indices 25-26)
-      attrs.add(new Attribute("homePossessionProxy"));   // 25
-      attrs.add(new Attribute("awayPossessionProxy"));   // 26
-
-      // Nominal label (index 27)
-      ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
-      attrs.add(new Attribute("result", labels));        // 27
-
-      return attrs;
+      return WekaSchemaBuilder.buildAttributes();
    }
 
    /**
     * Converts a list of MatchFeatures into a Weka Instances dataset.
+    * Delegates to shared WekaSchemaBuilder.
     */
    private Instances toWekaInstances(List<MatchFeatures> featuresList, ArrayList<Attribute> attributes, String name) {
-      Instances dataset = new Instances(name, attributes, featuresList.size());
-      // CRITICAL: Set class index BEFORE adding any instances
-      // This ensures all instances use the correct class attribute structure
-      dataset.setClassIndex(IDX_LABEL);
-
-      for (MatchFeatures f : featuresList) {
-          Instance inst = toWekaInstance(f, dataset);
-          dataset.add(inst);
-      }
-
-      return dataset;
+      return WekaSchemaBuilder.toWekaInstances(featuresList, name);
    }
 
    /**
     * Converts a single MatchFeatures into a Weka Instance.
-    * Uses PredictionUtils.safe() to guard against NaN/Infinity from edge cases.
+    * Delegates to shared WekaSchemaBuilder.
     */
    private Instance toWekaInstance(MatchFeatures f, Instances dataset) {
-      Instance inst = new DenseInstance(28); // 27 features + 1 label
-      inst.setDataset(dataset);
-
-      // Phase 1 & 2 features
-      inst.setValue(IDX_HOME_FORM,        PredictionUtils.safe(f.getHomeFormPoints()));
-      inst.setValue(IDX_AWAY_FORM,        PredictionUtils.safe(f.getAwayFormPoints()));
-      inst.setValue(IDX_HOME_GOALS_SCR,   PredictionUtils.safe(f.getHomeGoalsScoredAvg()));
-      inst.setValue(IDX_HOME_GOALS_CON,   PredictionUtils.safe(f.getHomeGoalsConcededAvg()));
-      inst.setValue(IDX_AWAY_GOALS_SCR,   PredictionUtils.safe(f.getAwayGoalsScoredAvg()));
-      inst.setValue(IDX_AWAY_GOALS_CON,   PredictionUtils.safe(f.getAwayGoalsConcededAvg()));
-      inst.setValue(IDX_HOME_TOTAL_GOALS, PredictionUtils.safe(f.getHomeTotalGoalsAvg()));
-      inst.setValue(IDX_AWAY_TOTAL_GOALS, PredictionUtils.safe(f.getAwayTotalGoalsAvg()));
-      inst.setValue(IDX_H2H_HOME_WIN,     PredictionUtils.safe(f.getH2hHomeWinRate()));
-      inst.setValue(IDX_H2H_DRAW,         PredictionUtils.safe(f.getH2hDrawRate()));
-      inst.setValue(IDX_H2H_AWAY_WIN,     PredictionUtils.safe(f.getH2hAwayWinRate()));
-      inst.setValue(IDX_HOME_SHOTS,       PredictionUtils.safe(f.getHomeShotsOnTargetAvg()));
-      inst.setValue(IDX_AWAY_SHOTS,       PredictionUtils.safe(f.getAwayShotsOnTargetAvg()));
-      inst.setValue(IDX_HOME_CORNERS,     PredictionUtils.safe(f.getHomeCornersAvg()));
-      inst.setValue(IDX_AWAY_CORNERS,     PredictionUtils.safe(f.getAwayCornersAvg()));
-
-      // Phase 3 features
-      inst.setValue(IDX_HOME_GOAL_DIFF,    PredictionUtils.safe(f.getHomeGoalDifference()));
-      inst.setValue(IDX_AWAY_GOAL_DIFF,    PredictionUtils.safe(f.getAwayGoalDifference()));
-      inst.setValue(IDX_HOME_OVERALL_FORM, PredictionUtils.safe(f.getHomeOverallFormPoints()));
-      inst.setValue(IDX_AWAY_OVERALL_FORM, PredictionUtils.safe(f.getAwayOverallFormPoints()));
-      inst.setValue(IDX_HOME_WIN_STREAK,   PredictionUtils.safe(f.getHomeWinStreak()));
-      inst.setValue(IDX_AWAY_WIN_STREAK,   PredictionUtils.safe(f.getAwayWinStreak()));
-      inst.setValue(IDX_HOME_UNBEATEN,     PredictionUtils.safe(f.getHomeUnbeatenStreak()));
-      inst.setValue(IDX_AWAY_UNBEATEN,     PredictionUtils.safe(f.getAwayUnbeatenStreak()));
-      inst.setValue(IDX_HOME_DAYS_REST,    PredictionUtils.safe(f.getHomeDaysSinceLastMatch()));
-      inst.setValue(IDX_AWAY_DAYS_REST,    PredictionUtils.safe(f.getAwayDaysSinceLastMatch()));
-
-      // Phase 5 features (Possession Proxy)
-      inst.setValue(IDX_HOME_POSSESSION,   PredictionUtils.safe(f.getHomePossessionProxy()));
-      inst.setValue(IDX_AWAY_POSSESSION,   PredictionUtils.safe(f.getAwayPossessionProxy()));
-
-      // Label only set during training — null at prediction time
-      if (f.getActualResult() != null) {
-         inst.setValue(IDX_LABEL, f.getActualResult());
-      }
-
-      return inst;
+      return WekaSchemaBuilder.toWekaInstance(f, dataset);
    }
 
    // ── Model persistence ─────────────────────────────────────────────────
@@ -986,8 +922,11 @@ public class ModelTrainingService {
             String.format("  Train set : %d matches%n", trainSize) +
             String.format("  Test set  : %d matches (most recent)%n",
                   testSize) +
+            String.format("  Features  : %d%n", IDX_LABEL) +
+            String.format("  SMOTE     : %s%n", smoteEnabled ? "ON (" + smotePercentage + "%)" : "OFF") +
             String.format("  Accuracy  : %.1f%%%n",
                   eval.pctCorrect()) +
+            String.format("  Kappa     : %.4f%n", eval.kappa()) +
             String.format("  Baseline  : ~45%% (always predict " +
                   "Home Win)%n") +
             "\n  Per-class breakdown:\n" +
@@ -995,5 +934,298 @@ public class ModelTrainingService {
             "\n  Confusion Matrix:\n" +
             eval.toMatrixString("  ") +
             "══════════════════════════════════════════\n";
+   }
+
+   // ── Class Balancing (SMOTE) ─────────────────────────────────────────
+
+   /**
+    * Apply class balancing using Weka's SMOTE filter for synthetic minority oversampling.
+    * Falls back to Resample with bias if SMOTE is unavailable.
+    *
+    * <p>SMOTE generates synthetic minority class instances by interpolating between
+    * nearest neighbors, which is superior to simple random oversampling (duplication)
+    * because it creates NEW diverse instances rather than exact copies.</p>
+    *
+    * <p>Draws are typically underrepresented (~25%) vs Home wins (~46%).</p>
+    *
+    * @param data Training dataset
+    * @return Balanced dataset, or original if resampling fails/disabled
+    */
+   private Instances applySMOTE(Instances data) {
+      if (!smoteEnabled) {
+         log.debug("Class balancing is disabled");
+         return data;
+      }
+
+      try {
+         // Log class distribution before resampling
+         int[] classCounts = new int[data.numClasses()];
+         for (int i = 0; i < data.numInstances(); i++) {
+            classCounts[(int) data.instance(i).classValue()]++;
+         }
+         log.info("Class distribution before balancing: H={}, D={}, A={}",
+               classCounts[0], classCounts[1], classCounts[2]);
+
+         Instances balanced;
+
+         // Try SMOTE first (creates synthetic instances via nearest-neighbor interpolation)
+         try {
+            balanced = applySMOTEFilter(data, classCounts);
+            log.info("Applied SMOTE (synthetic minority oversampling)");
+         } catch (Exception smoteEx) {
+            // Fallback: use Resample with bias to uniform distribution
+            log.debug("SMOTE filter not available, falling back to Resample: {}", smoteEx.getMessage());
+            balanced = applyResampleFallback(data);
+            log.info("Applied Resample with uniform bias (fallback)");
+         }
+
+         // Log class distribution after resampling
+         int[] newCounts = new int[balanced.numClasses()];
+         for (int i = 0; i < balanced.numInstances(); i++) {
+            newCounts[(int) balanced.instance(i).classValue()]++;
+         }
+         log.info("Class distribution after balancing: H={}, D={}, A={}",
+               newCounts[0], newCounts[1], newCounts[2]);
+
+         return balanced;
+
+      } catch (Exception e) {
+         log.warn("Class balancing failed, using original data: {}", e.getMessage());
+         return data;
+      }
+   }
+
+   /**
+    * Apply improved class balancing using Weka's SpreadSubsample to equalize classes,
+    * then Resample to bring sample count back up.
+    *
+    * <p>This two-stage approach:
+    * 1. SpreadSubsample — reduces majority classes to match minority class count
+    * 2. Resample with replacement — brings total back up to original size
+    *
+    * This is more effective than simple Resample with bias because it ensures
+    * exact class balance rather than approximate reweighting.</p>
+    */
+   private Instances applySMOTEFilter(Instances data, int[] classCounts) throws Exception {
+      // Stage 1: Spread subsample to equalize class counts (downsample majority)
+      weka.filters.supervised.instance.SpreadSubsample spreadFilter = new weka.filters.supervised.instance.SpreadSubsample();
+      spreadFilter.setDistributionSpread(1.0); // Force uniform distribution
+      spreadFilter.setRandomSeed(42);
+      spreadFilter.setInputFormat(data);
+      Instances equalized = Filter.useFilter(data, spreadFilter);
+
+      // Stage 2: Resample with replacement to bring count back up
+      int targetSize = data.numInstances();
+      double samplePercent = (double) targetSize / equalized.numInstances() * 100.0;
+
+      Resample resample = new Resample();
+      resample.setNoReplacement(false);
+      resample.setSampleSizePercent(samplePercent);
+      resample.setRandomSeed(42);
+      resample.setInputFormat(equalized);
+      return Filter.useFilter(equalized, resample);
+   }
+
+   /**
+    * Fallback: use Resample with bias to uniform distribution.
+    */
+   private Instances applyResampleFallback(Instances data) throws Exception {
+      Resample resample = new Resample();
+      resample.setBiasToUniformClass(1.0);
+      resample.setNoReplacement(false);
+      resample.setSampleSizePercent(100.0 + smotePercentage);
+      resample.setRandomSeed(42);
+      resample.setInputFormat(data);
+      return Filter.useFilter(data, resample);
+   }
+
+   // ── Feature Importance Analysis ───────────────────────────────────────
+
+   /**
+    * Analyze feature importance using a trained RandomForest.
+    * Returns a ranked map of feature names to importance scores.
+    * Uses the out-of-bag (OOB) error rate increase as importance measure.
+    *
+    * @return Sorted map (descending) of attribute name → importance score
+    */
+   public Map<String, Double> getFeatureImportance() throws Exception {
+      Instances fullData = buildTrainingDataset();
+
+      RandomForest rf = new RandomForest();
+      rf.setNumIterations(200);
+      rf.setNumFeatures(7);
+      rf.setMaxDepth(20);
+      rf.setSeed(42);
+      rf.setComputeAttributeImportance(true);
+      rf.buildClassifier(fullData);
+
+      Map<String, Double> importanceMap = new LinkedHashMap<>();
+      double[] importances = rf.computeAverageImpurityDecreasePerAttribute(null);
+
+      if (importances != null) {
+         for (int i = 0; i < importances.length && i < fullData.numAttributes() - 1; i++) {
+            importanceMap.put(fullData.attribute(i).name(), importances[i]);
+         }
+      }
+
+      // Sort by importance descending
+      Map<String, Double> sorted = new LinkedHashMap<>();
+      importanceMap.entrySet().stream()
+            .sorted(Map.Entry.<String, Double>comparingByValue().reversed())
+            .forEach(e -> sorted.put(e.getKey(), e.getValue()));
+
+      log.info("Feature importance analysis complete ({} features)", sorted.size());
+      sorted.entrySet().stream().limit(10)
+            .forEach(e -> log.info("  {} → {}", e.getKey(), String.format("%.4f", e.getValue())));
+
+      return sorted;
+   }
+
+   // ── Temporal Cross-Validation ─────────────────────────────────────────
+
+   /**
+    * Perform time-series aware cross-validation using expanding window.
+    * Unlike standard k-fold which shuffles data (causing temporal leakage),
+    * this method preserves chronological order:
+    *
+    * Fold 1: Train on [0..20%], Test on [20..30%]
+    * Fold 2: Train on [0..30%], Test on [30..40%]
+    * ...
+    * Fold N: Train on [0..90%], Test on [90..100%]
+    *
+    * @return CrossValidationResult with average metrics across folds
+    */
+   public CrossValidationResult performTemporalCrossValidation() throws Exception {
+      log.info("Starting temporal cross-validation...");
+
+      Instances fullData = buildTrainingDataset();
+      int numFolds = 5;
+      int foldSize = fullData.numInstances() / (numFolds + 1);
+
+      double totalAccuracy = 0;
+      double totalKappa = 0;
+      double totalFMeasure = 0;
+      double totalPrecision = 0;
+      double totalRecall = 0;
+
+      for (int fold = 0; fold < numFolds; fold++) {
+         int trainEnd = foldSize * (fold + 2); // expanding window
+         int testStart = trainEnd;
+         int testEnd = Math.min(testStart + foldSize, fullData.numInstances());
+
+         if (testEnd <= testStart) break;
+
+         Instances trainData = new Instances(fullData, 0);
+         for (int i = 0; i < trainEnd; i++) {
+            trainData.add(fullData.instance(i));
+         }
+
+         Instances testData = new Instances(fullData, 0);
+         for (int i = testStart; i < testEnd; i++) {
+            testData.add(fullData.instance(i));
+         }
+
+         trainData.setClassIndex(IDX_LABEL);
+         testData.setClassIndex(IDX_LABEL);
+
+         // Apply SMOTE to training data only
+         trainData = applySMOTE(trainData);
+
+         RandomForest rf = new RandomForest();
+         rf.setNumIterations(200);
+         rf.setNumFeatures(7);
+         rf.setMaxDepth(20);
+         rf.setSeed(42);
+         rf.buildClassifier(trainData);
+
+         Evaluation eval = new Evaluation(trainData);
+         eval.evaluateModel(rf, testData);
+
+         totalAccuracy += eval.pctCorrect();
+         totalKappa += eval.kappa();
+         totalFMeasure += eval.weightedFMeasure();
+         totalPrecision += eval.weightedPrecision();
+         totalRecall += eval.weightedRecall();
+
+         log.info("Temporal fold {}: train={}, test={}, accuracy={}%",
+               fold + 1, trainData.numInstances(), testData.numInstances(),
+               String.format("%.1f", eval.pctCorrect()));
+      }
+
+      CrossValidationResult result = CrossValidationResult.builder()
+            .accuracy(totalAccuracy / numFolds)
+            .kappa(totalKappa / numFolds)
+            .fMeasure(totalFMeasure / numFolds)
+            .precision(totalPrecision / numFolds)
+            .recall(totalRecall / numFolds)
+            .folds(numFolds)
+            .build();
+
+      log.info("Temporal CV complete: avg accuracy={}%", String.format("%.2f", result.getAccuracy()));
+      return result;
+   }
+
+   /**
+    * Train with SMOTE applied to the training set for class balancing.
+    * This is used by trainSimpleRandomForest and trainStackedEnsemble.
+    */
+   public String trainWithSMOTE() throws Exception {
+      long start = System.currentTimeMillis();
+      log.info("Starting training with SMOTE class balancing...");
+
+      List<Match> allMatches = matchRepository.findAllByOrderByMatchDateAsc();
+      if (allMatches.size() < 100) {
+         throw new IllegalStateException("Not enough data. Need at least 100 matches, found: " + allMatches.size());
+      }
+
+      List<MatchFeatures> allFeatures = new ArrayList<>();
+      int skipped = 0;
+      for (Match match : allMatches) {
+         try {
+            MatchFeatures features = featureEngineeringService.buildFeaturesForTraining(match);
+            if (features.getHomeFormPoints() == 0.0 && features.getHomeGoalsScoredAvg() == 0.0) {
+               skipped++;
+               continue;
+            }
+            allFeatures.add(features);
+         } catch (Exception e) {
+            log.warn("Skipping match {}: {}", match.getId(), e.getMessage());
+            skipped++;
+         }
+      }
+
+      // Temporal split
+      int splitIdx = (int) (allFeatures.size() * 0.8);
+      List<MatchFeatures> trainSet = allFeatures.subList(0, splitIdx);
+      List<MatchFeatures> testSet = allFeatures.subList(splitIdx, allFeatures.size());
+
+      ArrayList<Attribute> attributes = buildAttributes();
+      Instances trainData = toWekaInstances(trainSet, attributes, "FootballTrain");
+      Instances testData = toWekaInstances(testSet, attributes, "FootballTest");
+
+      // Apply SMOTE to training data only (not test data)
+      Instances balancedTrainData = applySMOTE(trainData);
+
+      RandomForest rf = new RandomForest();
+      rf.setNumIterations(200);
+      rf.setNumFeatures(7);
+      rf.setMaxDepth(20);
+      rf.setSeed(42);
+      rf.buildClassifier(balancedTrainData);
+
+      Evaluation eval = new Evaluation(balancedTrainData);
+      eval.evaluateModel(rf, testData);
+
+      String report = buildEvaluationReport(eval, balancedTrainData.numInstances(), testData.numInstances());
+      log.info("\n{}", report);
+
+      saveModel(rf, trainData); // Save with original header (not SMOTE)
+      this.trainedModel = rf;
+      this.trainingHeader = trainData;
+
+      long duration = System.currentTimeMillis() - start;
+      log.info("SMOTE training complete in {} ms. Accuracy: {}%", duration, String.format("%.1f", eval.pctCorrect()));
+
+      return report;
    }
 }

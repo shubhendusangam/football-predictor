@@ -57,7 +57,14 @@ public class CacheConfig {
     public static final String CACHE_CARDS_PREDICTION = "cardsPrediction";
     public static final String CACHE_TEAM_DISCIPLINE = "teamDiscipline";
     public static final String CACHE_HALF_ANALYSIS = "halfAnalysis";
+    public static final String CACHE_EXPECTED_GOALS = "expectedGoals";
+    public static final String CACHE_XG_PREDICTION = "xgPrediction";
+    public static final String CACHE_KICKOFF_TIME_ANALYSIS = "kickoffTimeAnalysis";
+    public static final String CACHE_FIXTURE_CONGESTION = "fixtureCongestion";
     public static final String CACHE_API_SYNC = "apiSync";
+    public static final String CACHE_REFEREE_STATS = "refereeStats";
+    public static final String CACHE_ALL_REFEREES = "allReferees";
+    public static final String CACHE_ALL_REFEREE_STATS = "allRefereeStats";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -127,8 +134,29 @@ public class CacheConfig {
     @Value("${cache.halfAnalysis.ttl:900}")
     private int halfAnalysisTtl;
 
+    @Value("${cache.expectedGoals.ttl:900}")
+    private int expectedGoalsTtl;
+
+    @Value("${cache.xgPrediction.ttl:600}")
+    private int xgPredictionTtl;
+
+    @Value("${cache.kickoffTimeAnalysis.ttl:900}")
+    private int kickoffTimeAnalysisTtl;
+
+    @Value("${cache.fixtureCongestion.ttl:600}")
+    private int fixtureCongestionTtl;
+
     @Value("${cache.apiSync.ttl:60}")
     private int apiSyncTtl;
+
+    @Value("${cache.refereeStats.ttl:900}")
+    private int refereeStatsTtl;
+
+    @Value("${cache.allReferees.ttl:3600}")
+    private int allRefereesTtl;
+
+    @Value("${cache.allRefereeStats.ttl:1800}")
+    private int allRefereeStatsTtl;
 
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
@@ -198,8 +226,29 @@ public class CacheConfig {
     @Value("${cache.teamDiscipline.maxSize:100}")
     private int teamDisciplineMaxSize;
 
+    @Value("${cache.expectedGoals.maxSize:100}")
+    private int expectedGoalsMaxSize;
+
+    @Value("${cache.xgPrediction.maxSize:200}")
+    private int xgPredictionMaxSize;
+
+    @Value("${cache.kickoffTimeAnalysis.maxSize:100}")
+    private int kickoffTimeAnalysisMaxSize;
+
+    @Value("${cache.fixtureCongestion.maxSize:200}")
+    private int fixtureCongestionMaxSize;
+
     @Value("${cache.apiSync.maxSize:10}")
     private int apiSyncMaxSize;
+
+    @Value("${cache.refereeStats.maxSize:100}")
+    private int refereeStatsMaxSize;
+
+    @Value("${cache.allReferees.maxSize:10}")
+    private int allRefereesMaxSize;
+
+    @Value("${cache.allRefereeStats.maxSize:10}")
+    private int allRefereeStatsMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -283,8 +332,29 @@ public class CacheConfig {
         // Half analysis: moderate TTL (15 min), moderate size for team half analysis
         cacheConfigs.put(CACHE_HALF_ANALYSIS, buildCache(halfAnalysisTtl, halfAnalysisMaxSize));
 
+        // Expected goals (xG): moderate TTL (15 min), moderate size for team xG analysis
+        cacheConfigs.put(CACHE_EXPECTED_GOALS, buildCache(expectedGoalsTtl, expectedGoalsMaxSize));
+
+        // xG prediction: moderate TTL (10 min), larger size for match combinations
+        cacheConfigs.put(CACHE_XG_PREDICTION, buildCache(xgPredictionTtl, xgPredictionMaxSize));
+
+        // Kickoff time analysis: moderate TTL (15 min), moderate size for team kickoff time patterns
+        cacheConfigs.put(CACHE_KICKOFF_TIME_ANALYSIS, buildCache(kickoffTimeAnalysisTtl, kickoffTimeAnalysisMaxSize));
+
+        // Fixture congestion: moderate TTL (10 min), larger size for team+date combinations
+        cacheConfigs.put(CACHE_FIXTURE_CONGESTION, buildCache(fixtureCongestionTtl, fixtureCongestionMaxSize));
+
         // API sync: short TTL (1 min), small size for sync status
         cacheConfigs.put(CACHE_API_SYNC, buildCache(apiSyncTtl, apiSyncMaxSize));
+
+        // Referee stats: moderate TTL (15 min), moderate size for individual referee lookups
+        cacheConfigs.put(CACHE_REFEREE_STATS, buildCache(refereeStatsTtl, refereeStatsMaxSize));
+
+        // All referees list: longer TTL (1 hour), small size (single list)
+        cacheConfigs.put(CACHE_ALL_REFEREES, buildCache(allRefereesTtl, allRefereesMaxSize));
+
+        // All referee stats: moderate TTL (30 min), small size (single aggregated list)
+        cacheConfigs.put(CACHE_ALL_REFEREE_STATS, buildCache(allRefereeStatsTtl, allRefereeStatsMaxSize));
 
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
@@ -348,7 +418,14 @@ public class CacheConfig {
             case CACHE_CARDS_PREDICTION -> cardsPredictionTtl;
             case CACHE_TEAM_DISCIPLINE -> teamDisciplineTtl;
             case CACHE_HALF_ANALYSIS -> halfAnalysisTtl;
+            case CACHE_EXPECTED_GOALS -> expectedGoalsTtl;
+            case CACHE_XG_PREDICTION -> xgPredictionTtl;
+            case CACHE_KICKOFF_TIME_ANALYSIS -> kickoffTimeAnalysisTtl;
+            case CACHE_FIXTURE_CONGESTION -> fixtureCongestionTtl;
             case CACHE_API_SYNC -> apiSyncTtl;
+            case CACHE_REFEREE_STATS -> refereeStatsTtl;
+            case CACHE_ALL_REFEREES -> allRefereesTtl;
+            case CACHE_ALL_REFEREE_STATS -> allRefereeStatsTtl;
             default -> 300;
         };
     }

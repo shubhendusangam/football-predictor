@@ -5,6 +5,7 @@ import com.app.footballprediction.ingestion.model.IngestionResult;
 import com.app.footballprediction.ingestion.orchestrator.IngestionOrchestrator;
 import com.app.footballprediction.ingestion.orchestrator.IngestionRouter;
 import com.app.footballprediction.ingestion.service.IngestionMetricsService;
+import com.app.footballprediction.service.CsvIngestionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,7 @@ public class IngestionAdminController {
     private final IngestionOrchestrator orchestrator;
     private final IngestionRouter router;
     private final IngestionMetricsService metricsService;
+    private final CsvIngestionService csvIngestionService;
 
     // ══════════════════════════════════════════════════════════════
     // Feature Flag Endpoints
@@ -176,6 +178,40 @@ public class IngestionAdminController {
         IngestionResult result = orchestrator.ingestScheduledMatches(competition);
 
         return ResponseEntity.ok(result);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // Stats Enrichment Endpoints
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * Enrich existing matches with missing statistics from CSV files.
+     * The external API only returns scores, not detailed stats (shots, corners, etc.).
+     * This re-reads CSV files to fill in any missing statistics.
+     * POST /api/admin/ingestion/enrich-stats
+     */
+    @PostMapping("/enrich-stats")
+    public ResponseEntity<Map<String, Object>> enrichStats() {
+        log.info("Admin triggered stats enrichment from CSV");
+
+        try {
+            int enriched = csvIngestionService.enrichMissingStats();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "SUCCESS");
+            response.put("matchesEnriched", enriched);
+            response.put("message", enriched > 0
+                ? enriched + " matches enriched with detailed statistics from CSV"
+                : "All matches already have complete statistics");
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Stats enrichment failed: {}", e.getMessage(), e);
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "FAILED");
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     // ══════════════════════════════════════════════════════════════

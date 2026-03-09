@@ -3,6 +3,7 @@ package com.app.footballprediction.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -16,12 +17,25 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Security configuration for the Football Prediction application.
  *
- * Admin endpoints are protected with HTTP Basic Authentication.
- * Public endpoints remain accessible without authentication.
+ * <p>Features:
+ * <ul>
+ *   <li>HTTP Basic Authentication for admin endpoints</li>
+ *   <li>CORS configuration for frontend origins</li>
+ *   <li>Security headers (CSP, HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)</li>
+ *   <li>Stateless session management (no server-side sessions)</li>
+ *   <li>CSRF disabled for stateless REST API</li>
+ *   <li>Separate filter chain for H2 console (dev) with relaxed frame options</li>
+ * </ul>
  */
 @Configuration
 @EnableWebSecurity
@@ -32,6 +46,18 @@ public class SecurityConfig {
 
     @Value("${admin.password:changeme}")
     private String adminPassword;
+
+    @Value("${cors.allowed-origins:http://localhost:3000,http://localhost:8080}")
+    private String allowedOrigins;
+
+    @Value("${cors.max-age-seconds:3600}")
+    private long corsMaxAgeSeconds;
+
+    @Value("${security.hsts.enabled:false}")
+    private boolean hstsEnabled;
+
+    @Value("${security.csp.enabled:true}")
+    private boolean cspEnabled;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -49,26 +75,139 @@ public class SecurityConfig {
         return new InMemoryUserDetailsManager(admin);
     }
 
+    // ── CORS ────────────────────────────────────────────────────
+
+    /**
+     * CORS configuration source — allows frontend origins to access the API.
+     * Origins are configurable via {@code cors.allowed-origins} property.
+     */
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+
+        // Parse allowed origins from comma-separated property
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        configuration.setAllowedOrigins(origins);
+
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of(
+                "Authorization", "Content-Type", "Accept", "Origin",
+                "X-Requested-With", "Cache-Control", "If-None-Match"
+        ));
+        configuration.setExposedHeaders(List.of(
+                "X-RateLimit-Remaining", "X-RateLimit-Limit",
+                "ETag", "Cache-Control", "Content-Disposition"
+        ));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(corsMaxAgeSeconds);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/api/**", configuration);
+        return source;
+    }
+
+    // ── H2 Console Filter Chain (dev only, relaxed headers) ────
+
+    /**
+     * Separate security filter chain for the H2 console.
+     * H2 console requires frames (X-Frame-Options: SAMEORIGIN) and no CSRF.
+     * This chain matches ONLY /h2-console/** paths.
+     */
+    @Bean
+    @Order(1)
+    public SecurityFilterChain h2ConsoleFilterChain(HttpSecurity http) throws Exception {
+        http
+            .securityMatcher("/h2-console/**")
+            .csrf(AbstractHttpConfigurer::disable)
+            .headers(headers -> headers
+                .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
+            )
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+        return http.build();
+    }
+
+    // ── Main Application Filter Chain ──────────────────────────
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for API endpoints
+            // Enable CORS with the configured source
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
+            // Disable CSRF for stateless REST API
             .csrf(AbstractHttpConfigurer::disable)
 
-            // Configure session management
+            // Stateless sessions — no server-side session storage
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
 
-            // Allow H2 console to work with frames
-            .headers(headers -> headers
-                .frameOptions(HeadersConfigurer.FrameOptionsConfig::sameOrigin)
-            )
+            // ── Security Headers ────────────────────────────────────
+            .headers(headers -> {
+                // X-Content-Type-Options: nosniff — prevents MIME-type sniffing
+                headers.contentTypeOptions(Customizer.withDefaults());
 
-            // Configure authorization rules
+                // X-Frame-Options: DENY — clickjacking protection
+                headers.frameOptions(HeadersConfigurer.FrameOptionsConfig::deny);
+
+                // X-XSS-Protection: 0 — modern browsers use CSP instead
+                // (disabled per OWASP recommendation for modern apps)
+                headers.xssProtection(xss -> xss.disable());
+
+                // Referrer-Policy: strict-origin-when-cross-origin
+                headers.referrerPolicy(referrer -> referrer
+                    .policy(org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter
+                            .ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)
+                );
+
+                // Permissions-Policy: restrict sensitive browser APIs
+                @SuppressWarnings("removal")
+                var unused = headers.permissionsPolicy(permissions -> permissions
+                    .policy("camera=(), microphone=(), geolocation=(), payment=()")
+                );
+
+                // HSTS — only enable in production (behind HTTPS)
+                if (hstsEnabled) {
+                    headers.httpStrictTransportSecurity(hsts -> hsts
+                        .maxAgeInSeconds(31536000)
+                        .includeSubDomains(true)
+                        .preload(true)
+                    );
+                }
+
+                // Content-Security-Policy — controls what resources the browser can load
+                if (cspEnabled) {
+                    headers.contentSecurityPolicy(csp -> csp
+                        .policyDirectives(
+                            "default-src 'self'; " +
+                            "script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
+                                "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                            "style-src 'self' 'unsafe-inline' " +
+                                "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; " +
+                            "font-src 'self' https://fonts.gstatic.com " +
+                                "https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " +
+                            "img-src 'self' data: https: blob:; " +
+                            "connect-src 'self'; " +
+                            "frame-src 'self'; " +
+                            "frame-ancestors 'self'"
+                        )
+                    );
+                }
+            })
+
+            // ── Authorization Rules ─────────────────────────────────
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints - no authentication required
-                .requestMatchers("/", "/index.html", "/components-demo.html", "/season-team.html", "/css/**", "/js/**", "/assets/**", "/images/**", "/manifest.json", "/README.md").permitAll()
+                // Static resources
+                .requestMatchers("/", "/index.html", "/components-demo.html", "/season-team.html",
+                        "/css/**", "/js/**", "/assets/**", "/images/**",
+                        "/manifest.json", "/README.md", "/favicon.ico").permitAll()
+
+                // Public API endpoints
                 .requestMatchers("/api/predict", "/api/teams", "/api/teams/**", "/api/model/status").permitAll()
                 .requestMatchers("/api/teams/logo-status").permitAll()
                 .requestMatchers("/api/predictions", "/api/predictions/**").permitAll()
@@ -80,37 +219,32 @@ public class SecurityConfig {
                 .requestMatchers("/api/analytics/**").permitAll()
                 .requestMatchers("/api/insights/**").permitAll()
                 .requestMatchers("/api/seasons/**").permitAll()
-                .requestMatchers("/h2-console/**").permitAll()
-
-                // Season team stats - public read access
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/season/**").permitAll()
 
-                // Cache status is public (read-only monitoring)
-                .requestMatchers("/api/cache/status", "/api/cache/warmup", "/api/cache/stats", "/api/cache/stats/**").permitAll()
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/cache/warmup").permitAll()
+                // Cache monitoring — public read-only
+                .requestMatchers("/api/cache/status", "/api/cache/stats", "/api/cache/stats/**").permitAll()
 
-                // Admin authentication check endpoint
+                // Actuator health — public
+                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+
+                // Admin verification
                 .requestMatchers("/api/admin/verify").authenticated()
 
-                // Admin-only endpoints - require ADMIN role
+                // Admin-only endpoints
                 .requestMatchers("/api/model/train/**", "/api/model/train").hasRole("ADMIN")
-                .requestMatchers("/api/model/grid-search").hasRole("ADMIN")
-                .requestMatchers("/api/model/compare").hasRole("ADMIN")
-                .requestMatchers("/api/data/reload").hasRole("ADMIN")
-                .requestMatchers("/api/data/update").hasRole("ADMIN")
+                .requestMatchers("/api/model/grid-search", "/api/model/compare").hasRole("ADMIN")
+                .requestMatchers("/api/data/reload", "/api/data/update").hasRole("ADMIN")
                 .requestMatchers("/api/cache/clear", "/api/cache/clear/**").hasRole("ADMIN")
                 .requestMatchers("/api/cache/invalidate/**").hasRole("ADMIN")
-                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/cache/warmup").hasRole("ADMIN")
+                .requestMatchers("/api/cache/warmup").hasRole("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/cache").hasRole("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/analytics/cache").hasRole("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.DELETE, "/api/teams/*/analytics/cache").hasRole("ADMIN")
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/teams/seed-logos").hasRole("ADMIN")
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                // Season stats admin operations (recalculate)
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/season/*/recalculate").hasRole("ADMIN")
 
-                // All other requests require authentication
+                // All other requests — permit
                 .anyRequest().permitAll()
             )
 
@@ -120,4 +254,3 @@ public class SecurityConfig {
         return http.build();
     }
 }
-

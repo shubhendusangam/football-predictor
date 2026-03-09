@@ -255,6 +255,7 @@ public class ApiDataSyncService {
                             .awayTeam(awayTeam)
                             .matchDate(matchDate)
                             .season(getCurrentSeason())
+                            .kickoffTime(extractKickoffTime(apiMatch.getUtcDate()))
                             // No scores set - this is a fixture
                             .fullTimeHomeGoals(null)
                             .fullTimeAwayGoals(null)
@@ -565,6 +566,7 @@ public class ApiDataSyncService {
                 .awayTeam(awayTeam)
                 .matchDate(matchDate)
                 .season(getCurrentSeason())
+                .kickoffTime(extractKickoffTime(apiMatch.getUtcDate()))
                 .fullTimeHomeGoals(homeGoals)
                 .fullTimeAwayGoals(awayGoals)
                 .fullTimeResult(result)
@@ -611,6 +613,15 @@ public class ApiDataSyncService {
             if (htAway != null && !htAway.equals(existing.getHalfTimeAwayGoals())) {
                 existing.setHalfTimeAwayGoals(htAway);
                 existing.setHalfTimeResult(determineResult(htHome, htAway));
+                changed = true;
+            }
+        }
+
+        // Backfill kick-off time if missing
+        if (existing.getKickoffTime() == null || existing.getKickoffTime().isBlank()) {
+            String kickoff = extractKickoffTime(apiMatch.getUtcDate());
+            if (kickoff != null) {
+                existing.setKickoffTime(kickoff);
                 changed = true;
             }
         }
@@ -666,6 +677,26 @@ public class ApiDataSyncService {
         } catch (Exception e) {
             log.warn("Failed to parse date: {}", utcDate);
             return LocalDate.now();
+        }
+    }
+
+    /**
+     * Extract kick-off time (HH:mm) from API UTC date string.
+     * Format: "2026-02-15T15:00:00Z" → "15:00"
+     *
+     * @param utcDate UTC date string from API
+     * @return Kick-off time string (e.g., "15:00") or null if unparsable
+     */
+    private String extractKickoffTime(String utcDate) {
+        if (utcDate == null || utcDate.length() < 16) {
+            return null;
+        }
+        try {
+            // Format: 2026-02-15T15:00:00Z → extract "15:00"
+            return utcDate.substring(11, 16);
+        } catch (Exception e) {
+            log.warn("Failed to extract kick-off time from: {}", utcDate);
+            return null;
         }
     }
 

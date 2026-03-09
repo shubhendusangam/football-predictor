@@ -9,6 +9,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Repository for Prediction entity operations.
@@ -192,5 +193,17 @@ public interface PredictionRepository extends JpaRepository<Prediction, Long> {
      */
     @Query("SELECT COUNT(p) FROM Prediction p WHERE p.isCorrect = true")
     long countAllCorrectPredictions();
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Backfill optimization queries
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Get all match IDs that already have at least one prediction.
+     * Used to efficiently skip already-processed matches during backfill
+     * instead of loading all predictions per team.
+     */
+    @Query("SELECT DISTINCT p.matchId FROM Prediction p")
+    Set<Long> findAllDistinctMatchIds();
 }
 

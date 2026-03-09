@@ -27,6 +27,15 @@ public class ModelAccuracyResponse {
     private AccuracyBreakdown breakdown;
     private String lastUpdated;
 
+    // Model metadata fields
+    private boolean modelLoaded;
+    private String modelType;
+    private int totalFeatures;
+    private long totalTrainingMatches;
+    private int totalTeams;
+    private String lastTrainedDate;
+    private String modelFileSize;
+
     @Data
     @Builder
     public static class AccuracyBreakdown {

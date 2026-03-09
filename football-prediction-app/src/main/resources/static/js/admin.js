@@ -353,6 +353,28 @@ class AdminManager {
     }
 
     /**
+     * Trigger prediction backfill
+     */
+    async backfillPredictions() {
+        try {
+            const response = await fetch('/api/admin/backfill-predictions', {
+                method: 'POST',
+                headers: this.getAuthHeader()
+            });
+
+            if (response.ok) {
+                return await response.json();
+            } else {
+                const error = await response.json();
+                throw new Error(error.message || 'Failed to backfill predictions');
+            }
+        } catch (error) {
+            console.error('[AdminManager] Backfill predictions error:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Get audit logs
      */
     async getAuditLogs(page = 0, size = 20) {
@@ -548,6 +570,9 @@ class AdminManager {
                                 </button>
                                 <button class="btn-admin btn-admin-secondary" id="btnClearCache">
                                     🗑️ Clear Cache
+                                </button>
+                                <button class="btn-admin btn-admin-primary" id="btnBackfill" style="background: linear-gradient(135deg, #8b5cf6, #6d28d9);">
+                                    📊 Backfill Predictions
                                 </button>
                             </div>
                         </div>
@@ -763,6 +788,12 @@ class AdminManager {
             btnClearCache.addEventListener('click', () => this.handleClearCache());
         }
 
+        // Backfill predictions button
+        const btnBackfill = document.getElementById('btnBackfill');
+        if (btnBackfill) {
+            btnBackfill.addEventListener('click', () => this.handleBackfill());
+        }
+
         // Match override form
         const matchOverrideForm = document.getElementById('matchOverrideForm');
         if (matchOverrideForm) {
@@ -848,8 +879,39 @@ class AdminManager {
     }
 
     /**
-     * Handle toggle league
+     * Handle backfill predictions
      */
+    async handleBackfill() {
+        const btn = document.getElementById('btnBackfill');
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<span class="admin-spinner" style="width:14px;height:14px;border-width:2px;"></span> Backfilling...';
+        }
+
+        try {
+            const result = await this.backfillPredictions();
+            const resolved = result.predictionsResolved || 0;
+            const msg = resolved > 0
+                ? `Backfill complete: ${resolved} predictions resolved & accuracy recalculated`
+                : 'All predictions already up to date';
+            this.showToast(msg, 'success');
+
+            // Refresh dashboard to show updated accuracy stats
+            if (resolved > 0) {
+                setTimeout(() => {
+                    const container = document.querySelector('.admin-dashboard')?.parentElement;
+                    if (container) this.renderDashboard(container);
+                }, 1000);
+            }
+        } catch (error) {
+            this.showToast(error.message, 'error');
+        }
+
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '📊 Backfill Predictions';
+        }
+    }
     async handleToggleLeague(code, enabled) {
         try {
             await this.toggleLeague(code, enabled);

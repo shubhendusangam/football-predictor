@@ -2,6 +2,7 @@ package com.app.footballprediction.service;
 
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
+import com.app.footballprediction.config.CacheConfig;
 import com.app.footballprediction.dto.RefereeStats;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,7 +37,7 @@ public class RefereeStatsService {
      * @param refereeName Referee name exactly as stored in database
      * @return RefereeStats with aggregated statistics
      */
-    @Cacheable(value = "refereeStats", key = "#refereeName")
+    @Cacheable(value = CacheConfig.CACHE_REFEREE_STATS, key = "#refereeName")
     public RefereeStats getRefereeStats(String refereeName) {
         if (refereeName == null || refereeName.isBlank()) {
             return RefereeStats.empty(refereeName);
@@ -56,7 +57,7 @@ public class RefereeStatsService {
     /**
      * Get all referee names in the database.
      */
-    @Cacheable(value = "allReferees")
+    @Cacheable(value = CacheConfig.CACHE_ALL_REFEREES)
     public List<String> getAllReferees() {
         List<Match> allMatches = matchRepository.findAllByOrderByMatchDateDesc();
         return allMatches.stream()
@@ -71,7 +72,7 @@ public class RefereeStatsService {
     /**
      * Get statistics for all referees.
      */
-    @Cacheable(value = "allRefereeStats")
+    @Cacheable(value = CacheConfig.CACHE_ALL_REFEREE_STATS)
     public List<RefereeStats> getAllRefereeStats() {
         List<String> referees = getAllReferees();
         return referees.stream()

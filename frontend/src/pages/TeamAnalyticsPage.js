@@ -27,6 +27,21 @@ import {
     LEAGUE_AVERAGE_CORNERS
 } from '../components/team/CornerStatsCard.js';
 
+import {
+    renderExpectedGoalsCard,
+    renderExpectedGoalsLoading,
+    renderExpectedGoalsError,
+    fetchAndRenderExpectedGoalsCard,
+    LEAGUE_AVERAGE_XG
+} from '../components/team/ExpectedGoalsCard.js';
+
+import {
+    renderKickoffTimeCard,
+    renderKickoffTimeLoading,
+    renderKickoffTimeError,
+    fetchAndRenderKickoffTimeCard
+} from '../components/team/KickoffTimeCard.js';
+
 /**
  * TeamAnalyticsPage class
  * Manages the team analytics page state and rendering
@@ -175,9 +190,22 @@ class TeamAnalyticsPage {
                         <div id="away-corner-stats-container" class="corner-stats-card-wrapper"></div>
                     </div>
                 </div>
+                <div class="team-analytics-page__section">
+                    <h3 class="team-analytics-page__section-title">🎯 Expected Goals (xG)</h3>
+                    <div class="xg-cards-container">
+                        <div id="home-xg-container" class="xg-card-wrapper"></div>
+                        <div id="away-xg-container" class="xg-card-wrapper"></div>
+                    </div>
+                </div>
+                <div class="team-analytics-page__section">
+                    <h3 class="team-analytics-page__section-title">🕐 Performance Patterns</h3>
+                    <div class="kickoff-time-container">
+                        <div id="kickoff-time-container" class="kickoff-time-card-wrapper"></div>
+                    </div>
+                </div>
                 <div class="team-analytics-page__footer">
                     <p class="team-analytics-page__note">
-                        League averages: Shot Accuracy ${LEAGUE_AVERAGES.shotAccuracy}% | Corners ${LEAGUE_AVERAGE_CORNERS} per match
+                        League averages: Shot Accuracy ${LEAGUE_AVERAGES.shotAccuracy}% | Corners ${LEAGUE_AVERAGE_CORNERS} per match | xG ${LEAGUE_AVERAGE_XG} per team
                     </p>
                 </div>
             </div>
@@ -197,6 +225,12 @@ class TeamAnalyticsPage {
 
         // Render corner stats cards
         this.loadCornerStats(teamName);
+
+        // Render expected goals cards
+        this.loadExpectedGoals(teamName);
+
+        // Render kick-off time analysis
+        this.loadKickoffTimeAnalysis(teamName);
     }
 
     /**
@@ -215,6 +249,38 @@ class TeamAnalyticsPage {
         if (awayCornerContainer) {
             renderCornerStatsLoading(awayCornerContainer);
             fetchAndRenderCornerStatsCard(awayCornerContainer, teamName, false);
+        }
+    }
+
+    /**
+     * Load and render expected goals statistics
+     * @param {string} teamName - Team name
+     */
+    async loadExpectedGoals(teamName) {
+        const homeXGContainer = document.getElementById('home-xg-container');
+        const awayXGContainer = document.getElementById('away-xg-container');
+
+        if (homeXGContainer) {
+            renderExpectedGoalsLoading(homeXGContainer);
+            fetchAndRenderExpectedGoalsCard(homeXGContainer, teamName, true);
+        }
+
+        if (awayXGContainer) {
+            renderExpectedGoalsLoading(awayXGContainer);
+            fetchAndRenderExpectedGoalsCard(awayXGContainer, teamName, false);
+        }
+    }
+
+    /**
+     * Load and render kick-off time performance analysis
+     * @param {string} teamName - Team name
+     */
+    async loadKickoffTimeAnalysis(teamName) {
+        const kickoffContainer = document.getElementById('kickoff-time-container');
+
+        if (kickoffContainer) {
+            renderKickoffTimeLoading(kickoffContainer);
+            fetchAndRenderKickoffTimeCard(kickoffContainer, teamName);
         }
     }
 
@@ -389,11 +455,63 @@ export async function renderCornerStatsSection(container, teamName) {
     }
 }
 
+/**
+ * Render expected goals cards side-by-side for home and away
+ * Utility function for integration into existing pages
+ *
+ * @param {HTMLElement} container - Container element
+ * @param {string} teamName - Team name
+ * @returns {Promise<Object>} Object containing home and away card data
+ */
+export async function renderExpectedGoalsSection(container, teamName) {
+    if (!container || !teamName) {
+        console.error('[TeamAnalyticsPage] Container and teamName are required');
+        return null;
+    }
+
+    const section = document.createElement('div');
+    section.className = 'xg-section';
+    section.innerHTML = `
+        <div class="xg-section__header">
+            <h3 class="xg-section__title">🎯 Expected Goals (xG)</h3>
+        </div>
+        <div class="xg-cards-container">
+            <div id="section-home-xg" class="xg-card-wrapper"></div>
+            <div id="section-away-xg" class="xg-card-wrapper"></div>
+        </div>
+    `;
+
+    container.innerHTML = '';
+    container.appendChild(section);
+
+    const homeContainer = document.getElementById('section-home-xg');
+    const awayContainer = document.getElementById('section-away-xg');
+
+    renderExpectedGoalsLoading(homeContainer);
+    renderExpectedGoalsLoading(awayContainer);
+
+    try {
+        const [homeData, awayData] = await Promise.all([
+            fetchAndRenderExpectedGoalsCard(homeContainer, teamName, true),
+            fetchAndRenderExpectedGoalsCard(awayContainer, teamName, false)
+        ]);
+
+        return { home: homeData, away: awayData };
+
+    } catch (error) {
+        console.error('[TeamAnalyticsPage] Failed to load expected goals:', error);
+        renderExpectedGoalsError(homeContainer, 'Failed to load home xG');
+        renderExpectedGoalsError(awayContainer, 'Failed to load away xG');
+        return null;
+    }
+}
+
 // Make available globally for non-module usage
 if (typeof window !== 'undefined') {
     window.TeamAnalyticsPage = TeamAnalyticsPage;
     window.renderShotQualitySection = renderShotQualitySection;
     window.renderCornerStatsSection = renderCornerStatsSection;
+    window.renderExpectedGoalsSection = renderExpectedGoalsSection;
     window.createTeamAnalyticsPage = createTeamAnalyticsPage;
 }
 

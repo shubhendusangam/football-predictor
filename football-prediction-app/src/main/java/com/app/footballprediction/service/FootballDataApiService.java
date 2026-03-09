@@ -1,5 +1,6 @@
 package com.app.footballprediction.service;
 
+import com.app.common.util.TeamNameNormalizer;
 import com.app.footballprediction.dto.external.FootballApiResponse;
 import com.app.footballprediction.dto.external.StandingsResponse;
 import lombok.RequiredArgsConstructor;
@@ -156,35 +157,21 @@ public class FootballDataApiService {
      * Some teams have different names in the API vs our CSV data.
      */
     public String normalizeTeamName(String apiTeamName) {
-        // Common mappings between football-data.org names and CSV names
-        return switch (apiTeamName) {
-            case "Manchester United FC" -> "Man United";
-            case "Manchester City FC" -> "Man City";
-            case "Tottenham Hotspur FC" -> "Tottenham";
-            case "Newcastle United FC" -> "Newcastle";
-            case "West Ham United FC" -> "West Ham";
-            case "Wolverhampton Wanderers FC" -> "Wolves";
-            case "Leicester City FC" -> "Leicester";
-            case "Brighton & Hove Albion FC" -> "Brighton";
-            case "Nottingham Forest FC" -> "Nott'm Forest";
-            case "AFC Bournemouth" -> "Bournemouth";
-            case "Ipswich Town FC" -> "Ipswich";
-            case "Southampton FC" -> "Southampton";
-            case "Everton FC" -> "Everton";
-            case "Fulham FC" -> "Fulham";
-            case "Crystal Palace FC" -> "Crystal Palace";
-            case "Brentford FC" -> "Brentford";
-            case "Aston Villa FC" -> "Aston Villa";
-            case "Chelsea FC" -> "Chelsea";
-            case "Arsenal FC" -> "Arsenal";
-            case "Liverpool FC" -> "Liverpool";
-            default -> {
-                // Remove "FC" suffix if present
-                String cleaned = apiTeamName.replaceAll("\\s*FC$", "").trim();
-                log.debug("Team name not mapped: {} -> {}", apiTeamName, cleaned);
-                yield cleaned;
-            }
-        };
+        // First, try the centralized normalizer which has comprehensive mappings
+        String normalized = TeamNameNormalizer.normalize(apiTeamName);
+        if (!normalized.equals(apiTeamName)) {
+            return normalized;
+        }
+
+        // Fallback: remove common suffixes (FC, AFC) if present
+        String cleaned = apiTeamName
+                .replaceAll("\\s*AFC$", "")
+                .replaceAll("\\s*FC$", "")
+                .trim();
+        if (!cleaned.equals(apiTeamName)) {
+            log.debug("Team name not mapped: {} -> {}", apiTeamName, cleaned);
+        }
+        return cleaned;
     }
 
     /**

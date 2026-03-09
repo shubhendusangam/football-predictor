@@ -526,6 +526,11 @@ class DashboardManager {
             const incorrectPct = total > 0 ? ((response?.incorrectPredictions || 0) / total * 100) : 0;
             const pendingPct = total > 0 ? ((response?.pendingPredictions || 0) / total * 100) : 0;
 
+            // Format last trained date
+            const lastTrainedFormatted = response?.lastTrainedDate
+                ? new Date(response.lastTrainedDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                : 'Never';
+
             card.innerHTML = `
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
@@ -537,6 +542,42 @@ class DashboardManager {
                     </span>
                 </div>
                 <div class="dashboard-card-body">
+                    <!-- Model Metadata Section -->
+                    <div class="model-metadata" style="background: var(--bg-tertiary, rgba(255,255,255,0.05)); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border-color, rgba(255,255,255,0.1));">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary, #fff);">📋 Model Details</span>
+                            <span class="badge badge-${response?.modelLoaded ? 'success' : 'danger'}" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">
+                                ${response?.modelLoaded ? '✅ Loaded' : '❌ Not Loaded'}
+                            </span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
+                                <span style="display: block; color: var(--text-tertiary, #666);">Type</span>
+                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.modelType || 'N/A'}</span>
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
+                                <span style="display: block; color: var(--text-tertiary, #666);">Features</span>
+                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.totalFeatures || 0}</span>
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
+                                <span style="display: block; color: var(--text-tertiary, #666);">Training Matches</span>
+                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${(response?.totalTrainingMatches || 0).toLocaleString()}</span>
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
+                                <span style="display: block; color: var(--text-tertiary, #666);">Teams</span>
+                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.totalTeams || 0}</span>
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
+                                <span style="display: block; color: var(--text-tertiary, #666);">Last Trained</span>
+                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${lastTrainedFormatted}</span>
+                            </div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
+                                <span style="display: block; color: var(--text-tertiary, #666);">Model Size</span>
+                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.modelFileSize || 'N/A'}</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="accuracy-main">
                         <div class="accuracy-percentage">${response?.overallAccuracy || 0}%</div>
                         <div class="accuracy-label">Overall Accuracy</div>

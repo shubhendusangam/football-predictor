@@ -50,11 +50,17 @@ frontend/
 │   │   │   ├── FoulsAnalysisCard.js    # Fouls analysis component
 │   │   │   ├── fouls-analysis-card.css # Fouls analysis styles
 │   │   │   ├── CornerStatsCard.js      # Corner statistics component
-│   │   │   └── corner-stats-card.css   # Corner stats styles
+│   │   │   ├── corner-stats-card.css   # Corner stats styles
+│   │   │   ├── ExpectedGoalsCard.js    # Expected goals (xG) component
+│   │   │   ├── expected-goals-card.css # xG styles
+│   │   │   ├── KickoffTimeCard.js      # Kickoff time analysis component
+│   │   │   └── kickoff-time-card.css   # Kickoff time styles
 │   │   │
 │   │   └── match/
 │   │       ├── CornerPredictionCard.js  # Corner prediction component
-│   │       └── corner-prediction-card.css # Corner prediction styles
+│   │       ├── corner-prediction-card.css # Corner prediction styles
+│   │       ├── MatchXGCard.js           # Match xG prediction component
+│   │       └── match-xg-card.css        # Match xG styles
 │   │
 │   └── pages/
 │       ├── TeamAnalyticsPage.js        # Team analytics page
@@ -67,11 +73,13 @@ frontend/
 
 ## Components
 
-### ShotQualityCard
+### Team Components
+
+#### ShotQualityCard
 
 Displays shot efficiency metrics with circular progress indicators and sparkline trends.
 
-#### Features
+##### Features
 - **Circular Progress Indicator** - SVG-based with animated stroke
 - **Quality Score** - 0-100 scale (converted from backend's 0-10)
 - **Shot Accuracy** - Percentage of shots on target
@@ -79,7 +87,7 @@ Displays shot efficiency metrics with circular progress indicators and sparkline
 - **Sparkline Chart** - Canvas-based last 10 matches trend
 - **Rating Badge** - League average comparison indicator
 
-#### API
+##### API
 ```javascript
 // ES6 Module
 import { 
@@ -96,7 +104,7 @@ renderShotQualityCard(container, teamStats, leagueAverages);
 fetchAndRenderShotQualityCard(container, 'Arsenal', true);
 ```
 
-#### IIFE Version (Static Resources)
+##### IIFE Version (Static Resources)
 ```javascript
 // Available via window.ShotQualityCard
 ShotQualityCard.render(container, teamStats, leagueAverages);
@@ -104,44 +112,25 @@ ShotQualityCard.fetchAndRender(container, 'Arsenal', true);
 ShotQualityCard.renderPair(container, 'Arsenal');  // Home/Away side-by-side
 ```
 
-#### REST Endpoint
+##### REST Endpoint
 ```
 GET /api/teams/{teamName}/shot-quality?split=true
 ```
 
-#### Response Structure
-```json
-{
-  "teamName": "Arsenal",
-  "home": {
-    "teamName": "Arsenal",
-    "isHome": true,
-    "qualityScore": 7.5,
-    "shotAccuracy": 38.5,
-    "conversionRate": 0.32,
-    "shotsTrend": [
-      { "shots": 15, "goals": 3 },
-      { "shots": 12, "goals": 2 }
-    ]
-  },
-  "away": { ... }
-}
-```
-
 ---
 
-### FoulsAnalysisCard
+#### FoulsAnalysisCard
 
 Displays fouls statistics and discipline metrics with comparison visualizations.
 
-#### Features
+##### Features
 - **Discipline Score** - 0-10 scale rating
 - **Fouls Committed/Drawn** - Average per match
 - **Fouls Differential** - Visual bar comparison
 - **Win Rate by Foul Count** - Low/Controlled/High breakdowns
 - **Discipline Badge** - Excellent/Good/Average/Poor indicators
 
-#### API
+##### API
 ```javascript
 // ES6 Module
 import { 
@@ -160,43 +149,25 @@ renderFoulsAnalysisComparison(container, homeTeamData, awayTeamData);
 const data = await fetchFoulsAnalysis('Arsenal', true);
 ```
 
-#### REST Endpoint
+##### REST Endpoint
 ```
 GET /api/teams/{teamName}/fouls-analysis?isHome=true
 ```
 
-#### Response Structure
-```json
-{
-  "teamName": "Arsenal",
-  "isHome": true,
-  "disciplineScore": 7.2,
-  "avgFoulsCommitted": 10.5,
-  "avgFoulsDrawn": 12.3,
-  "foulsDifferential": -1.8,
-  "winRateByFoulCount": {
-    "low": 65.0,
-    "controlled": 52.0,
-    "high": 38.0
-  },
-  "disciplineBadge": "Good"
-}
-```
-
 ---
 
-### CornerStatsCard
+#### CornerStatsCard
 
 Displays corner kick statistics with horizontal bar charts and dominance indicators.
 
-#### Features
+##### Features
 - **Average Corners Won/Against** - Horizontal bar visualization
 - **Corner Dominance** - Percentage with color coding (Strong/Weak)
 - **Success Rate** - Correlation with win rate
 - **League Comparison** - Above/Near/Below average indicators
 - **Corner Flag Icon** - ⚑ visual element
 
-#### API
+##### API
 ```javascript
 // ES6 Module
 import { 
@@ -213,39 +184,82 @@ renderCornerStatsCard(container, cornerStats);
 fetchAndRenderCornerStatsCard(container, 'Arsenal', true);
 ```
 
-#### REST Endpoint
+##### REST Endpoint
 ```
 GET /api/teams/{teamName}/corner-stats?isHome=true
 ```
 
-#### Response Structure
-```json
-{
-  "teamName": "Arsenal",
-  "isHome": true,
-  "avgCornersWon": 6.45,
-  "avgCornersAgainst": 4.20,
-  "cornerDominance": 0.606,
-  "successRate": 0.583,
-  "matchesAnalyzed": 20,
-  "weightedAvgCorners": 6.78
-}
+---
+
+#### ExpectedGoalsCard
+
+Displays expected goals (xG) statistics with over/underperformance indicators.
+
+##### Features
+- **xG Per Game** - Expected goals based on shots on target
+- **Actual vs Expected** - Over/underperformance visualization
+- **Team Conversion Rate** - Compared to league average (0.28)
+- **xG Trend** - Recent matches xG progression
+- **Home/Away Split** - Separate xG metrics per venue
+
+##### API
+```javascript
+// ES6 Module
+import { ExpectedGoalsCard } from './components/team/ExpectedGoalsCard.js';
+
+// Render example
+ExpectedGoalsCard.render(container, teamStats);
+```
+
+##### REST Endpoint
+```
+GET /api/teams/{teamName}/expected-goals
+GET /api/teams/{teamName}/expected-goals/split
 ```
 
 ---
 
-### CornerPredictionCard
+#### KickoffTimeCard
+
+Displays team performance broken down by kickoff time slots.
+
+##### Features
+- **Time Slot Grid** - Early/Afternoon/Late/Evening performance
+- **Win Rate Per Slot** - Visual bars with percentages
+- **Performance Classification** - Strong/Average/Weak badges
+- **Best/Worst Slot** - Highlighted optimal and weakest times
+- **Goal Averages** - Scoring patterns per time slot
+
+##### API
+```javascript
+// ES6 Module
+import { KickoffTimeCard } from './components/team/KickoffTimeCard.js';
+
+// Render example
+KickoffTimeCard.render(container, teamStats);
+```
+
+##### REST Endpoint
+```
+GET /api/teams/{teamName}/kickoff-analysis
+```
+
+---
+
+### Match Components
+
+#### CornerPredictionCard
 
 Displays match corner predictions with animated counters and probability bars.
 
-#### Features
+##### Features
 - **Animated Counter** - Expected total corners with animation
 - **Home vs Away Split** - Corner breakdown comparison bars
 - **Over/Under Probabilities** - 9.5, 10.5, 11.5 corner thresholds
 - **Color-Coded Probability** - Green (>60%), Yellow (40-60%), Red (<40%)
 - **Clean Match Preview Layout** - Team names and prediction summary
 
-#### API
+##### API
 ```javascript
 // ES6 Module
 import { 
@@ -262,26 +276,36 @@ renderCornerPredictionCard(container, predictionData);
 fetchAndRenderCornerPredictionCard(container, 'Arsenal', 'Chelsea');
 ```
 
-#### REST Endpoint
+##### REST Endpoint
 ```
 GET /api/matches/predict-corners?home={homeTeam}&away={awayTeam}
 ```
 
-#### Response Structure
-```json
-{
-  "homeTeam": "Arsenal",
-  "awayTeam": "Chelsea",
-  "expectedTotalCorners": 10.8,
-  "homeCorners": 6.2,
-  "awayCorners": 4.6,
-  "overUnderProbabilities": {
-    "over9_5": 0.72,
-    "over10_5": 0.58,
-    "over11_5": 0.41
-  },
-  "confidenceLevel": "HIGH"
-}
+---
+
+#### MatchXGCard
+
+Displays match-level expected goals (xG) predictions.
+
+##### Features
+- **Match xG Prediction** - Expected goals for both teams
+- **Over/Under Probabilities** - Goal thresholds (1.5, 2.5, 3.5)
+- **Team Comparison** - Side-by-side xG breakdown
+- **Confidence Level** - Based on data availability
+- **Home Advantage Indicator** - Home team xG boost visualization
+
+##### API
+```javascript
+// ES6 Module
+import { MatchXGCard } from './components/match/MatchXGCard.js';
+
+// Render example
+MatchXGCard.render(container, matchData);
+```
+
+##### REST Endpoint
+```
+GET /api/matches/predict-xg?home={homeTeam}&away={awayTeam}
 ```
 
 ---
@@ -290,7 +314,7 @@ GET /api/matches/predict-corners?home={homeTeam}&away={awayTeam}
 
 ### TeamAnalyticsPage
 
-Unified dashboard combining shot quality and fouls analysis for comprehensive team insights.
+Unified dashboard combining shot quality, fouls analysis, and other analytics for comprehensive team insights.
 
 #### Features
 - **Dual Card Layout** - Home and away statistics side-by-side
@@ -314,26 +338,16 @@ const analyticsPage = new TeamAnalyticsPage('container-id', 'Arsenal');
 analyticsPage.render();
 ```
 
-#### Integration with Router
-The `router.js` has been updated to include a "🎯 Shot Quality" tab in the team stats modal:
-
-```javascript
-// In router.js
-renderShotQualityTab() {
-    const container = document.getElementById('shot-quality-container');
-    ShotQualityCard.renderPair(container, this.selectedTeam);
-}
-```
-
 ---
 
 ### MatchPreviewPage
 
-Page component for displaying match preview analytics with corner predictions.
+Page component for displaying match preview analytics with corner and xG predictions.
 
 #### Features
 - **Team Selection** - Home and away team inputs
 - **Corner Predictions** - Integrated CornerPredictionCard
+- **xG Predictions** - Integrated MatchXGCard
 - **Loading States** - Skeleton loaders during data fetch
 - **Error Handling** - Graceful error states with retry
 - **Responsive Layout** - Optimized for all screen sizes
@@ -352,17 +366,6 @@ const page = createMatchPreviewPage('container-id');
 page.loadPrediction('Arsenal', 'Chelsea');
 ```
 
-#### Integration
-The MatchPreviewPage can be integrated into the main application via router:
-
-```javascript
-// In router.js
-showMatchPreview(homeTeam, awayTeam) {
-    const page = createMatchPreviewPage('match-preview-container');
-    page.loadPrediction(homeTeam, awayTeam);
-}
-```
-
 ---
 
 ## API Integration
@@ -379,7 +382,10 @@ const API_BASE = '/api';
 | ShotQualityCard | `/api/teams/{name}/shot-quality` | GET |
 | FoulsAnalysisCard | `/api/teams/{name}/fouls-analysis` | GET |
 | CornerStatsCard | `/api/teams/{name}/corner-stats` | GET |
+| ExpectedGoalsCard | `/api/teams/{name}/expected-goals` | GET |
+| KickoffTimeCard | `/api/teams/{name}/kickoff-analysis` | GET |
 | CornerPredictionCard | `/api/matches/predict-corners` | GET |
+| MatchXGCard | `/api/matches/predict-xg` | GET |
 
 ### Error Handling
 ```javascript
@@ -441,13 +447,18 @@ const NEAR_AVERAGE_THRESHOLD = 5;  // ±5%
 <head>
     <link rel="stylesheet" href="/css/shot-quality-card.css">
     <link rel="stylesheet" href="/css/fouls-analysis-card.css">
+    <link rel="stylesheet" href="/css/corner-stats-card.css">
+    <link rel="stylesheet" href="/css/expected-goals-card.css">
+    <link rel="stylesheet" href="/css/kickoff-time-card.css">
 </head>
 <body>
     <div id="shot-quality-container"></div>
     <div id="fouls-container"></div>
+    <div id="corners-container"></div>
 
     <script src="/js/shot-quality-card.js"></script>
     <script src="/js/fouls-analysis-card.js"></script>
+    <script src="/js/corner-stats-card.js"></script>
     <script>
         // Render shot quality cards (home/away pair)
         ShotQualityCard.renderPair(
@@ -471,62 +482,10 @@ const NEAR_AVERAGE_THRESHOLD = 5;  // ±5%
 ```javascript
 import { renderShotQualityCard } from './components/team/ShotQualityCard.js';
 import { renderFoulsAnalysisCard } from './components/team/FoulsAnalysisCard.js';
-
-// Manual data rendering
-const teamStats = {
-    teamName: 'Arsenal',
-    isHome: true,
-    qualityScore: 7.5,
-    shotAccuracy: 38.5,
-    conversionRate: 0.32,
-    shotsTrend: [
-        { shots: 15, goals: 3 },
-        { shots: 12, goals: 2 },
-        // ... last 10 matches
-    ]
-};
+import { renderCornerStatsCard } from './components/team/CornerStatsCard.js';
 
 const container = document.getElementById('container');
 renderShotQualityCard(container, teamStats);
-```
-
-### Sparkline Chart (Canvas API)
-
-```javascript
-function renderSparkline(canvas, data) {
-    const ctx = canvas.getContext('2d');
-    const width = canvas.width;
-    const height = canvas.height;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, width, height);
-    
-    // Draw line
-    ctx.beginPath();
-    ctx.strokeStyle = '#3b82f6';  // Blue
-    ctx.lineWidth = 2;
-    
-    data.forEach((point, i) => {
-        const x = (i / (data.length - 1)) * width;
-        const y = height - (point.shots / maxShots) * height;
-        
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    });
-    
-    ctx.stroke();
-    
-    // Draw dots
-    data.forEach((point, i) => {
-        const x = (i / (data.length - 1)) * width;
-        const y = height - (point.shots / maxShots) * height;
-        
-        ctx.beginPath();
-        ctx.arc(x, y, 3, 0, 2 * Math.PI);
-        ctx.fillStyle = '#3b82f6';
-        ctx.fill();
-    });
-}
 ```
 
 ---
@@ -547,45 +506,17 @@ The frontend components satisfy these requirements:
 
 ---
 
-## Testing
-
-### Validation Test Cases
-
-#### Arsenal (High Quality - Green Badge)
-- Expected: Quality score > 60
-- Rating badge: "Above League Average" (green)
-
-#### Southampton (Lower Quality - Yellow/Red Badge)
-- Expected: Quality score around 40-50
-- Rating badge: "Near League Average" (yellow) or "Below League Average" (red)
-
-### Verification Checklist
-- [ ] `qualityScore` calculation matches backend (0-10 → 0-100)
-- [ ] League average comparison is accurate (±5% threshold)
-- [ ] Sparkline reflects last 10 matches correctly
-- [ ] Responsive on mobile devices
-- [ ] Animations work smoothly
-- [ ] Error states display correctly
-
-### Demo Page
-A demo page is available at:
-```
-/static/demo/shot-quality-demo.html
-```
-
----
-
 ## Metrics
 
 | Metric | Value |
 |--------|-------|
-| Components | 2 |
-| Pages | 1 |
-| CSS Files | 4 |
-| JavaScript Files | 3 |
+| Team Components | 5 (ShotQuality, Fouls, Corners, xG, KickoffTime) |
+| Match Components | 2 (CornerPrediction, MatchXG) |
+| Pages | 2 (TeamAnalytics, MatchPreview) |
+| CSS Files | 7 |
+| JavaScript Files | 7 |
 | External Dependencies | 0 |
 
 ---
 
 **[← Back to Main README](../README.md)**
-

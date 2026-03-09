@@ -1,6 +1,6 @@
 package com.app.modeltraining.service;
 
-import com.app.common.util.PredictionUtils;
+import com.app.common.weka.WekaSchemaBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -9,16 +9,14 @@ import org.springframework.stereotype.Service;
 import weka.classifiers.Evaluation;
 import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
-import weka.core.DenseInstance;
-import weka.core.Instance;
 import weka.core.Instances;
 
 import java.io.*;
 import java.util.*;
 
-import com.app.modeltraining.model.Match;
-import com.app.modeltraining.model.MatchFeatures;
-import com.app.modeltraining.repository.MatchRepository;
+import com.app.common.model.Match;
+import com.app.common.model.MatchFeatures;
+import com.app.common.repository.MatchRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -31,48 +29,14 @@ public class ModelTrainingService {
    @Value("${model.output.path}")
    private String modelOutputPath;
 
-   @Value("${model.crossvalidation.enabled:true}")
-   private boolean crossValidationEnabled;
-
-   @Value("${model.crossvalidation.folds:10}")
-   private int crossValidationFolds;
-
    @Value("${model.training.min-matches:100}")
    private int minMatches;
 
    @Value("${model.training.train-split:0.8}")
    private double trainSplit;
 
-   // ── Weka column indices ──
-   private static final int IDX_HOME_FORM         = 0;
-   private static final int IDX_AWAY_FORM         = 1;
-   private static final int IDX_HOME_GOALS_SCR    = 2;
-   private static final int IDX_HOME_GOALS_CON    = 3;
-   private static final int IDX_AWAY_GOALS_SCR    = 4;
-   private static final int IDX_AWAY_GOALS_CON    = 5;
-   private static final int IDX_HOME_TOTAL_GOALS  = 6;
-   private static final int IDX_AWAY_TOTAL_GOALS  = 7;
-   private static final int IDX_H2H_HOME_WIN      = 8;
-   private static final int IDX_H2H_DRAW          = 9;
-   private static final int IDX_H2H_AWAY_WIN      = 10;
-   private static final int IDX_HOME_SHOTS        = 11;
-   private static final int IDX_AWAY_SHOTS        = 12;
-   private static final int IDX_HOME_CORNERS      = 13;
-   private static final int IDX_AWAY_CORNERS      = 14;
-   private static final int IDX_HOME_GOAL_DIFF    = 15;
-   private static final int IDX_AWAY_GOAL_DIFF    = 16;
-   private static final int IDX_HOME_OVERALL_FORM = 17;
-   private static final int IDX_AWAY_OVERALL_FORM = 18;
-   private static final int IDX_HOME_WIN_STREAK   = 19;
-   private static final int IDX_AWAY_WIN_STREAK   = 20;
-   private static final int IDX_HOME_UNBEATEN     = 21;
-   private static final int IDX_AWAY_UNBEATEN     = 22;
-   private static final int IDX_HOME_DAYS_REST    = 23;
-   private static final int IDX_AWAY_DAYS_REST    = 24;
-   // Phase 5 features (Possession Proxy)
-   private static final int IDX_HOME_POSSESSION   = 25;
-   private static final int IDX_AWAY_POSSESSION   = 26;
-   private static final int IDX_LABEL             = 27;
+   // ── Weka column index — only those used directly in this class ──
+   private static final int IDX_LABEL = WekaSchemaBuilder.IDX_LABEL;
 
    /**
     * Train model with temporal split and evaluation
@@ -127,8 +91,9 @@ public class ModelTrainingService {
 
       // Train Random Forest
       RandomForest rf = new RandomForest();
-      rf.setNumIterations(100);
-      rf.setNumFeatures(5);
+      rf.setNumIterations(200);
+      rf.setNumFeatures(7);
+      rf.setMaxDepth(20);
       rf.setSeed(42);
       rf.buildClassifier(trainData);
 
@@ -225,102 +190,23 @@ public class ModelTrainingService {
       return info;
    }
 
-   // ── Helper methods ──
+   // ── Helper methods — delegate to shared WekaSchemaBuilder ──
 
    private ArrayList<Attribute> buildAttributes() {
-      ArrayList<Attribute> attrs = new ArrayList<>();
-
-      attrs.add(new Attribute("homeFormPoints"));
-      attrs.add(new Attribute("awayFormPoints"));
-      attrs.add(new Attribute("homeGoalsScoredAvg"));
-      attrs.add(new Attribute("homeGoalsConcededAvg"));
-      attrs.add(new Attribute("awayGoalsScoredAvg"));
-      attrs.add(new Attribute("awayGoalsConcededAvg"));
-      attrs.add(new Attribute("homeTotalGoalsAvg"));
-      attrs.add(new Attribute("awayTotalGoalsAvg"));
-      attrs.add(new Attribute("h2hHomeWinRate"));
-      attrs.add(new Attribute("h2hDrawRate"));
-      attrs.add(new Attribute("h2hAwayWinRate"));
-      attrs.add(new Attribute("homeShotsOnTargetAvg"));
-      attrs.add(new Attribute("awayShotsOnTargetAvg"));
-      attrs.add(new Attribute("homeCornersAvg"));
-      attrs.add(new Attribute("awayCornersAvg"));
-      attrs.add(new Attribute("homeGoalDifference"));
-      attrs.add(new Attribute("awayGoalDifference"));
-      attrs.add(new Attribute("homeOverallFormPoints"));
-      attrs.add(new Attribute("awayOverallFormPoints"));
-      attrs.add(new Attribute("homeWinStreak"));
-      attrs.add(new Attribute("awayWinStreak"));
-      attrs.add(new Attribute("homeUnbeatenStreak"));
-      attrs.add(new Attribute("awayUnbeatenStreak"));
-      attrs.add(new Attribute("homeDaysRest"));
-      attrs.add(new Attribute("awayDaysRest"));
-
-      // Phase 5: Possession Proxy
-      attrs.add(new Attribute("homePossessionProxy"));
-      attrs.add(new Attribute("awayPossessionProxy"));
-
-      ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
-      attrs.add(new Attribute("result", labels));
-
-      return attrs;
+      return WekaSchemaBuilder.buildAttributes();
    }
 
    private Instances toWekaInstances(List<MatchFeatures> featuresList, ArrayList<Attribute> attributes, String name) {
-      Instances dataset = new Instances(name, attributes, featuresList.size());
-      dataset.setClassIndex(IDX_LABEL);
-
-      for (MatchFeatures f : featuresList) {
-         dataset.add(toWekaInstance(f, dataset));
-      }
-
-      return dataset;
+      return WekaSchemaBuilder.toWekaInstances(featuresList, name);
    }
 
-   private Instance toWekaInstance(MatchFeatures f, Instances dataset) {
-      Instance inst = new DenseInstance(28); // 27 features + 1 label
-      inst.setDataset(dataset);
-
-      inst.setValue(IDX_HOME_FORM,        PredictionUtils.safe(f.getHomeFormPoints()));
-      inst.setValue(IDX_AWAY_FORM,        PredictionUtils.safe(f.getAwayFormPoints()));
-      inst.setValue(IDX_HOME_GOALS_SCR,   PredictionUtils.safe(f.getHomeGoalsScoredAvg()));
-      inst.setValue(IDX_HOME_GOALS_CON,   PredictionUtils.safe(f.getHomeGoalsConcededAvg()));
-      inst.setValue(IDX_AWAY_GOALS_SCR,   PredictionUtils.safe(f.getAwayGoalsScoredAvg()));
-      inst.setValue(IDX_AWAY_GOALS_CON,   PredictionUtils.safe(f.getAwayGoalsConcededAvg()));
-      inst.setValue(IDX_HOME_TOTAL_GOALS, PredictionUtils.safe(f.getHomeTotalGoalsAvg()));
-      inst.setValue(IDX_AWAY_TOTAL_GOALS, PredictionUtils.safe(f.getAwayTotalGoalsAvg()));
-      inst.setValue(IDX_H2H_HOME_WIN,     PredictionUtils.safe(f.getH2hHomeWinRate()));
-      inst.setValue(IDX_H2H_DRAW,         PredictionUtils.safe(f.getH2hDrawRate()));
-      inst.setValue(IDX_H2H_AWAY_WIN,     PredictionUtils.safe(f.getH2hAwayWinRate()));
-      inst.setValue(IDX_HOME_SHOTS,       PredictionUtils.safe(f.getHomeShotsOnTargetAvg()));
-      inst.setValue(IDX_AWAY_SHOTS,       PredictionUtils.safe(f.getAwayShotsOnTargetAvg()));
-      inst.setValue(IDX_HOME_CORNERS,     PredictionUtils.safe(f.getHomeCornersAvg()));
-      inst.setValue(IDX_AWAY_CORNERS,     PredictionUtils.safe(f.getAwayCornersAvg()));
-      inst.setValue(IDX_HOME_GOAL_DIFF,    PredictionUtils.safe(f.getHomeGoalDifference()));
-      inst.setValue(IDX_AWAY_GOAL_DIFF,    PredictionUtils.safe(f.getAwayGoalDifference()));
-      inst.setValue(IDX_HOME_OVERALL_FORM, PredictionUtils.safe(f.getHomeOverallFormPoints()));
-      inst.setValue(IDX_AWAY_OVERALL_FORM, PredictionUtils.safe(f.getAwayOverallFormPoints()));
-      inst.setValue(IDX_HOME_WIN_STREAK,   PredictionUtils.safe(f.getHomeWinStreak()));
-      inst.setValue(IDX_AWAY_WIN_STREAK,   PredictionUtils.safe(f.getAwayWinStreak()));
-      inst.setValue(IDX_HOME_UNBEATEN,     PredictionUtils.safe(f.getHomeUnbeatenStreak()));
-      inst.setValue(IDX_AWAY_UNBEATEN,     PredictionUtils.safe(f.getAwayUnbeatenStreak()));
-      inst.setValue(IDX_HOME_DAYS_REST,    PredictionUtils.safe(f.getHomeDaysSinceLastMatch()));
-      inst.setValue(IDX_AWAY_DAYS_REST,    PredictionUtils.safe(f.getAwayDaysSinceLastMatch()));
-
-      // Phase 5 features (Possession Proxy)
-      inst.setValue(IDX_HOME_POSSESSION,   PredictionUtils.safe(f.getHomePossessionProxy()));
-      inst.setValue(IDX_AWAY_POSSESSION,   PredictionUtils.safe(f.getAwayPossessionProxy()));
-
-      if (f.getActualResult() != null) {
-         inst.setValue(IDX_LABEL, f.getActualResult());
-      }
-
-      return inst;
-   }
 
    private void saveModel(RandomForest model, Instances header) throws IOException {
       File file = new File(modelOutputPath);
-      file.getParentFile().mkdirs();
+      File parentDir = file.getParentFile();
+      if (parentDir != null && !parentDir.exists() && !parentDir.mkdirs()) {
+         log.warn("Failed to create directory: {}", parentDir.getAbsolutePath());
+      }
 
       try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
          oos.writeObject(model);

@@ -53,24 +53,6 @@ public class LeaguePositionService {
         return standings.getOrDefault(teamName, DEFAULT_POSITION);
     }
 
-    /**
-     * Get a team's league position as of a specific date (legacy method).
-     * Calculates standings from all matches before the given date (no season filter).
-     *
-     * @param teamName The team to get position for
-     * @param asOfDate The date to calculate position as of (exclusive)
-     * @return Position (1-based, 1=top), or DEFAULT_POSITION if team not found
-     * @deprecated Use {@link #getTeamPositionAsOfDate(String, String, LocalDate)} instead
-     */
-    @Deprecated
-    public int getTeamPositionAsOfDate(String teamName, LocalDate asOfDate) {
-        if (teamName == null || asOfDate == null) {
-            return DEFAULT_POSITION;
-        }
-
-        Map<String, Integer> standings = calculateStandingsAsOfDateNoSeason(asOfDate);
-        return standings.getOrDefault(teamName, DEFAULT_POSITION);
-    }
 
     /**
      * Calculate league standings as of a specific date within a season.
@@ -94,31 +76,6 @@ public class LeaguePositionService {
         return calculatePositionsFromMatches(matches);
     }
 
-    /**
-     * Calculate league standings as of a specific date (no season filter).
-     * Used for legacy compatibility.
-     *
-     * @param asOfDate The date to calculate standings up to (exclusive)
-     * @return Map of team name to position (1-based)
-     */
-    public Map<String, Integer> calculateStandingsAsOfDateNoSeason(LocalDate asOfDate) {
-        log.debug("Calculating standings as of date (no season filter): {}", asOfDate);
-
-        List<Match> allMatches = matchRepository.findAllByOrderByMatchDateAsc();
-
-        List<Match> matches = allMatches.stream()
-                .filter(m -> m.getMatchDate() != null)
-                .filter(m -> m.getMatchDate().isBefore(asOfDate))
-                .filter(m -> m.getFullTimeResult() != null)
-                .toList();
-
-        if (matches.isEmpty()) {
-            log.debug("No completed matches found before date: {}", asOfDate);
-            return Collections.emptyMap();
-        }
-
-        return calculatePositionsFromMatches(matches);
-    }
 
     /**
      * Calculate positions from a list of matches.

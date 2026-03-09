@@ -1,6 +1,6 @@
 # ⚽ Football Match Prediction & Insights Platform
 
-A **Season-aware AI-powered Football Match Prediction & Insights Platform** built with Spring Boot and Machine Learning. This production-ready application predicts Premier League match outcomes using advanced ensemble learning while providing comprehensive pre-match insights, season-based trending analytics, and historical performance tracking.
+A **Season-aware AI-powered Football Match Prediction & Insights Platform** built with Spring Boot and Machine Learning. This production-ready application predicts Premier League match outcomes using advanced ensemble learning while providing comprehensive pre-match insights, season-based trending analytics, expected goals (xG) modeling, referee analysis, fixture congestion tracking, and historical performance analysis.
 
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
@@ -29,8 +29,10 @@ A **Season-aware AI-powered Football Match Prediction & Insights Platform** buil
 This platform is designed for **football analytics enthusiasts** who want data-driven match predictions and comprehensive team insights. The system combines:
 
 - **Machine Learning Predictions**: Stacked ensemble model (RandomForest + AdaBoostM1 + Logistic Regression)
+- **Expected Goals (xG) Modeling**: Shots-on-target proxy model with team-specific conversion rates
 - **Season-aware Analytics**: All insights are computed within season boundaries—no cross-season data mixing
-- **Real-time Data Integration**: Live data from football-data.org API for upcoming matches and standings
+- **Real-time Data Integration**: Live data from football-data.org API and ESPN for upcoming matches and standings
+- **SSE Live Updates**: Server-Sent Events for real-time match completion notifications
 - **Historical Analysis**: 33 seasons of Premier League data (1993/94 - 2025/26)
 
 ### Key Differentiators
@@ -41,6 +43,12 @@ This platform is designed for **football analytics enthusiasts** who want data-d
 | **25 ML Features** | Form, goals, H2H, shots, corners, streaks, rest days |
 | **Pre-Match Insights** | Goal threat, fatigue warnings, BTTS probability |
 | **Elo Rating System** | Dynamic team strength tracking with upset detection |
+| **Expected Goals (xG)** | Shot-based xG model with over/underperformance tracking |
+| **Referee Analytics** | Referee tendencies for cards, fouls, and results |
+| **Fixture Congestion** | Fatigue index and rest-day impact analysis |
+| **Kickoff Time Analysis** | Performance breakdown by time-of-day slots |
+| **Smart Data Ingestion** | Idempotent upsert pipeline with shadow validation |
+| **Real-time SSE** | Server-Sent Events for live match completion updates |
 | **Multi-module Architecture** | Separate prediction app and training service |
 
 ---
@@ -73,7 +81,7 @@ The prediction engine uses a **Stacked Ensemble ML Model** enhanced with **Elo R
 - **Elo Rating Integration** for team strength comparison
 - **Confidence Levels**: HIGH / MEDIUM / LOW based on probability distribution
 - **Prediction Explainability**: Breakdown of factors influencing the prediction
-- **Automatic Retraining**: Scheduled bi-monthly (1st & 15th @ 3 AM)
+- **Automatic Retraining**: Scheduled bi-monthly (1st & 15th @ 3 AM) + smart retrain on new data
 
 ### 📈 Elo Rating System
 
@@ -137,6 +145,17 @@ Every prediction includes a breakdown of contributing factors:
 | **Home/Away Split** | Separate metrics for home and away performance |
 | **League Comparison** | Above/Near/Below league average indicators |
 
+### ⚽ Expected Goals (xG)
+
+| Metric | Description |
+|--------|-------------|
+| **Team xG** | Expected goals based on shots on target × league conversion rate |
+| **xG Over/Underperformance** | Actual goals vs expected goals comparison |
+| **Match xG Prediction** | Predicted xG for both teams in a matchup |
+| **Over/Under Probabilities** | Goal probability distributions (Over 1.5, 2.5, 3.5) |
+| **Home/Away Split** | Separate xG metrics for home and away |
+| **Recency-Weighted** | Exponential decay weighting for recent matches |
+
 ### 🟨 Fouls & Discipline Analysis
 
 | Metric | Description |
@@ -183,15 +202,51 @@ Every prediction includes a breakdown of contributing factors:
 | **Comeback Rate** | Percentage of wins after losing at half-time |
 | **Confidence Level** | Based on matches analyzed |
 
+### 👨‍⚖️ Referee Analytics
+
+| Metric | Description |
+|--------|-------------|
+| **Matches Officiated** | Total matches per referee |
+| **Avg Yellow Cards** | Average yellows per match (vs league average) |
+| **Avg Red Cards** | Average reds per match |
+| **Strictness Rating** | Relative to league-wide card averages |
+| **Result Distribution** | Home win / Draw / Away win breakdown |
+| **Strictest/Lenient** | Rankings of referees by card tendencies |
+
+### 🏋️ Fixture Congestion & Fatigue
+
+| Metric | Description |
+|--------|-------------|
+| **Fatigue Index** | 0-100 scale (100 = very congested, 0 = well rested) |
+| **Average Rest Days** | Mean days between recent matches |
+| **Win Rate by Rest** | Performance breakdown by short/normal/long rest |
+| **Congestion Comparison** | Head-to-head fatigue comparison for a matchup |
+| **Advantage Detection** | Identifies which team has a rest advantage |
+
+### ⏰ Kickoff Time Analysis
+
+| Metric | Description |
+|--------|-------------|
+| **Time Slot Breakdown** | Early / Afternoon / Late / Evening performance |
+| **Win/Draw/Loss per Slot** | Results breakdown by kickoff time |
+| **Goal Averages per Slot** | Scoring patterns by time of day |
+| **Performance Classification** | Strong / Average / Weak per slot |
+| **Best/Worst Slot** | Optimal and weakest kickoff times |
+
 ### 🏆 Additional Features
 
 | Feature | Description |
 |---------|-------------|
 | **League Standings** | Real-time standings with zone indicators |
 | **Upcoming Matches** | Match-day predictions with date filters |
-| **Model Accuracy Tracking** | Performance metrics and trends |
+| **Model Accuracy Tracking** | Performance metrics, sliding accuracy, temporal CV |
 | **Football News Feed** | Aggregated RSS news (BBC, Sky Sports, ESPN) |
 | **Admin Panel** | Secure dashboard for system management |
+| **Season Team Stats** | Per-season team statistics with Elo/form rankings |
+| **Smart Polling** | Automated match data polling with retrain triggers |
+| **SSE Live Events** | Server-Sent Events for match completion notifications |
+| **Data Ingestion Pipeline** | Idempotent upsert with shadow validation |
+| **ESPN Integration** | Additional data source for match enrichment |
 
 ---
 
@@ -210,10 +265,10 @@ Every prediction includes a breakdown of contributing factors:
 │  │  ┌───────────────────────────────┐  │   │  ┌──────────────────────┐  │   │
 │  │  │        Controllers            │  │   │  │   Training API       │  │   │
 │  │  │  • PredictionController       │  │   │  │  POST /train         │  │   │
-│  │  │  • AnalyticsController        │  │   │  │  POST /test          │  │   │
-│  │  │  • DashboardController        │  │   │  │  GET  /model-info    │  │   │
-│  │  │  • TeamStatsController        │  │   │  └──────────────────────┘  │   │
-│  │  │  • AdminController            │  │   │                            │   │
+│  │  │  • TeamStatsController        │  │   │  │  POST /test          │  │   │
+│  │  │  • SeasonTeamStatsController  │  │   │  │  GET  /model-info    │  │   │
+│  │  │  • SeasonsController          │  │   │  └──────────────────────┘  │   │
+│  │  │  • RefereeController          │  │   │                            │   │
 │  │  └───────────────────────────────┘  │   │  ┌──────────────────────┐  │   │
 │  │               │                     │   │  │  Scheduled Tasks     │  │   │
 │  │               ▼                     │   │  │  • Bi-monthly train  │  │   │
@@ -221,36 +276,61 @@ Every prediction includes a breakdown of contributing factors:
 │  │  │      Service Layer            │  │   └────────────────┬───────────┘   │
 │  │  │  • PreMatchInsightsService    │  │                    │               │
 │  │  │  • TrendingInsightsService    │  │   ┌────────────────▼───────────┐   │
-│  │  │  • ShotQualityService         │  │   │     Shared Storage         │   │
-│  │  │  • FoulsAnalysisService       │  │   │                            │   │
-│  │  │  • CornerStatsService (NEW)   │  │   │  ┌──────────────────────┐  │   │
-│  │  │  • CardsPredictionService     │  │   │  │   H2 Database        │  │   │
-│  │  │  • HalfAnalysisService (NEW)  │  │   │  │   footballdb.mv.db   │  │   │
-│  │  │  • H2HInsightsService         │  │   │  └──────────────────────┘  │   │
-│  │  │  • TeamStatsService           │  │   │                            │  │
-│  │  └───────────────────────────────┘  │   │  ┌──────────────────────┐  │   │
-│  │               │                     │   │  └──────────────────────┘  │   │
-│  │               ▼                     │   │                            │   │
-│  │  ┌───────────────────────────────┐  │   │  ┌──────────────────────┐  │   │
-│  │  │     Caffeine Cache Layer      │  │   │  │   ML Model           │  │   │
-│  │  │  • 16 cache definitions       │  │   │  │   predictor.model    │  │   │
-│  │  │  • Configurable TTLs          │  │   │  └──────────────────────┘  │   │
+│  │  │  • ExpectedGoalsService       │  │   │     Shared Storage         │   │
+│  │  │  • ShotQualityService         │  │   │                            │   │
+│  │  │  • FoulsAnalysisService       │  │   │  ┌──────────────────────┐  │   │
+│  │  │  • CornerStatsService         │  │   │  │   H2 Database        │  │   │
+│  │  │  • CardsPredictionService     │  │   │  │   footballdb.mv.db   │  │   │
+│  │  │  • HalfAnalysisService        │  │   │  └──────────────────────┘  │   │
+│  │  │  • RefereeStatsService        │  │   │                            │   │
+│  │  │  • FixtureCongestionService   │  │   │  ┌──────────────────────┐  │   │
+│  │  │  • KickoffTimeService         │  │   │  │   ML Model           │  │   │
+│  │  │  • H2HInsightsService         │  │   │  │   predictor.model    │  │   │
+│  │  │  • TeamStatsService           │  │   │  └──────────────────────┘  │   │
 │  │  └───────────────────────────────┘  │   │                            │   │
-│  └─────────────────────────────────────┘   └────────────────────────────┘   │
+│  │               │                     │   └────────────────────────────┘   │
+│  │               ▼                     │                                    │
+│  │  ┌───────────────────────────────┐  │                                    │
+│  │  │     Caffeine Cache Layer      │  │                                    │
+│  │  │  • 19 cache definitions       │  │                                    │
+│  │  │  • Configurable TTLs          │  │                                    │
+│  │  └───────────────────────────────┘  │                                    │
+│  │               │                     │                                    │
+│  │               ▼                     │                                    │
+│  │  ┌───────────────────────────────┐  │                                    │
+│  │  │     Polling & SSE Layer       │  │                                    │
+│  │  │  • DailyMatchPollingJob       │  │                                    │
+│  │  │  • SmartRetrainService        │  │                                    │
+│  │  │  • SseController (SSE)        │  │                                    │
+│  │  │  • SyncStatusController       │  │                                    │
+│  │  └───────────────────────────────┘  │                                    │
+│  │               │                     │                                    │
+│  │               ▼                     │                                    │
+│  │  ┌───────────────────────────────┐  │                                    │
+│  │  │     Ingestion Pipeline        │  │                                    │
+│  │  │  • IngestionOrchestrator      │  │                                    │
+│  │  │  • IdempotentUpsertService    │  │                                    │
+│  │  │  • ShadowValidator            │  │                                    │
+│  │  │  • ESPN Integration           │  │                                    │
+│  │  └───────────────────────────────┘  │                                    │
+│  └─────────────────────────────────────┘                                    │
 │                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                    Common Module (Shared Library)                    │   │
 │  │  • Match Entity           • MatchFeatures DTO     • ShotQualityDTO   │   │
 │  │  • Team Entity            • FeatureEngineeringService                │   │
-│  │  • League Entity          • Prediction Entity                        │   │
-│  │  • LeagueStanding Entity  • Shared Repositories                      │   │
+│  │  • League Entity          • EloRatingService      • LeaguePositionSvc│   │
+│  │  • SeasonTeamStats Entity • Ingestion Events & DTOs                  │   │
+│  │  • ModelAccuracy Entity   • TeamNameNormalizer    • FeatureDriftMonitor│  │
+│  │  • LeagueStanding Entity  • Shared Repositories   • WekaSchemaBuilder│   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  ┌──────────────────────────────────────────────────────────────────────┐   │
 │  │                         Frontend (Vanilla JS)                        │   │
 │  │  • ShotQualityCard        • FoulsAnalysisCard    • TeamAnalyticsPage │   │
-│  │  • CornerStatsCard (NEW)  • CornerPredictionCard • MatchPreviewPage  │   │
-│  │  • Router.js              • Static Resources                         │   │
+│  │  • CornerStatsCard        • CornerPredictionCard • MatchPreviewPage  │   │
+│  │  • ExpectedGoalsCard      • MatchXGCard          • KickoffTimeCard   │   │
+│  │  • Static Resources       • Canvas Sparklines                        │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -285,6 +365,7 @@ Every prediction includes a breakdown of contributing factors:
 │                            DATA LAYER                                    │
 │  • H2 Database               • ML Model File                            │
 │  • External APIs             • RSS Feeds                                │
+│  • ESPN API                  • SSE Event Stream                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -306,10 +387,18 @@ Every prediction includes a breakdown of contributing factors:
 | `shotQuality` | 10 min | Shot quality metrics |
 | `foulsAnalysis` | 10 min | Fouls & discipline data |
 | `cornerStats` | 10 min | Corner statistics |
+| `cornerPrediction` | 10 min | Corner predictions |
 | `cardsPrediction` | 10 min | Cards prediction data |
+| `teamDiscipline` | 10 min | Team discipline data |
 | `halfAnalysis` | 10 min | Half-time analysis data |
+| `expectedGoals` | 10 min | xG statistics |
+| `xgPrediction` | 10 min | Match xG predictions |
+| `kickoffTimeAnalysis` | 10 min | Kickoff time analysis |
+| `fixtureCongestion` | 10 min | Fixture congestion data |
+| `refereeStats` | 10 min | Referee statistics |
 | `h2hInsights` | 10 min | H2H historical data |
 | `teamLogos` | 60 min | Team logo URLs |
+| `eloRatings` | 10 min | Elo rating data |
 | `news` | 15 min | News feed |
 
 ---
@@ -376,7 +465,14 @@ cd football-prediction
 ./mvnw spring-boot:run -pl model-training-service
 ```
 
-### Option 3: Docker
+### Option 3: Multi-Service Script
+
+```bash
+chmod +x scripts/start-services.sh
+./scripts/start-services.sh
+```
+
+### Option 4: Docker
 
 ```bash
 docker-compose up -d
@@ -388,6 +484,7 @@ docker-compose up -d
 |---------|-----|
 | **Web UI** | http://localhost:8080 |
 | **API** | http://localhost:8080/api |
+| **SSE Events** | http://localhost:8080/api/events/match-completion |
 | **Training Service** | http://localhost:8081/api/training |
 | **H2 Console** | http://localhost:8080/h2-console |
 
@@ -395,20 +492,103 @@ docker-compose up -d
 
 ## 📡 API Overview
 
-### Core Endpoints
+### Core Prediction Endpoints
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/predict` | POST | Predict match outcome |
+| `/api/h2h` | GET | Head-to-head analysis |
+| `/api/insights/trending` | GET | Season trending insights |
+| `/api/insights/seasons` | GET | Available seasons |
+
+### Analytics Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/analytics/pre-match` | GET | Pre-match insights |
 | `/api/analytics/trends` | GET | Season trending insights |
 | `/api/analytics/h2h` | GET | Head-to-head analysis |
-| `/api/dashboard/upcoming-matches` | GET | Upcoming fixtures |
-| `/api/dashboard/league-standings` | GET | League table |
+| `/api/analytics/league/stats` | GET | League-wide statistics |
+| `/api/analytics/match` | GET | Full match analysis |
+
+### Team Statistics Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
 | `/api/teams/{name}/stats` | GET | Team statistics |
+| `/api/teams/{name}/analytics` | GET | Full team analytics |
 | `/api/teams/{name}/shot-quality` | GET | Shot quality metrics |
 | `/api/teams/{name}/fouls-analysis` | GET | Fouls & discipline |
-| `/api/news/premier-league` | GET | News feed |
+| `/api/teams/{name}/corner-stats` | GET | Corner statistics |
+| `/api/teams/{name}/half-analysis` | GET | Half-time analysis |
+| `/api/teams/{name}/expected-goals` | GET | Expected goals (xG) |
+| `/api/teams/{name}/kickoff-analysis` | GET | Kickoff time analysis |
+| `/api/teams/{name}/fixture-congestion` | GET | Fixture congestion |
+| `/api/teams/{name}/discipline` | GET | Team discipline metrics |
+
+### Match Prediction Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/matches/predict-corners` | GET | Corner prediction for match |
+| `/api/matches/predict-cards` | GET | Cards prediction for match |
+| `/api/matches/predict-xg` | GET | xG prediction for match |
+| `/api/matches/congestion-comparison` | GET | Fatigue comparison for match |
+
+### Referee Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/referees` | GET | All referee names |
+| `/api/referees/stats` | GET | All referee statistics |
+| `/api/referees/{name}` | GET | Specific referee stats |
+| `/api/referees/strictest` | GET | Strictest referees |
+| `/api/referees/lenient` | GET | Most lenient referees |
+
+### Model Performance Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/model/accuracy` | GET | Model accuracy metrics |
+| `/api/model/performance` | GET | Detailed performance stats |
+| `/api/model/feature-importance` | GET | Feature importance ranking |
+| `/api/model/sliding-accuracy` | GET | Sliding window accuracy |
+| `/api/model/temporal-cv` | GET | Temporal cross-validation |
+| `/api/model/retraining-history` | GET | Retraining history log |
+
+### Dashboard Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/dashboard/upcoming-matches` | GET | Upcoming fixtures |
+| `/api/dashboard/league-standings` | GET | League table |
+| `/api/dashboard/model-accuracy` | GET | Model accuracy stats |
+| `/api/dashboard/todays-predictions` | GET | Today's predictions |
+| `/api/dashboard/top-teams` | GET | Top performing teams |
+
+### Season & Team Stats Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/seasons` | GET | All available seasons |
+| `/api/seasons/{year}/stats` | GET | Season statistics |
+| `/api/season/{id}/team/{teamId}/stats` | GET | Season team stats |
+| `/api/season/{id}/elo-rankings` | GET | Season Elo rankings |
+| `/api/season/{id}/form-rankings` | GET | Season form rankings |
+| `/api/season/{id}/winning-streaks` | GET | Season winning streaks |
+
+### Polling & SSE Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/events/match-completion` | GET (SSE) | Real-time match completion events |
+| `/api/events/status` | GET | SSE connection status |
+| `/api/sync-status` | GET | Data sync status |
+| `/api/system-status` | GET | System health status |
+| `/api/match-day-status` | GET | Match day information |
+| `/api/poll/trigger` | POST | Manual poll trigger |
+| `/api/retrain/trigger` | POST | Manual retrain trigger |
+| `/api/retrain/status` | GET | Retrain status |
 
 ### Example Request
 
@@ -488,6 +668,12 @@ scheduler.cron=0 0 3 1,15 * ?
 | `leagues` | League metadata |
 | `league_standings` | Season standings |
 | `predictions` | Prediction tracking |
+| `prediction_evaluations` | Prediction evaluation metrics |
+| `model_accuracy` | Model accuracy history |
+| `model_training_history` | Training run logs |
+| `season_team_stats` | Per-season team statistics |
+| `admin_audit_logs` | Admin action audit trail |
+| `system_settings` | Application configuration |
 
 ### Key Indexes
 
@@ -506,7 +692,7 @@ CREATE INDEX idx_prediction_season ON predictions(season);
 |-------------|----------|
 | WebSocket real-time updates | High |
 | Player-level analytics | Medium |
-| Expected Goals (xG) integration | Medium |
+| Full xG model with event data | Medium |
 | Multi-league support (La Liga, Bundesliga) | Medium |
 | GraphQL API | Low |
 | Mobile app | Low |
@@ -517,13 +703,17 @@ CREATE INDEX idx_prediction_season ON predictions(season);
 
 | Metric | Value |
 |--------|-------|
-| **Total Lines of Code** | ~25,000 |
-| **Modules** | 4 |
-| **REST Endpoints** | 45+ |
+| **Modules** | 4 (app, common, training, frontend) |
+| **REST Endpoints** | 70+ |
 | **ML Features** | 25 |
-| **Cache Definitions** | 16 |
+| **Cache Definitions** | 19 |
+| **Services** | 37+ |
+| **Controllers** | 5 (main) + 3 (polling/ingestion/SSE) |
+| **JPA Entities** | 12 |
+| **Repositories** | 11 |
 | **Historical Seasons** | 33 |
 | **Historical Matches** | ~12,500 |
+| **Frontend Components** | 5 team + 2 match |
 
 ---
 

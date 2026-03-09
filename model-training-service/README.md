@@ -101,21 +101,18 @@ com.app.modeltraining/
 │
 ├── service/
 │   ├── ModelTrainingService.java         # Core training logic
-│   └── FeatureEngineeringService.java    # Feature calculation
-│
-├── model/
-│   ├── Match.java                        # Match entity
-│   └── MatchFeatures.java                # Feature DTO
-│
-├── repository/
-│   └── MatchRepository.java              # Data access
+│   └── FeatureEngineeringService.java    # Feature calculation (delegates to common)
 │
 ├── scheduler/
-│   └── TrainingScheduler.java            # Cron-based retraining
+│   └── ModelTrainingScheduler.java       # Cron-based retraining
 │
 └── dto/
-    └── TrainingResponse.java             # API response DTOs
+    ├── TrainingResponse.java             # Training API response
+    ├── TestResponse.java                 # Testing API response
+    └── ModelInfoResponse.java            # Model info API response
 ```
+
+> **Note**: Entity and repository classes are provided by the shared `football-prediction-common` module.
 
 ---
 
@@ -475,4 +472,3 @@ void ensuresNoFutureDataLeakage() {
 ---
 
 **[← Back to Main README](../README.md)**
-

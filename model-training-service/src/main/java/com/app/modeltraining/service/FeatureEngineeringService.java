@@ -7,12 +7,10 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
-import java.util.TreeSet;
 
-import com.app.modeltraining.model.Match;
-import com.app.modeltraining.model.MatchFeatures;
-import com.app.modeltraining.repository.MatchRepository;
+import com.app.common.model.Match;
+import com.app.common.model.MatchFeatures;
+import com.app.common.repository.MatchRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -26,18 +24,6 @@ public class FeatureEngineeringService {
 
    // ── Public API ────────────────────────────────────────────────────────
 
-   /**
-    * Get all unique team names from the database.
-    */
-   public Set<String> getAllTeams() {
-      List<Match> allMatches = matchRepository.findAll();
-      Set<String> teams = new TreeSet<>();
-      for (Match match : allMatches) {
-         teams.add(match.getHomeTeam());
-         teams.add(match.getAwayTeam());
-      }
-      return teams;
-   }
 
    /**
     * For TRAINING — pass the actual match so we can set the label
@@ -53,13 +39,6 @@ public class FeatureEngineeringService {
       return features;
    }
 
-   /**
-    * For PREDICTION — no label, use today as cutoff so all
-    * past matches are included.
-    */
-   public MatchFeatures buildFeaturesForPrediction(String homeTeam, String awayTeam) {
-      return buildFeatures(homeTeam, awayTeam, LocalDate.now());
-   }
 
    // ── Core builder ──────────────────────────────────────────────────────
 
@@ -150,8 +129,8 @@ public class FeatureEngineeringService {
             .awayDaysSinceLastMatch(calcDaysSinceLastMatch(awayTeamAllMatches, beforeDate))
 
             // Phase 5: Possession proxy (estimated from shots + corners)
-            .homePossessionProxy(estimatePossession(homeTeamHomeMatches, homeTeam, true))
-            .awayPossessionProxy(estimatePossession(awayTeamAwayMatches, awayTeam, false))
+            .homePossessionProxy(estimatePossession(homeTeamHomeMatches, true))
+            .awayPossessionProxy(estimatePossession(awayTeamAwayMatches, false))
 
             .build();
    }
@@ -314,11 +293,10 @@ public class FeatureEngineeringService {
     * - cornerRatio = teamCorners / (teamCorners + opponentCorners)
     *
     * @param matches List of matches to analyze
-    * @param teamName The team to calculate possession for
     * @param isHome Whether the team is playing at home in these matches
     * @return Estimated possession as double (0.0 to 1.0, representing 0% to 100%)
     */
-   public double estimatePossession(List<Match> matches, String teamName, boolean isHome) {
+   public double estimatePossession(List<Match> matches, boolean isHome) {
       if (matches == null || matches.isEmpty()) {
          return 0.5; // Default to 50% when no data
       }

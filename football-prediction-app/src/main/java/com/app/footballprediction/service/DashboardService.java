@@ -12,6 +12,8 @@ import com.app.footballprediction.dto.dashboard.TodaysPredictionsResponse;
 import com.app.footballprediction.dto.dashboard.TopTeamsResponse;
 import com.app.footballprediction.dto.dashboard.UpcomingMatchesResponse;
 import com.app.footballprediction.dto.external.FootballApiResponse;
+import com.app.footballprediction.modeltraining.ModelTrainingService;
+import com.app.common.service.FeatureEngineeringService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -38,6 +40,8 @@ public class DashboardService {
     private final LeagueStandingRepository standingRepository;
     private final LeagueStandingService leagueStandingService;
     private final FootballDataApiService footballDataApiService;
+    private final ModelTrainingService modelTrainingService;
+    private final FeatureEngineeringService featureEngineeringService;
 
     private static final long DEFAULT_LEAGUE_ID = 1L; // Premier League
 
@@ -377,6 +381,15 @@ public class DashboardService {
 
         log.debug("Fetched model accuracy in {}ms", System.currentTimeMillis() - startTime);
 
+        // Model metadata
+        boolean modelLoaded = modelTrainingService.isModelLoaded();
+        String modelType = "Stacked Ensemble (RF + GB + LR)";
+        int totalFeatures = modelTrainingService.getFeatureCount();
+        long totalTrainingMatches = matchRepository.count();
+        int totalTeams = featureEngineeringService.getAllTeams().size();
+        String lastTrainedDate = modelTrainingService.getModelLastUpdated();
+        String modelFileSize = modelTrainingService.getModelFileSize();
+
         return ModelAccuracyResponse.builder()
                 .overallAccuracy(Math.round(overallAccuracy * 10) / 10.0)
                 .last10Accuracy(Math.round(last10Accuracy * 10) / 10.0)
@@ -390,6 +403,13 @@ public class DashboardService {
                 .trendIndicator(trendIndicator)
                 .trendChange(Math.round(trendChange * 10) / 10.0)
                 .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
+                .modelLoaded(modelLoaded)
+                .modelType(modelType)
+                .totalFeatures(totalFeatures)
+                .totalTrainingMatches(totalTrainingMatches)
+                .totalTeams(totalTeams)
+                .lastTrainedDate(lastTrainedDate)
+                .modelFileSize(modelFileSize)
                 .build();
     }
 }

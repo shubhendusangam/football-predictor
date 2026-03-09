@@ -47,12 +47,6 @@
             </exclusions>
         </dependency>
 
-        <!-- Spring Scheduling for scheduled tasks -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-        </dependency>
-
         <!-- Log4j2 for logging -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -95,10 +89,6 @@
             <optional>true</optional>
         </dependency>
 
-        <dependency>
-            <groupId>com.opencsv</groupId>
-            <artifactId>opencsv</artifactId>
-        </dependency>
 
         <!-- Development Tools -->
         <dependency>

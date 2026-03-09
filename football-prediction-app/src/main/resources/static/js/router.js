@@ -507,6 +507,38 @@ class Router {
                     </div>
                 </div>
             </div>
+
+            <!-- Expected Goals (xG) Prediction Section -->
+            <div class="xg-prediction-section" style="margin-top: 2rem;">
+                <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem;">🎯</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">Expected Goals (xG) Prediction</h3>
+                    </div>
+                    <div id="xgPredictionContainer" style="min-height: 300px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+                            <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #f97316; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading xG prediction...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fixture Congestion Comparison Section -->
+            <div class="congestion-comparison-section" style="margin-top: 2rem;">
+                <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                        <span style="font-size: 1.5rem;">📅</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">Fixture Congestion &amp; Fatigue</h3>
+                    </div>
+                    <div id="congestionComparisonContainer" style="min-height: 200px;">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px;">
+                            <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                            <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading congestion analysis...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         `;
 
         // Load Pre-Match Insights asynchronously (homeTeam/awayTeam are already normalized from caller)
@@ -520,6 +552,12 @@ class Router {
 
         // Load Half Analysis asynchronously
         this.loadHalfAnalysis(homeTeam, awayTeam);
+
+        // Load xG Prediction asynchronously
+        this.loadXGPrediction(homeTeam, awayTeam);
+
+        // Load Fixture Congestion Comparison asynchronously
+        this.loadCongestionComparison(homeTeam, awayTeam);
     }
 
     /**
@@ -784,6 +822,140 @@ class Router {
                     </div>
                 `;
             }
+        }
+    }
+
+    /**
+     * Load xG Prediction for a match
+     */
+    async loadXGPrediction(homeTeam, awayTeam) {
+        const container = document.getElementById('xgPredictionContainer');
+        if (!container) return;
+
+        try {
+            if (window.ExpectedGoalsCard && window.ExpectedGoalsCard.fetchAndRenderPrediction) {
+                await window.ExpectedGoalsCard.fetchAndRenderPrediction(container, homeTeam, awayTeam);
+            } else {
+                // Fallback - direct fetch
+                const response = await fetch(
+                    `/api/matches/predict-xg?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
+                );
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || `HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                const totalXG = data.totalXG || (data.homeXG + data.awayXG);
+                const homePercent = totalXG > 0 ? (data.homeXG / totalXG) * 100 : 50;
+                const awayPercent = 100 - homePercent;
+
+                container.innerHTML = `
+                    <div style="padding: 1rem;">
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Expected Total Goals (xG)</div>
+                            <div style="font-size: 3rem; font-weight: 800; color: #f97316;">${totalXG.toFixed(1)}</div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.25rem;">${this.escapeHtml(data.recommendation || data.prediction || '')}</div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <div>
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(data.homeTeam || homeTeam)}</span><br>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--accent-green);">${(data.homeXG || 0).toFixed(1)}</span>
+                            </div>
+                            <div style="text-align: right;">
+                                <span style="font-size: 0.75rem; color: var(--text-muted);">${this.escapeHtml(data.awayTeam || awayTeam)}</span><br>
+                                <span style="font-size: 1.25rem; font-weight: 700; color: var(--accent-blue);">${(data.awayXG || 0).toFixed(1)}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--bg-secondary); margin-bottom: 1rem;">
+                            <div style="height: 100%; width: ${homePercent}%; background: linear-gradient(90deg, var(--accent-green), #10b981); transition: width 0.5s ease;"></div>
+                            <div style="height: 100%; width: ${awayPercent}%; background: linear-gradient(90deg, var(--accent-blue), #60a5fa); transition: width 0.5s ease;"></div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                            <div style="text-align: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Over 1.5</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: ${(data.probOver1_5 || 0) >= 0.5 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((data.probOver1_5 || 0) * 100)}%</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Over 2.5</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: ${(data.probOver2_5 || 0) >= 0.5 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((data.probOver2_5 || 0) * 100)}%</div>
+                            </div>
+                            <div style="text-align: center; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                                <div style="font-size: 0.75rem; color: var(--text-muted);">Over 3.5</div>
+                                <div style="font-size: 1.25rem; font-weight: 700; color: ${(data.probOver3_5 || 0) >= 0.5 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((data.probOver3_5 || 0) * 100)}%</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[Router] Failed to load xG prediction:', error);
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(error.message || 'Failed to load xG prediction')}</p>
+                    <button class="btn btn-secondary" style="margin-top: 1rem;" onclick="window.router.loadXGPrediction('${this.escapeJs(homeTeam)}', '${this.escapeJs(awayTeam)}')">
+                        Retry
+                    </button>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Load Fixture Congestion Comparison for match preview
+     */
+    async loadCongestionComparison(homeTeam, awayTeam) {
+        const container = document.getElementById('congestionComparisonContainer');
+        if (!container) return;
+
+        try {
+            if (window.FixtureCongestionCard && typeof window.FixtureCongestionCard.fetchAndRenderComparison === 'function') {
+                await window.FixtureCongestionCard.fetchAndRenderComparison(container, homeTeam, awayTeam);
+            } else {
+                // Fallback - direct fetch
+                const response = await fetch(
+                    `/api/matches/congestion-comparison?home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`
+                );
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+
+                const advColor = data.advantageTeam === 'neutral' ? '#fbbf24'
+                    : data.advantageTeam === 'home' ? '#22c55e' : '#ef4444';
+
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 1rem; border-radius: 0.5rem; background: var(--bg-secondary); border-left: 3px solid ${advColor}; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">
+                        📅 ${this.escapeHtml(data.advantageSummary || '')}
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                        <div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid var(--border-color); text-align: center;">
+                            <h4 style="color: var(--text-primary); margin: 0 0 0.75rem;">${this.escapeHtml(data.home?.teamName || homeTeam)}</h4>
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">${data.home?.fatigueIndex || 0}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">Fatigue Index · ${data.home?.fatigueLevel || 'N/A'}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">Avg ${(data.home?.avgDaysBetween || 0).toFixed(1)} days rest</div>
+                        </div>
+                        <div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.25rem; border: 1px solid var(--border-color); text-align: center;">
+                            <h4 style="color: var(--text-primary); margin: 0 0 0.75rem;">${this.escapeHtml(data.away?.teamName || awayTeam)}</h4>
+                            <div style="font-size: 2rem; font-weight: 700; color: var(--text-primary);">${data.away?.fatigueIndex || 0}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-muted);">Fatigue Index · ${data.away?.fatigueLevel || 'N/A'}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">Avg ${(data.away?.avgDaysBetween || 0).toFixed(1)} days rest</div>
+                        </div>
+                    </div>
+                `;
+            }
+        } catch (error) {
+            console.error('[Router] Failed to load congestion comparison:', error);
+            container.innerHTML = `
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 150px; text-align: center; padding: 1rem;">
+                    <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(error.message || 'Failed to load congestion data')}</p>
+                </div>
+            `;
         }
     }
 
@@ -2462,7 +2634,12 @@ class Router {
             }
 
             const stats = await statsResponse.json();
-            const analytics = analyticsResponse.ok ? await analyticsResponse.json() : null;
+            let analytics = null;
+            if (analyticsResponse.ok) {
+                analytics = await analyticsResponse.json();
+            } else {
+                console.warn(`[Router] Analytics API returned ${analyticsResponse.status} for ${teamName}. Model Accuracy tab may be empty.`);
+            }
 
             this.renderTeamStatsContent(stats, analytics, teamName);
         } catch (error) {
@@ -2504,8 +2681,11 @@ class Router {
                 <button class="team-stats-tab" data-tab="goals">⚽ Goals</button>
                 <button class="team-stats-tab" data-tab="halfanalysis">⏱️ Half Analysis</button>
                 <button class="team-stats-tab" data-tab="corners">⚑ Corners</button>
+                <button class="team-stats-tab" data-tab="xg">🎯 Expected Goals</button>
                 <button class="team-stats-tab" data-tab="discipline">🟨 Discipline</button>
                 <button class="team-stats-tab" data-tab="shotquality">🎯 Shot Quality</button>
+                <button class="team-stats-tab" data-tab="kickofftime">🕐 Kickoff Time</button>
+                <button class="team-stats-tab" data-tab="congestion">📅 Congestion</button>
                 <button class="team-stats-tab" data-tab="form">📈 Form</button>
                 <button class="team-stats-tab" data-tab="matches">🏟️ Matches</button>
                 <button class="team-stats-tab" data-tab="rivals">⚔️ Rivals</button>
@@ -2549,11 +2729,20 @@ class Router {
                     case 'corners':
                         this.renderCornerStatsTab(content, teamName);
                         break;
+                    case 'xg':
+                        this.renderExpectedGoalsTab(content, teamName);
+                        break;
                     case 'discipline':
                         this.renderDisciplineTab(content, teamName);
                         break;
                     case 'shotquality':
                         this.renderShotQualityTab(content, teamName);
+                        break;
+                    case 'kickofftime':
+                        this.renderKickoffTimeTab(content, teamName);
+                        break;
+                    case 'congestion':
+                        this.renderCongestionTab(content, teamName);
                         break;
                     case 'form':
                         content.innerHTML = this.renderFormTab(formStats);
@@ -2882,6 +3071,157 @@ class Router {
     }
 
     /**
+     * Render Kickoff Time Analysis tab
+     * Uses the KickoffTimeCard component
+     */
+    renderKickoffTimeTab(container, teamName) {
+        if (!container) return;
+
+        const uniqueId = Date.now();
+        const containerId = `ktc-${uniqueId}`;
+
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">🕐 Kick-off Time Performance</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - Performance patterns by kick-off time slot</p>
+                <div id="${containerId}" style="min-height: 400px; max-width: 700px; margin: 0 auto;"></div>
+                <p class="stats-section-footer" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    Time slots: Early (12:00–13:30) · Afternoon (14:00–16:00) · Late (16:30–18:30) · Evening (19:00–21:00)
+                </p>
+            </div>
+        `;
+
+        const kickoffContainer = document.getElementById(containerId);
+
+        if (window.KickoffTimeCard) {
+            window.KickoffTimeCard.fetchAndRender(kickoffContainer, teamName);
+        } else {
+            // Fallback - direct fetch
+            const renderLoading = (el) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                        <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #fbbf24; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading kick-off time analysis...</span>
+                    </div>
+                `;
+            };
+
+            const renderError = (el, msg) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color); text-align: center; padding: 1rem;">
+                        <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(msg)}</span>
+                    </div>
+                `;
+            };
+
+            renderLoading(kickoffContainer);
+
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/kickoff-analysis`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(containerId);
+                    if (el && window.KickoffTimeCard) {
+                        window.KickoffTimeCard.render(el, data);
+                    } else if (el && data) {
+                        // Basic fallback render
+                        const slots = data.timeSlots || [];
+                        let slotsHtml = '';
+                        slots.forEach(function(slot) {
+                            const winPct = slot.matchesPlayed > 0 ? slot.winPercentage.toFixed(1) + '%' : 'N/A';
+                            const perfColor = slot.performance === 'Strong' ? '#22c55e' : (slot.performance === 'Weak' ? '#ef4444' : '#fbbf24');
+                            slotsHtml += `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 0.5rem;">
+                                    <span style="color: var(--text-primary); font-weight: 500;">${slot.timeSlot || ''}</span>
+                                    <div style="display: flex; align-items: center; gap: 1rem;">
+                                        <span style="color: ${perfColor}; font-weight: 700;">${winPct}</span>
+                                        <span style="color: var(--text-muted); font-size: 0.75rem;">${slot.matchesPlayed || 0} matches</span>
+                                    </div>
+                                </div>`;
+                        });
+
+                        el.innerHTML = `
+                            <div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                                <h4 style="color: var(--text-primary); margin-bottom: 1rem;">🕐 ${data.teamName || teamName}</h4>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                                    <div style="background: var(--bg-tertiary); border-radius: 0.5rem; padding: 0.75rem; text-align: center;">
+                                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Best Time</div>
+                                        <div style="font-weight: 700; color: #22c55e;">${data.bestTime || 'N/A'}</div>
+                                    </div>
+                                    <div style="background: var(--bg-tertiary); border-radius: 0.5rem; padding: 0.75rem; text-align: center;">
+                                        <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase;">Worst Time</div>
+                                        <div style="font-weight: 700; color: #ef4444;">${data.worstTime || 'N/A'}</div>
+                                    </div>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                    ${slotsHtml}
+                                </div>
+                                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                                    Overall win rate: ${(data.overallWinRate || 0).toFixed(1)}% · ${data.matchesWithTimeData || 0} matches with time data
+                                </p>
+                            </div>`;
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(containerId);
+                    if (el) renderError(el, err.message || 'Failed to load kick-off time analysis');
+                });
+        }
+    }
+
+    /**
+     * Render Fixture Congestion tab
+     * Uses the FixtureCongestionCard component
+     */
+    renderCongestionTab(container, teamName) {
+        if (!container) return;
+
+        const uniqueId = Date.now();
+        const containerId = `fcc-${uniqueId}`;
+
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">📅 Fixture Congestion &amp; Fatigue</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - Match scheduling impact analysis</p>
+                <div id="${containerId}" style="min-height: 350px; max-width: 700px; margin: 0 auto;"></div>
+                <p class="stats-section-footer" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    Fatigue index: 0 (well rested) – 100 (very congested)
+                </p>
+            </div>
+        `;
+
+        const el = document.getElementById(containerId);
+
+        if (window.FixtureCongestionCard) {
+            window.FixtureCongestionCard.fetchAndRender(el, teamName);
+        } else {
+            // Fallback
+            const showLoading = (c) => { if (c) c.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;background:var(--bg-secondary);border-radius:0.75rem;border:1px solid var(--border-color);"><div style="width:40px;height:40px;border:3px solid var(--bg-tertiary);border-top-color:#fbbf24;border-radius:50%;animation:spin 1s linear infinite;"></div><span style="margin-top:1rem;font-size:0.875rem;color:var(--text-muted);">Loading…</span></div>'; };
+            const showError = (c, m) => { if (c) c.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;background:var(--bg-secondary);border-radius:0.75rem;border:1px solid var(--border-color);text-align:center;padding:1rem;"><span style="font-size:2rem;margin-bottom:0.5rem;">⚠️</span><span style="font-size:0.875rem;color:var(--text-secondary);">' + this.escapeHtml(m) + '</span></div>'; };
+            showLoading(el);
+
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/fixture-congestion`)
+                .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+                .then(data => {
+                    const c = document.getElementById(containerId);
+                    if (!c || !data) return;
+                    c.innerHTML = `<div style="background:var(--bg-secondary);border-radius:0.75rem;padding:1.5rem;border:1px solid var(--border-color);">
+                        <h4 style="color:var(--text-primary);margin-bottom:1rem;">📅 ${this.escapeHtml(data.teamName || teamName)}</h4>
+                        <div style="text-align:center;margin:1rem 0;">
+                            <div style="font-size:2.5rem;font-weight:700;color:var(--text-primary);">${data.fatigueIndex || 0}</div>
+                            <div style="font-size:0.75rem;color:var(--text-muted);">Fatigue Index · ${data.fatigueLevel || 'Unknown'}</div>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:0.85rem;">Avg ${(data.avgDaysBetween || 0).toFixed(1)} days between matches</p>
+                        <p style="color:var(--text-muted);font-size:0.8rem;margin-top:0.5rem;">${this.escapeHtml(data.impactSummary || '')}</p>
+                    </div>`;
+                })
+                .catch(err => { const c = document.getElementById(containerId); if (c) showError(c, err.message); });
+        }
+    }
+
+    /**
      * Render Half Analysis tab with First Half vs Second Half performance analysis
      * Uses the HalfAnalysisCard component
      */
@@ -3075,6 +3415,108 @@ class Router {
                 .catch(err => {
                     const el = document.getElementById(awayContainerId);
                     if (el) renderError(el, err.message || 'Failed to load away corner stats');
+                });
+        }
+    }
+
+    /**
+     * Render Expected Goals (xG) tab
+     * Uses the ExpectedGoalsCard component
+     */
+    renderExpectedGoalsTab(container, teamName) {
+        if (!container) return;
+
+        const uniqueId = Date.now();
+        const homeContainerId = `xg-home-${uniqueId}`;
+        const awayContainerId = `xg-away-${uniqueId}`;
+
+        container.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">🎯 Expected Goals (xG)</h3>
+                <p class="stats-section-subtitle">${this.escapeHtml(teamName)} - xG based on shots on target × league conversion rate</p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <div id="${homeContainerId}" style="min-height: 400px;"></div>
+                    <div id="${awayContainerId}" style="min-height: 400px;"></div>
+                </div>
+                <p class="stats-section-footer" style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">
+                    League average xG: ~${window.ExpectedGoalsCard ? window.ExpectedGoalsCard.LEAGUE_AVERAGE_XG : 1.3} per team per match
+                </p>
+            </div>
+        `;
+
+        const homeContainer = document.getElementById(homeContainerId);
+        const awayContainer = document.getElementById(awayContainerId);
+
+        if (window.ExpectedGoalsCard) {
+            window.ExpectedGoalsCard.fetchAndRender(homeContainer, teamName, true);
+            window.ExpectedGoalsCard.fetchAndRender(awayContainer, teamName, false);
+        } else {
+            // Fallback - direct fetch
+            const renderFallbackLoading = (el) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color);">
+                        <div style="width: 40px; height: 40px; border: 3px solid var(--bg-tertiary); border-top-color: #f97316; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="margin-top: 1rem; font-size: 0.875rem; color: var(--text-muted);">Loading xG stats...</span>
+                    </div>
+                `;
+            };
+
+            const renderFallbackError = (el, msg) => {
+                if (!el) return;
+                el.innerHTML = `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px; background: var(--bg-secondary); border-radius: 0.75rem; border: 1px solid var(--border-color); text-align: center; padding: 1rem;">
+                        <span style="font-size: 2rem; margin-bottom: 0.5rem;">⚠️</span>
+                        <span style="font-size: 0.875rem; color: var(--text-secondary);">${this.escapeHtml(msg)}</span>
+                    </div>
+                `;
+            };
+
+            const renderFallbackCard = (el, data, venue) => {
+                if (!el) return;
+                const perf = data.performance || '';
+                const perfColor = (data.xGDifference || 0) > 0 ? '#22c55e' : (data.xGDifference || 0) < 0 ? '#ef4444' : '#cbd5e1';
+                el.innerHTML = `<div style="background: var(--bg-secondary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                    <h4 style="color: var(--text-primary); margin-bottom: 1rem;">🎯 ${this.escapeHtml(data.teamName)} (${venue})</h4>
+                    <p style="color: var(--text-secondary);">Expected Goals (xG): <strong>${(data.expectedGoals || 0).toFixed(2)}</strong></p>
+                    <p style="color: var(--text-secondary);">Actual Goals: <strong>${(data.actualGoals || 0).toFixed(2)}</strong></p>
+                    <p style="color: ${perfColor}; font-weight: 600;">${this.escapeHtml(perf)}</p>
+                    <p style="color: var(--text-secondary);">Conversion Rate: <strong>${((data.conversionRate || 0) * 100).toFixed(1)}%</strong></p>
+                    <p style="color: var(--text-secondary);">Matches: <strong>${data.matchesAnalyzed || 0}</strong></p>
+                </div>`;
+            };
+
+            renderFallbackLoading(homeContainer);
+            renderFallbackLoading(awayContainer);
+
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/expected-goals?isHome=true`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(homeContainerId);
+                    if (el && window.ExpectedGoalsCard) {
+                        window.ExpectedGoalsCard.render(el, data);
+                    } else if (el) {
+                        renderFallbackCard(el, data, 'Home');
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(homeContainerId);
+                    if (el) renderFallbackError(el, err.message || 'Failed to load home xG');
+                });
+
+            fetch(`/api/teams/${encodeURIComponent(teamName)}/expected-goals?isHome=false`)
+                .then(res => res.ok ? res.json() : Promise.reject(new Error('HTTP ' + res.status)))
+                .then(data => {
+                    const el = document.getElementById(awayContainerId);
+                    if (el && window.ExpectedGoalsCard) {
+                        window.ExpectedGoalsCard.render(el, data);
+                    } else if (el) {
+                        renderFallbackCard(el, data, 'Away');
+                    }
+                })
+                .catch(err => {
+                    const el = document.getElementById(awayContainerId);
+                    if (el) renderFallbackError(el, err.message || 'Failed to load away xG');
                 });
         }
     }
@@ -3321,13 +3763,38 @@ class Router {
             return `
                 <div class="analytics-empty-state">
                     <span class="empty-icon">📊</span>
-                    <h3>No Prediction Data Available</h3>
-                    <p>Model accuracy data will appear here once predictions have been made and resolved for this team.</p>
+                    <h3>Analytics Unavailable</h3>
+                    <p>Could not load model accuracy data. Please try refreshing the page or check back later.</p>
                 </div>
             `;
         }
 
         const acc = analytics.modelAccuracy;
+
+        if (!acc.totalPredictions || acc.totalPredictions === 0) {
+            const unresolvedMsg = acc.unresolvedPredictions > 0
+                ? `<p style="margin-top: 8px; font-size: 0.9em; color: #e6a817;">
+                       ⏳ ${acc.unresolvedPredictions} prediction(s) are pending resolution.
+                       They will be resolved automatically once match results are synced.
+                   </p>`
+                : `<p style="margin-top: 8px; font-size: 0.85em; color: #888;">
+                       No predictions have been recorded yet for this team.
+                       Predictions are generated on app startup and resolved after matches finish.
+                   </p>`;
+
+            return `
+                <div class="analytics-empty-state">
+                    <span class="empty-icon">📊</span>
+                    <h3>No Resolved Prediction Data</h3>
+                    <p>Model accuracy data will appear here once predictions have been made and resolved for this team.</p>
+                    ${unresolvedMsg}
+                    <button class="btn btn-primary" style="margin-top: 12px;" onclick="fetch('/api/model/backfill-predictions', {method:'POST'}).then(r=>r.json()).then(d=>{alert('Backfill: ' + d.message); location.reload();}).catch(e=>alert('Error: '+e))">
+                        🔄 Trigger Prediction Backfill
+                    </button>
+                </div>
+            `;
+        }
+
         const byResult = acc.accuracyByResult || {};
 
         const trendIcon = acc.accuracyTrend === 'IMPROVING' ? '📈' :

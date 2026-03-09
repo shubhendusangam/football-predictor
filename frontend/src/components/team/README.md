@@ -7,14 +7,16 @@
 ---
 
 ## Overview
-Team analytics components for the Football Forecaster application, providing comprehensive statistics with clean, production-ready UIs. This module includes shot quality analysis, fouls & discipline tracking, and a unified team analytics page.
+Team analytics components for the Football Forecaster application, providing comprehensive statistics with clean, production-ready UIs. This module includes shot quality analysis, fouls & discipline tracking, corner statistics, expected goals (xG), kickoff time analysis, and a unified team analytics page.
 
 ### Components
 | Component | Description |
 |-----------|-------------|
 | **ShotQualityCard** | Shot efficiency metrics with circular progress and sparklines |
 | **FoulsAnalysisCard** | Fouls statistics and discipline score visualization |
-| **TeamAnalyticsPage** | Unified dashboard combining all team analytics |
+| **CornerStatsCard** | Corner kick statistics with dominance indicators |
+| **ExpectedGoalsCard** | Expected goals (xG) with over/underperformance tracking |
+| **KickoffTimeCard** | Performance analysis by kickoff time slot |
 
 ### Pages
 | Page | Location |
@@ -288,4 +290,3 @@ The router.js has been updated to include a "🎯 Shot Quality" tab in the team 
 ---
 
 **[← Back to Frontend README](../../README.md)** | **[← Back to Main README](../../../../README.md)**  
-
