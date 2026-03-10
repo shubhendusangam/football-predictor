@@ -427,6 +427,18 @@
         },
 
         /**
+         * Get relegation battle analysis
+         * GET /api/league/relegation-battle?season=SEASON
+         */
+        getRelegationBattle: async (season = null) => {
+            const params = new URLSearchParams();
+            if (season) params.append('season', season);
+            const queryString = params.toString();
+            const endpoint = queryString ? `/league/relegation-battle?${queryString}` : '/league/relegation-battle';
+            return api.get(endpoint);
+        },
+
+        /**
          * Get league standings
          * GET /api/dashboard/league-standings?leagueId=N&season=SEASON
          */

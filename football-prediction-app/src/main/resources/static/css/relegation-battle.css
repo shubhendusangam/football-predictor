@@ -1,0 +1,674 @@
+/**
+ * Relegation Battle Widget Styles
+ * ================================
+ * Styles for the relegation battle / survival fight widget
+ * Uses warning colors and danger zone visual indicators
+ */
+
+/* ==========================================
+   WIDGET CONTAINER
+   ========================================== */
+
+.relegation-battle-widget {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg-secondary);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+/* ==========================================
+   HEADER
+   ========================================== */
+
+.relegation-battle-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.relegation-battle-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.relegation-battle-icon {
+    font-size: 1.1rem;
+}
+
+.relegation-battle-header-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.relegation-battle-season {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.25rem;
+}
+
+/* Intensity Badges */
+.relegation-intensity-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.intensity-calm {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.intensity-tense {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.intensity-critical {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+}
+
+.intensity-dramatic {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+    animation: pulse-danger 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* ==========================================
+   SUMMARY STATS
+   ========================================== */
+
+.relegation-battle-summary {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(90deg, rgba(52, 211, 153, 0.1), transparent 40%, rgba(248, 113, 113, 0.1));
+    border-bottom: 1px solid var(--border-color);
+}
+
+.relegation-summary-stats {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.summary-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.summary-stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.summary-stat-label {
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.summary-stat.danger .summary-stat-value {
+    color: #f87171;
+}
+
+.summary-stat-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 0.5rem;
+}
+
+.gap-indicator {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.25rem;
+    color: var(--text-secondary);
+}
+
+.gap-indicator.gap-tight {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+/* ==========================================
+   TEAMS LIST
+   ========================================== */
+
+.relegation-battle-teams {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.relegation-team {
+    display: grid;
+    grid-template-columns: 40px 1fr 60px 50px 100px;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    margin-bottom: 0.25rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.relegation-team:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-color);
+}
+
+/* Safety Line (17th position) */
+.relegation-team.on-safety-line {
+    border: 1px dashed var(--warning-color, #fbbf24);
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.05), transparent);
+}
+
+/* Relegation Zone (18th-20th) - Danger Zone Visual */
+.relegation-team.in-relegation-zone {
+    background: linear-gradient(90deg,
+        rgba(248, 113, 113, 0.1) 0%,
+        rgba(248, 113, 113, 0.05) 50%,
+        transparent 100%);
+    border-color: rgba(248, 113, 113, 0.3);
+    position: relative;
+}
+
+.relegation-team.in-relegation-zone::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: #f87171;
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+/* ==========================================
+   POSITION BADGE
+   ========================================== */
+
+.relegation-team-position {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.position-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.position-default {
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+}
+
+.position-safe {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.position-fighting {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.position-danger {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+}
+
+.position-relegated {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+/* ==========================================
+   TEAM INFO
+   ========================================== */
+
+.relegation-team-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+.relegation-team-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.relegation-team-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.desperation-indicator {
+    flex-shrink: 0;
+    font-size: 0.75rem;
+}
+
+.desperation-medium {
+    color: #fbbf24;
+}
+
+.desperation-high {
+    color: #fb923c;
+    animation: bounce 1s ease-in-out infinite;
+}
+
+.desperation-extreme {
+    color: #f87171;
+    animation: shake 0.5s ease-in-out infinite;
+}
+
+@keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* ==========================================
+   POINTS
+   ========================================== */
+
+.relegation-points {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.relegation-points .points-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.relegation-points .points-label {
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+/* ==========================================
+   GAP TO SAFETY
+   ========================================== */
+
+.relegation-gap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gap-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.2rem 0.4rem;
+    border-radius: 0.25rem;
+}
+
+.gap-value.gap-safe {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.gap-value.gap-even {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.gap-value.gap-danger {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+/* ==========================================
+   PROBABILITY BAR
+   ========================================== */
+
+.relegation-probability {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.probability-bar-container {
+    flex: 1;
+    height: 8px;
+    background: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.probability-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s ease-out;
+}
+
+.probability-bar.prob-safe {
+    background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.probability-bar.prob-fighting {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.probability-bar.prob-danger {
+    background: linear-gradient(90deg, #fb923c, #f97316);
+}
+
+.probability-bar.prob-relegated {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.probability-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    min-width: 35px;
+    text-align: right;
+    color: var(--text-secondary);
+}
+
+/* ==========================================
+   FOOTER
+   ========================================== */
+
+.relegation-battle-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.relegation-progress-text {
+    font-weight: 500;
+}
+
+.relegation-survival-target {
+    font-weight: 500;
+    color: #fbbf24;
+}
+
+/* ==========================================
+   LOADING AND ERROR STATES
+   ========================================== */
+
+.relegation-battle-loading,
+.relegation-battle-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+.relegation-loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color);
+    border-top-color: #f87171;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.relegation-error-icon {
+    font-size: 2rem;
+}
+
+.relegation-error-message {
+    font-size: 0.85rem;
+}
+
+.relegation-retry-btn {
+    padding: 0.5rem 1rem;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: background 0.2s;
+}
+
+.relegation-retry-btn:hover {
+    background: var(--accent-light);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 768px) {
+    .relegation-team {
+        grid-template-columns: 32px 1fr 50px 70px;
+    }
+
+    .relegation-gap {
+        display: none;
+    }
+
+    .relegation-team-name {
+        font-size: 0.8rem;
+    }
+
+    .probability-text {
+        min-width: 30px;
+        font-size: 0.7rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .relegation-battle-header {
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-start;
+    }
+
+    .relegation-summary-stats {
+        gap: 0.5rem;
+    }
+
+    .summary-stat-value {
+        font-size: 0.95rem;
+    }
+}
+
+/* ==========================================
+   COMBINED VIEW IN LEAGUE STANDINGS
+   ========================================== */
+
+/* When shown within the league standings card */
+.standings-with-relegation {
+    border-top: 1px dashed var(--warning-color, #fbbf24);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+}
+
+.standings-relegation-section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #f87171;
+}
+
+/* Compact mode for dashboard integration */
+.relegation-battle-widget.compact .relegation-team {
+    padding: 0.35rem 0.5rem;
+}
+
+.relegation-battle-widget.compact .relegation-team-name {
+    font-size: 0.8rem;
+}
+
+.relegation-battle-widget.compact .relegation-points .points-value {
+    font-size: 0.9rem;
+}
+
+.relegation-battle-widget.compact .probability-bar-container {
+    height: 6px;
+}
+
+/* ==========================================
+   RELEGATION ZONE CHART
+   ========================================== */
+
+.relegation-zone-chart-container {
+    padding: 0.75rem;
+}
+
+.relegation-zone-chart-container .chart-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.relegation-zone-chart-container .chart-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.relegation-zone-chart-container .chart-subtitle {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.relegation-zone-chart {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+}
+
+.relegation-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+}
+
+.legend-color {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.legend-team {
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.legend-points {
+    color: var(--text-secondary);
+}
+
+.relegation-chart-loading,
+.relegation-chart-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+.chart-loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-color);
+    border-top-color: #f87171;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.chart-no-data {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    font-size: 0.85rem;
+}
+
+/* Responsive chart */
+@media (max-width: 768px) {
+    .relegation-chart-legend {
+        gap: 0.35rem 0.75rem;
+    }
+
+    .legend-item {
+        font-size: 0.65rem;
+    }
+}
+

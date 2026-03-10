@@ -1312,4 +1312,514 @@
     }
 }
 
+/* ==========================================
+   STANDINGS TABS
+   ========================================== */
 
+.standings-tabs {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.standings-tab {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+}
+
+.standings-tab:hover {
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+.standings-tab.active {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    color: white;
+}
+
+/* ==========================================
+   UCL RACE VIEW
+   ========================================== */
+
+.ucl-race-view {
+    padding: 0.5rem;
+}
+
+.ucl-race-header-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+}
+
+.title-race-leader {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.ucl-race-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ucl-team-row {
+    display: grid;
+    grid-template-columns: 30px 1fr 55px 45px 90px;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.ucl-team-row:hover {
+    border-color: var(--accent-color);
+}
+
+.ucl-team-row.in-top4 {
+    border-left: 3px solid var(--accent-color);
+}
+
+.ucl-position {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.ucl-team-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+.ucl-team-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.ucl-team-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ucl-points {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.ucl-gap {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.15rem 0.3rem;
+    border-radius: 0.25rem;
+}
+
+.ucl-gap.gap-ahead {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.ucl-gap.gap-behind {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+.ucl-prob-container {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.ucl-prob-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.ucl-prob-bar.prob-safe {
+    background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.ucl-prob-bar.prob-fighting {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.ucl-prob-bar.prob-possible {
+    background: linear-gradient(90deg, #fb923c, #f97316);
+}
+
+.ucl-prob-bar.prob-unlikely {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.ucl-prob-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: right;
+    color: var(--text-secondary);
+}
+
+.ucl-race-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* ==========================================
+   RELEGATION BATTLE VIEW
+   ========================================== */
+
+.relegation-battle-view {
+    padding: 0.5rem;
+}
+
+.relegation-summary-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(90deg, rgba(52, 211, 153, 0.1), transparent 40%, rgba(248, 113, 113, 0.1));
+    border-radius: 0.375rem;
+}
+
+.relegation-summary-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.relegation-summary-stat .stat-value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.relegation-summary-stat .stat-label {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.relegation-summary-stat.danger .stat-value {
+    color: #f87171;
+}
+
+.relegation-gap-indicator {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.25rem;
+    color: var(--text-secondary);
+}
+
+.relegation-gap-indicator.gap-tight {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+.relegation-intensity-badge {
+    padding: 0.2rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.relegation-intensity-badge.calm {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.relegation-intensity-badge.tense {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.relegation-intensity-badge.critical {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+}
+
+.relegation-intensity-badge.dramatic {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+    animation: pulse-danger 2s ease-in-out infinite;
+}
+
+@keyframes pulse-danger {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+.relegation-teams {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.relegation-team-row {
+    display: grid;
+    grid-template-columns: 30px 1fr 55px 45px 90px;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-tertiary);
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+
+.relegation-team-row:hover {
+    border-color: var(--warning-color, #fbbf24);
+}
+
+.relegation-team-row.on-safety-line {
+    border: 1px dashed var(--warning-color, #fbbf24);
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0.05), transparent);
+}
+
+.relegation-team-row.in-relegation-zone {
+    background: linear-gradient(90deg, rgba(248, 113, 113, 0.1), transparent);
+    border-color: rgba(248, 113, 113, 0.3);
+    position: relative;
+}
+
+.relegation-team-row.in-relegation-zone::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: #f87171;
+    border-radius: 0.375rem 0 0 0.375rem;
+}
+
+.relegation-position {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.position-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: var(--bg-secondary);
+}
+
+.position-icon.safe {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.position-icon.fighting {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.position-icon.danger {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+}
+
+.position-icon.relegated {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+.relegation-team-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow: hidden;
+}
+
+.relegation-team-logo {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.relegation-team-name {
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.desperation-icon {
+    font-size: 0.75rem;
+}
+
+.relegation-points {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+.relegation-gap {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 0.15rem 0.3rem;
+    border-radius: 0.25rem;
+}
+
+.relegation-gap.gap-safe {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.relegation-gap.gap-danger {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+.relegation-prob-container {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.relegation-prob-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+.relegation-prob-bar.prob-safe {
+    background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.relegation-prob-bar.prob-fighting {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.relegation-prob-bar.prob-danger {
+    background: linear-gradient(90deg, #fb923c, #f97316);
+}
+
+.relegation-prob-bar.prob-relegated {
+    background: linear-gradient(90deg, #f87171, #ef4444);
+}
+
+.relegation-prob-text {
+    font-size: 0.7rem;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: right;
+    color: var(--text-secondary);
+}
+
+.relegation-battle-footer {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+/* ==========================================
+   PROBABILITY BADGES IN FULL TABLE
+   ========================================== */
+
+.prob-badge {
+    display: inline-block;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.prob-badge.ucl-safe,
+.prob-badge.surv-safe {
+    background: rgba(52, 211, 153, 0.2);
+    color: #34d399;
+}
+
+.prob-badge.ucl-fighting,
+.prob-badge.surv-fighting {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.prob-badge.ucl-possible,
+.prob-badge.surv-danger {
+    background: rgba(251, 146, 60, 0.2);
+    color: #fb923c;
+}
+
+.prob-badge.ucl-unlikely,
+.prob-badge.surv-relegated {
+    background: rgba(248, 113, 113, 0.2);
+    color: #f87171;
+}
+
+/* Responsive for tabs and views */
+@media (max-width: 768px) {
+    .standings-tabs {
+        padding: 0.4rem 0.5rem;
+    }
+
+    .standings-tab {
+        padding: 0.4rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .ucl-team-row,
+    .relegation-team-row {
+        grid-template-columns: 25px 1fr 50px 70px;
+    }
+
+    .ucl-gap,
+    .relegation-gap {
+        display: none;
+    }
+}

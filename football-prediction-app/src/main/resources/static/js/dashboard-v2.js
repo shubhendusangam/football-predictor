@@ -235,24 +235,27 @@ class DashboardManager {
     }
 
     /**
-     * Load Combined League Standings with UCL Race data
+     * Load Combined League Standings with UCL Race and Relegation Battle data
      */
     async loadLeagueStandingsWithUCL() {
         const card = document.getElementById('leagueStandingsCard');
         if (!card) return;
 
         try {
-            // Load both standings and UCL race data in parallel
-            const [standingsResponse, uclResponse] = await Promise.all([
+            // Load standings, UCL race, and relegation battle data in parallel
+            const [standingsResponse, uclResponse, relegationResponse] = await Promise.all([
                 this.api.get('/dashboard/league-standings'),
-                this.api.getTop4Race()
+                this.api.getTop4Race(),
+                this.api.getRelegationBattle()
             ]);
 
             const standings = standingsResponse?.standings || [];
             const uclData = uclResponse?.teamsInRace || [];
             const titleRace = uclResponse?.titleRace || {};
+            const relegationData = relegationResponse?.teamsInBattle || [];
+            const relegationSummary = relegationResponse?.summary || {};
 
-            // Create a map of UCL probabilities by team name
+            // Create maps for quick lookup
             const uclMap = {};
             uclData.forEach(team => {
                 uclMap[team.teamName] = {
@@ -262,19 +265,44 @@ class DashboardManager {
                 };
             });
 
+            const relegationMap = {};
+            relegationData.forEach(team => {
+                relegationMap[team.teamName] = {
+                    survivalProbability: team.survivalProbability,
+                    status: team.status,
+                    gapToSafety: team.gapToSafety,
+                    desperationLevel: team.desperationLevel
+                };
+            });
+
+            // Store data for tab switching
+            this._standingsData = { standings, uclMap, relegationMap, titleRace, relegationSummary,
+                season: standingsResponse?.season, leagueName: standingsResponse?.leagueName,
+                uclResponse, relegationResponse };
+
             card.innerHTML = `
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">🏆</span>
-                        ${standingsResponse?.leagueName || 'Premier League'} & UCL Race
+                        ${standingsResponse?.leagueName || 'Premier League'}
                     </h3>
                     <div class="standings-header-meta">
                         <span class="dashboard-card-badge badge badge-success">${standingsResponse?.season || ''}</span>
-                        ${titleRace.intensity ? `<span class="title-race-badge ${titleRace.intensity.toLowerCase().replace(/\s+/g, '-')}">${titleRace.intensity}</span>` : ''}
                     </div>
                 </div>
-                <div class="dashboard-card-body standings-scrollable">
-                    ${standings.length > 0 ? this.renderCombinedStandingsTable(standings, uclMap) :
+                <div class="standings-tabs">
+                    <button class="standings-tab active" data-tab="full" onclick="dashboardManager.switchStandingsTab('full')">
+                        📊 Full Table
+                    </button>
+                    <button class="standings-tab" data-tab="ucl" onclick="dashboardManager.switchStandingsTab('ucl')">
+                        🏆 UCL Race
+                    </button>
+                    <button class="standings-tab" data-tab="relegation" onclick="dashboardManager.switchStandingsTab('relegation')">
+                        ⚠️ Relegation
+                    </button>
+                </div>
+                <div class="dashboard-card-body standings-scrollable" id="standingsTabContent">
+                    ${standings.length > 0 ? this.renderCombinedStandingsTable(standings, uclMap, relegationMap) :
                       '<p style="color: var(--text-muted); text-align: center;">No standings available</p>'}
                 </div>
             `;
@@ -295,9 +323,168 @@ class DashboardManager {
     }
 
     /**
-     * Render combined standings table with UCL probability
+     * Switch between standings tabs (Full Table, UCL Race, Relegation Battle)
      */
-    renderCombinedStandingsTable(standings, uclMap) {
+    switchStandingsTab(tabName) {
+        const data = this._standingsData;
+        if (!data) return;
+
+        // Update tab buttons
+        document.querySelectorAll('.standings-tab').forEach(tab => {
+            tab.classList.toggle('active', tab.dataset.tab === tabName);
+        });
+
+        const contentDiv = document.getElementById('standingsTabContent');
+        if (!contentDiv) return;
+
+        switch (tabName) {
+            case 'ucl':
+                contentDiv.innerHTML = this.renderUCLRaceView(data);
+                break;
+            case 'relegation':
+                contentDiv.innerHTML = this.renderRelegationBattleView(data);
+                break;
+            default:
+                contentDiv.innerHTML = this.renderCombinedStandingsTable(data.standings, data.uclMap, data.relegationMap);
+        }
+    }
+
+    /**
+     * Render UCL Race focused view
+     */
+    renderUCLRaceView(data) {
+        const teams = data.uclResponse?.teamsInRace?.slice(0, 7) || [];
+        const titleRace = data.titleRace || {};
+
+        return `
+            <div class="ucl-race-view">
+                <div class="ucl-race-header-summary">
+                    <span class="title-race-leader">Leader: ${titleRace.leader || 'TBD'}</span>
+                    <span class="title-race-badge ${(titleRace.intensity || '').toLowerCase().replace(/\s+/g, '-')}">${titleRace.intensity || ''}</span>
+                </div>
+                <div class="ucl-race-teams">
+                    ${teams.map((team, index) => this.renderUCLTeamRow(team, index)).join('')}
+                </div>
+                <div class="ucl-race-footer">
+                    <span>Target: ${data.uclResponse?.pointsForSafety || 72} pts</span>
+                    <span>${data.uclResponse?.matchdaysCompleted || 0}/${data.uclResponse?.totalMatchesInSeason || 38} played</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render UCL team row
+     */
+    renderUCLTeamRow(team, index) {
+        const position = team.currentPosition || (index + 1);
+        const isTop4 = position <= 4;
+        const probClass = team.top4Probability >= 80 ? 'prob-safe' :
+                         team.top4Probability >= 50 ? 'prob-fighting' :
+                         team.top4Probability >= 25 ? 'prob-possible' : 'prob-unlikely';
+
+        return `
+            <div class="ucl-team-row ${isTop4 ? 'in-top4' : ''}">
+                <span class="ucl-position">${position}</span>
+                <div class="ucl-team-info">
+                    ${team.teamLogo ? `<img src="${team.teamLogo}" class="ucl-team-logo" alt="">` : ''}
+                    <span class="ucl-team-name">${team.teamName}</span>
+                </div>
+                <span class="ucl-points">${team.points} pts</span>
+                <span class="ucl-gap ${team.gapToFourth > 0 ? 'gap-behind' : 'gap-ahead'}">${team.gapToFourth > 0 ? '+' : ''}${team.gapToFourth}</span>
+                <div class="ucl-prob-container">
+                    <div class="ucl-prob-bar ${probClass}" style="width: ${team.top4Probability}%"></div>
+                    <span class="ucl-prob-text">${Math.round(team.top4Probability)}%</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render Relegation Battle focused view
+     */
+    renderRelegationBattleView(data) {
+        const teams = data.relegationResponse?.teamsInBattle || [];
+        const summary = data.relegationSummary || {};
+
+        return `
+            <div class="relegation-battle-view">
+                <div class="relegation-summary-header">
+                    <div class="relegation-summary-stat">
+                        <span class="stat-label">17th pts</span>
+                        <span class="stat-value">${summary.safetyLinePoints || 0}</span>
+                    </div>
+                    <div class="relegation-gap-indicator ${(summary.gapAtRelegationLine || 0) <= 2 ? 'gap-tight' : ''}">
+                        ${summary.gapAtRelegationLine || 0} pt gap
+                    </div>
+                    <div class="relegation-summary-stat danger">
+                        <span class="stat-label">18th pts</span>
+                        <span class="stat-value">${summary.relegationLinePoints || 0}</span>
+                    </div>
+                    <span class="relegation-intensity-badge ${(summary.intensity || 'Calm').toLowerCase()}">${summary.intensity || 'Calm'}</span>
+                </div>
+                <div class="relegation-teams">
+                    ${teams.map((team, index) => this.renderRelegationTeamRow(team, index)).join('')}
+                </div>
+                <div class="relegation-battle-footer">
+                    <span>Target: ${data.relegationResponse?.survivalPointsTarget || 38} pts</span>
+                    <span>${data.relegationResponse?.matchdaysCompleted || 0}/${data.relegationResponse?.totalMatchesInSeason || 38} played</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render Relegation team row
+     */
+    renderRelegationTeamRow(team, index) {
+        const position = team.currentPosition || (14 + index);
+        const isInRelegationZone = position >= 18;
+        const isOnSafetyLine = position === 17;
+        const probClass = team.survivalProbability >= 85 ? 'prob-safe' :
+                         team.survivalProbability >= 50 ? 'prob-fighting' :
+                         team.survivalProbability >= 25 ? 'prob-danger' : 'prob-relegated';
+
+        const desperationIcon = {
+            'Low': '',
+            'Medium': '⚡',
+            'High': '🔥',
+            'Extreme': '💀'
+        };
+
+        const statusIcon = {
+            'Safe': '✓',
+            'Fighting': '⚔️',
+            'Danger': '🔥',
+            'Relegated': '💀'
+        };
+
+        return `
+            <div class="relegation-team-row ${isInRelegationZone ? 'in-relegation-zone' : ''} ${isOnSafetyLine ? 'on-safety-line' : ''}">
+                <span class="relegation-position">
+                    <span class="position-icon ${team.status?.toLowerCase() || ''}">${statusIcon[team.status] || position}</span>
+                </span>
+                <div class="relegation-team-info">
+                    ${team.teamLogo ? `<img src="${team.teamLogo}" class="relegation-team-logo" alt="">` : ''}
+                    <span class="relegation-team-name">${team.teamName}</span>
+                    ${desperationIcon[team.desperationLevel] ? `<span class="desperation-icon">${desperationIcon[team.desperationLevel]}</span>` : ''}
+                </div>
+                <span class="relegation-points">${team.points} pts</span>
+                <span class="relegation-gap ${team.gapToSafety >= 0 ? 'gap-safe' : 'gap-danger'}">
+                    ${team.gapToSafety >= 0 ? '+' : ''}${team.gapToSafety}
+                </span>
+                <div class="relegation-prob-container">
+                    <div class="relegation-prob-bar ${probClass}" style="width: ${team.survivalProbability}%"></div>
+                    <span class="relegation-prob-text">${Math.round(team.survivalProbability)}%</span>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Render combined standings table with UCL probability and relegation status
+     */
+    renderCombinedStandingsTable(standings, uclMap, relegationMap) {
         return `
             <table class="standings-table standings-with-ucl">
                 <thead>
@@ -310,7 +497,7 @@ class DashboardManager {
                         <th class="text-center hide-mobile">L</th>
                         <th class="text-center hide-mobile">GD</th>
                         <th class="text-center">Pts</th>
-                        <th class="text-center">UCL%</th>
+                        <th class="text-center">Prob%</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -321,8 +508,22 @@ class DashboardManager {
                         else if (index >= standings.length - 3) rowClass = 'relegation';
 
                         const ucl = uclMap[team.teamName] || {};
-                        const prob = ucl.probability || 0;
-                        const probClass = prob >= 80 ? 'ucl-safe' : prob >= 50 ? 'ucl-fighting' : prob >= 20 ? 'ucl-possible' : 'ucl-unlikely';
+                        const relegation = relegationMap ? relegationMap[team.teamName] : {};
+
+                        // Show UCL prob for top 10, survival prob for bottom 7
+                        let prob = 0;
+                        let probLabel = '';
+                        let probClass = '';
+
+                        if (index < 10 && ucl.probability !== undefined) {
+                            prob = ucl.probability;
+                            probLabel = 'UCL';
+                            probClass = prob >= 80 ? 'ucl-safe' : prob >= 50 ? 'ucl-fighting' : prob >= 20 ? 'ucl-possible' : 'ucl-unlikely';
+                        } else if (index >= standings.length - 7 && relegation?.survivalProbability !== undefined) {
+                            prob = relegation.survivalProbability;
+                            probLabel = 'Surv';
+                            probClass = prob >= 85 ? 'surv-safe' : prob >= 50 ? 'surv-fighting' : prob >= 25 ? 'surv-danger' : 'surv-relegated';
+                        }
 
                         return `
                             <tr class="${rowClass}">
@@ -340,7 +541,7 @@ class DashboardManager {
                                 <td class="text-center hide-mobile">${team.GD || team.goalDifference || 0}</td>
                                 <td class="text-center standings-pts">${team.Pts || team.points || 0}</td>
                                 <td class="text-center">
-                                    ${index < 10 ? `<span class="ucl-prob ${probClass}">${Math.round(prob)}%</span>` : '-'}
+                                    ${prob > 0 ? `<span class="prob-badge ${probClass}" title="${probLabel}">${Math.round(prob)}%</span>` : '-'}
                                 </td>
                             </tr>
                         `;
