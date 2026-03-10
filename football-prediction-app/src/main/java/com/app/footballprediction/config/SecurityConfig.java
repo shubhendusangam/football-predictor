@@ -213,6 +213,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/predictions", "/api/predictions/**").permitAll()
                 .requestMatchers("/api/matches/**").permitAll()
                 .requestMatchers("/api/dashboard/**").permitAll()
+                .requestMatchers("/api/league/**").permitAll()
                 .requestMatchers("/api/external/**").permitAll()
                 .requestMatchers("/api/news/**").permitAll()
                 .requestMatchers("/api/betting/**").permitAll()

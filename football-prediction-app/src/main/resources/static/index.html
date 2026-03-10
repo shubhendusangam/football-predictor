@@ -101,7 +101,7 @@
 
             <!-- Dashboard Container - Will be populated by dashboard-v2.js -->
             <div class="dashboard-container" id="dashboardContainer">
-                <!-- Row 1: Upcoming Matches + League Standings -->
+                <!-- Row 1: Upcoming Matches + Combined League Table with UCL Race (50/50) -->
                 <div class="dashboard-row-1">
                     <div class="dashboard-card" id="upcomingMatchesCard">
                         <div class="dashboard-card-loading">
@@ -110,7 +110,7 @@
                             <div class="dashboard-skeleton card"></div>
                         </div>
                     </div>
-                    <div class="dashboard-card" id="leagueStandingsCard">
+                    <div class="dashboard-card dashboard-card-featured" id="leagueStandingsCard">
                         <div class="dashboard-card-loading">
                             <div class="dashboard-skeleton title"></div>
                             <div class="dashboard-skeleton card"></div>
@@ -119,7 +119,7 @@
                     </div>
                 </div>
 
-                <!-- Row 2: Today's Predictions + Top Teams + Model Accuracy -->
+                <!-- Row 2: Today's Predictions + Top Teams + Model Accuracy (33/33/33) -->
                 <div class="dashboard-row-2">
                     <div class="dashboard-card" id="todaysPredictionsCard">
                         <div class="dashboard-card-loading">
@@ -160,7 +160,7 @@
     <script src="js/layout.js?v=3"></script>
     <script src="js/router.js?v=3"></script>
     <script src="js/upcoming-matches.js?v=3"></script>
-    <script src="js/dashboard-v2.js?v=3"></script>
+    <script src="js/dashboard-v2.js?v=5"></script>
     <script src="js/historical.js?v=3"></script>
     <script src="js/league-standings.js?v=1"></script>
     <script src="js/admin.js?v=1"></script>

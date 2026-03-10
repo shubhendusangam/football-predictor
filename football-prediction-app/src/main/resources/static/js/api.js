@@ -415,6 +415,18 @@
         },
 
         /**
+         * Get Top 4 (Champions League) race analysis
+         * GET /api/league/top4-race?season=SEASON
+         */
+        getTop4Race: async (season = null) => {
+            const params = new URLSearchParams();
+            if (season) params.append('season', season);
+            const queryString = params.toString();
+            const endpoint = queryString ? `/league/top4-race?${queryString}` : '/league/top4-race';
+            return api.get(endpoint);
+        },
+
+        /**
          * Get league standings
          * GET /api/dashboard/league-standings?leagueId=N&season=SEASON
          */

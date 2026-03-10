@@ -1,0 +1,102 @@
+package com.app.footballprediction.controller;
+
+import com.app.footballprediction.dto.Top4RaceAnalysisDTO;
+import com.app.footballprediction.service.Top4RaceService;
+import com.app.footballprediction.util.SeasonUtils;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
+import java.util.Map;
+
+/**
+ * REST Controller for league-related endpoints.
+ * Provides Champions League race analysis, title battles, and league metrics.
+ */
+@RestController
+@RequestMapping("/api/league")
+@RequiredArgsConstructor
+@Slf4j
+public class LeagueController {
+
+    private final Top4RaceService top4RaceService;
+
+    /**
+     * Get Top 4 (Champions League) race analysis for a season.
+     *
+     * Analyzes the battle for top 4 positions including:
+     * - Current standings and gaps
+     * - Probability calculations
+     * - Title race summary
+     * - Team motivation levels
+     *
+     * GET /api/league/top4-race?season=2025-26
+     *
+     * @param season Season identifier (e.g., "2025-26"), defaults to current season
+     * @return Top4RaceAnalysisDTO with complete race analysis
+     */
+    @GetMapping("/top4-race")
+    public ResponseEntity<?> getTop4Race(
+            @RequestParam(required = false) String season) {
+
+        try {
+            log.debug("GET /api/league/top4-race season={}", season);
+            long startTime = System.currentTimeMillis();
+
+            // Default to current season if not provided
+            String effectiveSeason = (season != null && !season.isBlank())
+                    ? season
+                    : SeasonUtils.getCurrentSeason();
+
+            Top4RaceAnalysisDTO analysis = top4RaceService.analyzeTop4Race(
+                    effectiveSeason, LocalDate.now());
+
+            log.debug("Top 4 race analysis completed in {}ms for season {}",
+                    System.currentTimeMillis() - startTime, effectiveSeason);
+
+            return ResponseEntity.ok(analysis);
+
+        } catch (Exception e) {
+            log.error("Failed to analyze Top 4 race: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to analyze Top 4 race",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    /**
+     * Get Top 4 race analysis for a specific date.
+     * Useful for historical analysis.
+     *
+     * GET /api/league/top4-race/historical?season=2025-26&asOfDate=2026-02-15
+     *
+     * @param season   Season identifier
+     * @param asOfDate Date to calculate analysis as of (ISO format)
+     * @return Top4RaceAnalysisDTO with race analysis as of the specified date
+     */
+    @GetMapping("/top4-race/historical")
+    public ResponseEntity<?> getTop4RaceHistorical(
+            @RequestParam String season,
+            @RequestParam String asOfDate) {
+
+        try {
+            log.debug("GET /api/league/top4-race/historical season={} asOfDate={}", season, asOfDate);
+
+            LocalDate date = LocalDate.parse(asOfDate);
+            Top4RaceAnalysisDTO analysis = top4RaceService.analyzeTop4Race(season, date);
+
+            return ResponseEntity.ok(analysis);
+
+        } catch (Exception e) {
+            log.error("Failed to get historical Top 4 race analysis: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to get historical analysis",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+}
+

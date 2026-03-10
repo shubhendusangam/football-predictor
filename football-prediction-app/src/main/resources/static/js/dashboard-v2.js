@@ -51,17 +51,17 @@ class DashboardManager {
                 <p class="page-description">Overview of match predictions and team statistics</p>
             </div>
             <div class="dashboard-container" id="dashboardContainer">
-                <!-- Row 1: Upcoming Matches + League Standings -->
+                <!-- Row 1: Upcoming Matches + Combined League Table with UCL Race -->
                 <div class="dashboard-row-1">
                     <div class="dashboard-card" id="upcomingMatchesCard">
                         ${this.renderLoading()}
                     </div>
-                    <div class="dashboard-card" id="leagueStandingsCard">
+                    <div class="dashboard-card dashboard-card-featured" id="leagueStandingsCard">
                         ${this.renderLoading()}
                     </div>
                 </div>
 
-                <!-- Row 2: Today's Predictions + Top Teams + Model Accuracy -->
+                <!-- Row 2: Today's Predictions + Top Teams + Model Accuracy (33/33/33) -->
                 <div class="dashboard-row-2">
                     <div class="dashboard-card" id="todaysPredictionsCard">
                         ${this.renderLoading()}
@@ -108,7 +108,7 @@ class DashboardManager {
         try {
             await Promise.allSettled([
                 this.loadUpcomingMatches(),
-                this.loadLeagueStandings(),
+                this.loadLeagueStandingsWithUCL(),
                 this.loadTodaysPredictions(),
                 this.loadTopTeams(),
                 this.loadModelAccuracy()
@@ -235,26 +235,46 @@ class DashboardManager {
     }
 
     /**
-     * Load League Standings section
+     * Load Combined League Standings with UCL Race data
      */
-    async loadLeagueStandings() {
+    async loadLeagueStandingsWithUCL() {
         const card = document.getElementById('leagueStandingsCard');
         if (!card) return;
 
         try {
-            const response = await this.api.get('/dashboard/league-standings');
-            const standings = response?.standings || [];
+            // Load both standings and UCL race data in parallel
+            const [standingsResponse, uclResponse] = await Promise.all([
+                this.api.get('/dashboard/league-standings'),
+                this.api.getTop4Race()
+            ]);
+
+            const standings = standingsResponse?.standings || [];
+            const uclData = uclResponse?.teamsInRace || [];
+            const titleRace = uclResponse?.titleRace || {};
+
+            // Create a map of UCL probabilities by team name
+            const uclMap = {};
+            uclData.forEach(team => {
+                uclMap[team.teamName] = {
+                    probability: team.top4Probability,
+                    status: team.status,
+                    gapToFourth: team.gapToFourth
+                };
+            });
 
             card.innerHTML = `
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">🏆</span>
-                        ${response?.leagueName || 'League Standings'}
+                        ${standingsResponse?.leagueName || 'Premier League'} & UCL Race
                     </h3>
-                    <span class="dashboard-card-badge badge badge-success">${response?.season || ''}</span>
+                    <div class="standings-header-meta">
+                        <span class="dashboard-card-badge badge badge-success">${standingsResponse?.season || ''}</span>
+                        ${titleRace.intensity ? `<span class="title-race-badge ${titleRace.intensity.toLowerCase().replace(/\s+/g, '-')}">${titleRace.intensity}</span>` : ''}
+                    </div>
                 </div>
                 <div class="dashboard-card-body standings-scrollable">
-                    ${standings.length > 0 ? this.renderStandingsTable(standings) :
+                    ${standings.length > 0 ? this.renderCombinedStandingsTable(standings, uclMap) :
                       '<p style="color: var(--text-muted); text-align: center;">No standings available</p>'}
                 </div>
             `;
@@ -268,15 +288,18 @@ class DashboardManager {
                     </h3>
                 </div>
                 <div class="dashboard-card-body">
-                    ${this.renderError('Failed to load standings', 'dashboardManager.loadLeagueStandings()')}
+                    ${this.renderError('Failed to load standings', 'dashboardManager.loadLeagueStandingsWithUCL()')}
                 </div>
             `;
         }
     }
 
-    renderStandingsTable(standings) {
+    /**
+     * Render combined standings table with UCL probability
+     */
+    renderCombinedStandingsTable(standings, uclMap) {
         return `
-            <table class="standings-table">
+            <table class="standings-table standings-with-ucl">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -287,7 +310,7 @@ class DashboardManager {
                         <th class="text-center hide-mobile">L</th>
                         <th class="text-center hide-mobile">GD</th>
                         <th class="text-center">Pts</th>
-                        <th class="hide-mobile">Form</th>
+                        <th class="text-center">UCL%</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -296,6 +319,10 @@ class DashboardManager {
                         if (index < 4) rowClass = 'top-4';
                         else if (index < 6) rowClass = 'europa';
                         else if (index >= standings.length - 3) rowClass = 'relegation';
+
+                        const ucl = uclMap[team.teamName] || {};
+                        const prob = ucl.probability || 0;
+                        const probClass = prob >= 80 ? 'ucl-safe' : prob >= 50 ? 'ucl-fighting' : prob >= 20 ? 'ucl-possible' : 'ucl-unlikely';
 
                         return `
                             <tr class="${rowClass}">
@@ -311,14 +338,23 @@ class DashboardManager {
                                 <td class="text-center hide-mobile">${team.D || team.drawn || 0}</td>
                                 <td class="text-center hide-mobile">${team.L || team.lost || 0}</td>
                                 <td class="text-center hide-mobile">${team.GD || team.goalDifference || 0}</td>
-                                <td class="text-center" style="font-weight: 600;">${team.Pts || team.points || 0}</td>
-                                <td class="hide-mobile">${this.renderForm(team.form)}</td>
+                                <td class="text-center standings-pts">${team.Pts || team.points || 0}</td>
+                                <td class="text-center">
+                                    ${index < 10 ? `<span class="ucl-prob ${probClass}">${Math.round(prob)}%</span>` : '-'}
+                                </td>
                             </tr>
                         `;
                     }).join('')}
                 </tbody>
             </table>
         `;
+    }
+
+    /**
+     * @deprecated Use loadLeagueStandingsWithUCL instead
+     */
+    async loadLeagueStandings() {
+        return this.loadLeagueStandingsWithUCL();
     }
 
     renderForm(form) {
@@ -328,6 +364,152 @@ class DashboardManager {
                 ${form.split('').slice(0, 5).map(result => `
                     <span class="form-indicator ${result}">${result}</span>
                 `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Load Top 4 Race section (Champions League battle)
+     */
+    async loadTop4Race() {
+        const card = document.getElementById('top4RaceCard');
+        if (!card) return;
+
+        try {
+            // Initialize the Top4RaceWidget if available
+            if (window.Top4RaceWidget) {
+                const widget = new window.Top4RaceWidget('top4RaceCard');
+                await widget.init();
+            } else {
+                // Fallback: load data directly
+                const response = await this.api.getTop4Race();
+                card.innerHTML = this.renderTop4RaceCard(response);
+            }
+        } catch (error) {
+            console.error('[Dashboard] Failed to load Top 4 race:', error);
+            card.innerHTML = `
+                <div class="dashboard-card-header">
+                    <h3 class="dashboard-card-title">
+                        <span class="dashboard-card-title-icon">🏆</span>
+                        Champions League Race
+                    </h3>
+                </div>
+                <div class="dashboard-card-body">
+                    ${this.renderError('Failed to load Top 4 race', 'dashboardManager.loadTop4Race()')}
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Fallback renderer for Top 4 Race
+     */
+    renderTop4RaceCard(data) {
+        const teams = data?.teamsInRace?.slice(0, 7) || [];
+        return `
+            <div class="dashboard-card-header">
+                <h3 class="dashboard-card-title">
+                    <span class="dashboard-card-title-icon">🏆</span>
+                    Champions League Race
+                </h3>
+                <span class="dashboard-card-badge badge badge-info">${data?.season || ''}</span>
+            </div>
+            <div class="dashboard-card-body">
+                ${teams.length > 0 ? this.renderTop4RaceTeams(teams) :
+                  '<p style="color: var(--text-muted); text-align: center;">No race data available</p>'}
+            </div>
+        `;
+    }
+
+    renderTop4RaceTeams(teams) {
+        return `
+            <div class="top4-race-simple">
+                ${teams.map((team, idx) => `
+                    <div class="top4-team-row ${team.currentPosition <= 4 ? 'in-top4' : ''}">
+                        <span class="top4-position">${team.currentPosition}</span>
+                        <span class="top4-team-name">${team.teamName}</span>
+                        <span class="top4-points">${team.points} pts</span>
+                        <span class="top4-probability" style="color: ${team.top4Probability >= 70 ? '#34d399' : team.top4Probability >= 40 ? '#fbbf24' : '#f87171'}">
+                            ${Math.round(team.top4Probability)}%
+                        </span>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Load Title Race Timeline (projection chart)
+     */
+    async loadTitleTimeline() {
+        const card = document.getElementById('titleTimelineCard');
+        if (!card) return;
+
+        try {
+            // Initialize the TitleRaceTimeline if available
+            if (window.TitleRaceTimeline) {
+                const timeline = new window.TitleRaceTimeline('titleTimelineCard');
+                await timeline.init();
+            } else {
+                // Fallback: show simple projection
+                const response = await this.api.getTop4Race();
+                card.innerHTML = this.renderTitleTimelineCard(response);
+            }
+        } catch (error) {
+            console.error('[Dashboard] Failed to load title timeline:', error);
+            card.innerHTML = `
+                <div class="dashboard-card-header">
+                    <h3 class="dashboard-card-title">
+                        <span class="dashboard-card-title-icon">📈</span>
+                        Title Race Projection
+                    </h3>
+                </div>
+                <div class="dashboard-card-body">
+                    ${this.renderError('Failed to load projection', 'dashboardManager.loadTitleTimeline()')}
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Fallback renderer for Title Timeline
+     */
+    renderTitleTimelineCard(data) {
+        const titleRace = data?.titleRace || {};
+        const topTeams = data?.teamsInRace?.slice(0, 3) || [];
+        return `
+            <div class="dashboard-card-header">
+                <h3 class="dashboard-card-title">
+                    <span class="dashboard-card-title-icon">📈</span>
+                    Title Race
+                </h3>
+                <span class="dashboard-card-badge badge badge-${titleRace.intensity === 'Wide Open' ? 'info' : 'success'}">
+                    ${titleRace.intensity || 'Unknown'}
+                </span>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="title-race-summary">
+                    <div class="title-leader">
+                        <span class="title-leader-label">Leader:</span>
+                        <span class="title-leader-name">${titleRace.leader || 'TBD'}</span>
+                    </div>
+                    ${titleRace.gapFirstToSecond !== undefined ? `
+                        <div class="title-gap">
+                            <span class="title-gap-label">Gap:</span>
+                            <span class="title-gap-value">${titleRace.gapFirstToSecond} pts</span>
+                        </div>
+                    ` : ''}
+                    <div class="title-contenders">
+                        <span class="title-contenders-label">Contenders:</span>
+                        <span class="title-contenders-value">${titleRace.contenders || 0}</span>
+                    </div>
+                </div>
+                <div class="title-progress">
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${data?.seasonProgressPercent || 0}%"></div>
+                    </div>
+                    <span class="progress-text">${data?.matchdaysCompleted || 0}/${data?.totalMatchesInSeason || 38} matches</span>
+                </div>
             </div>
         `;
     }
@@ -347,15 +529,15 @@ class DashboardManager {
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">🎯</span>
-                        Today's Predictions
+                        Predictions
                     </h3>
                     <span class="dashboard-card-badge badge badge-${response?.wonCount > response?.lostCount ? 'success' : 'warning'}">
-                        ${response?.wonCount || 0}W / ${response?.lostCount || 0}L
+                        ${response?.wonCount || 0}W/${response?.lostCount || 0}L
                     </span>
                 </div>
-                <div class="dashboard-card-body">
-                    ${predictions.length > 0 ? predictions.map(pred => this.renderPrediction(pred)).join('') :
-                      '<p style="color: var(--text-muted); text-align: center;">No predictions for today</p>'}
+                <div class="dashboard-card-body compact-body">
+                    ${predictions.length > 0 ? predictions.slice(0, 5).map(pred => this.renderCompactPrediction(pred)).join('') :
+                      '<p style="color: var(--text-muted); text-align: center; font-size: 0.8rem;">No predictions today</p>'}
                 </div>
             `;
         } catch (error) {
@@ -364,14 +546,29 @@ class DashboardManager {
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">🎯</span>
-                        Today's Predictions
+                        Predictions
                     </h3>
                 </div>
                 <div class="dashboard-card-body">
-                    ${this.renderError('Failed to load predictions', 'dashboardManager.loadTodaysPredictions()')}
+                    ${this.renderError('Failed to load', 'dashboardManager.loadTodaysPredictions()')}
                 </div>
             `;
         }
+    }
+
+    renderCompactPrediction(pred) {
+        const statusClass = pred.status?.toLowerCase() || 'pending';
+        return `
+            <div class="prediction-item-compact ${statusClass}">
+                <div class="prediction-teams-compact">
+                    <span class="pred-match">${pred.homeTeam} v ${pred.awayTeam}</span>
+                </div>
+                <div class="prediction-result-compact">
+                    <span class="pred-winner">${pred.predictedWinner}</span>
+                    <span class="pred-conf">${Math.round(pred.confidence)}%</span>
+                </div>
+            </div>
+        `;
     }
 
     renderPrediction(pred) {
@@ -408,22 +605,19 @@ class DashboardManager {
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">⭐</span>
-                        Top Teams
+                        Top 5
                     </h3>
-                    <span class="dashboard-card-badge badge badge-info">${response?.season || ''}</span>
-                </div>
-                <div class="dashboard-card-body">
-                    <div class="top-teams-tabs">
-                        <button class="top-teams-tab ${this.topTeamsView === 'points' ? 'active' : ''}"
-                                onclick="dashboardManager.switchTopTeamsView('points')">Points</button>
-                        <button class="top-teams-tab ${this.topTeamsView === 'gd' ? 'active' : ''}"
-                                onclick="dashboardManager.switchTopTeamsView('gd')">Goal Diff</button>
-                        <button class="top-teams-tab ${this.topTeamsView === 'form' ? 'active' : ''}"
+                    <div class="top-teams-tabs-compact">
+                        <button class="tab-btn ${this.topTeamsView === 'points' ? 'active' : ''}"
+                                onclick="dashboardManager.switchTopTeamsView('points')">Pts</button>
+                        <button class="tab-btn ${this.topTeamsView === 'gd' ? 'active' : ''}"
+                                onclick="dashboardManager.switchTopTeamsView('gd')">GD</button>
+                        <button class="tab-btn ${this.topTeamsView === 'form' ? 'active' : ''}"
                                 onclick="dashboardManager.switchTopTeamsView('form')">Form</button>
                     </div>
-                    <div id="topTeamsContent">
-                        ${this.renderTopTeamsList(response)}
-                    </div>
+                </div>
+                <div class="dashboard-card-body compact-body" id="topTeamsContent">
+                    ${this.renderCompactTopTeamsList(response)}
                 </div>
             `;
 
@@ -435,11 +629,11 @@ class DashboardManager {
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">⭐</span>
-                        Top Teams
+                        Top 5
                     </h3>
                 </div>
                 <div class="dashboard-card-body">
-                    ${this.renderError('Failed to load teams', 'dashboardManager.loadTopTeams()')}
+                    ${this.renderError('Failed to load', 'dashboardManager.loadTopTeams()')}
                 </div>
             `;
         }
@@ -449,18 +643,54 @@ class DashboardManager {
         this.topTeamsView = view;
 
         // Update tabs
-        document.querySelectorAll('.top-teams-tab').forEach(tab => {
+        document.querySelectorAll('.tab-btn').forEach(tab => {
             tab.classList.remove('active');
-            if (tab.textContent.toLowerCase().includes(view === 'gd' ? 'goal' : view)) {
-                tab.classList.add('active');
-            }
         });
+        event.target.classList.add('active');
 
         // Update content
         const content = document.getElementById('topTeamsContent');
         if (content && this.topTeamsData) {
-            content.innerHTML = this.renderTopTeamsList(this.topTeamsData);
+            content.innerHTML = this.renderCompactTopTeamsList(this.topTeamsData);
         }
+    }
+
+    renderCompactTopTeamsList(data) {
+        let teams = [];
+        let metricKey = 'points';
+
+        switch (this.topTeamsView) {
+            case 'points':
+                teams = data?.teamsByPoints || [];
+                metricKey = 'points';
+                break;
+            case 'gd':
+                teams = data?.teamsByGoalDifference || [];
+                metricKey = 'goalDifference';
+                break;
+            case 'form':
+                teams = data?.teamsByForm || [];
+                metricKey = 'form';
+                break;
+        }
+
+        if (teams.length === 0) {
+            return '<p style="color: var(--text-muted); text-align: center; font-size: 0.8rem;">No data</p>';
+        }
+
+        return teams.slice(0, 5).map((team, index) => {
+            const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : '';
+            const metricValue = metricKey === 'form' ? (team.form || '-').substring(0, 5) :
+                               (metricKey === 'goalDifference' && team[metricKey] > 0 ? '+' : '') + (team[metricKey] || 0);
+
+            return `
+                <div class="top-team-row">
+                    <span class="team-rank ${rankClass}">${index + 1}</span>
+                    <span class="team-name">${team.teamName}</span>
+                    <span class="team-metric">${metricValue}</span>
+                </div>
+            `;
+        }).join('');
     }
 
     renderTopTeamsList(data) {
@@ -524,109 +754,46 @@ class DashboardManager {
             const total = (response?.correctPredictions || 0) + (response?.incorrectPredictions || 0) + (response?.pendingPredictions || 0);
             const correctPct = total > 0 ? ((response?.correctPredictions || 0) / total * 100) : 0;
             const incorrectPct = total > 0 ? ((response?.incorrectPredictions || 0) / total * 100) : 0;
-            const pendingPct = total > 0 ? ((response?.pendingPredictions || 0) / total * 100) : 0;
-
-            // Format last trained date
-            const lastTrainedFormatted = response?.lastTrainedDate
-                ? new Date(response.lastTrainedDate).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-                : 'Never';
 
             card.innerHTML = `
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">🤖</span>
-                        Model Accuracy
+                        AI Model
                     </h3>
                     <span class="dashboard-card-badge badge badge-${response?.overallAccuracy >= 70 ? 'success' : response?.overallAccuracy >= 50 ? 'warning' : 'danger'}">
-                        AI Stats
+                        ${response?.modelLoaded ? '✓' : '✗'}
                     </span>
                 </div>
-                <div class="dashboard-card-body">
-                    <!-- Model Metadata Section -->
-                    <div class="model-metadata" style="background: var(--bg-tertiary, rgba(255,255,255,0.05)); border-radius: 0.5rem; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid var(--border-color, rgba(255,255,255,0.1));">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-                            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary, #fff);">📋 Model Details</span>
-                            <span class="badge badge-${response?.modelLoaded ? 'success' : 'danger'}" style="font-size: 0.65rem; padding: 0.15rem 0.5rem;">
-                                ${response?.modelLoaded ? '✅ Loaded' : '❌ Not Loaded'}
-                            </span>
+                <div class="dashboard-card-body compact-body">
+                    <div class="accuracy-main-compact">
+                        <div class="accuracy-big">${response?.overallAccuracy || 0}%</div>
+                        <div class="accuracy-label-small">Accuracy</div>
+                    </div>
+
+                    <div class="accuracy-stats-compact">
+                        <div class="acc-stat">
+                            <span class="acc-val green">${response?.correctPredictions || 0}</span>
+                            <span class="acc-lbl">Won</span>
                         </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
-                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
-                                <span style="display: block; color: var(--text-tertiary, #666);">Type</span>
-                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.modelType || 'N/A'}</span>
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
-                                <span style="display: block; color: var(--text-tertiary, #666);">Features</span>
-                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.totalFeatures || 0}</span>
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
-                                <span style="display: block; color: var(--text-tertiary, #666);">Training Matches</span>
-                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${(response?.totalTrainingMatches || 0).toLocaleString()}</span>
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
-                                <span style="display: block; color: var(--text-tertiary, #666);">Teams</span>
-                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.totalTeams || 0}</span>
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
-                                <span style="display: block; color: var(--text-tertiary, #666);">Last Trained</span>
-                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${lastTrainedFormatted}</span>
-                            </div>
-                            <div style="font-size: 0.7rem; color: var(--text-muted, #999);">
-                                <span style="display: block; color: var(--text-tertiary, #666);">Model Size</span>
-                                <span style="color: var(--text-secondary, #ccc); font-weight: 500;">${response?.modelFileSize || 'N/A'}</span>
-                            </div>
+                        <div class="acc-stat">
+                            <span class="acc-val red">${response?.incorrectPredictions || 0}</span>
+                            <span class="acc-lbl">Lost</span>
+                        </div>
+                        <div class="acc-stat">
+                            <span class="acc-val">${response?.last10Accuracy || 0}%</span>
+                            <span class="acc-lbl">L10</span>
                         </div>
                     </div>
 
-                    <div class="accuracy-main">
-                        <div class="accuracy-percentage">${response?.overallAccuracy || 0}%</div>
-                        <div class="accuracy-label">Overall Accuracy</div>
-                        <div class="accuracy-trend ${response?.trendIndicator?.toLowerCase() || 'stable'}">
-                            ${response?.trendIndicator === 'UP' ? '📈' : response?.trendIndicator === 'DOWN' ? '📉' : '➡️'}
-                            ${response?.trendChange > 0 ? '+' : ''}${response?.trendChange || 0}% vs avg
-                        </div>
+                    <div class="accuracy-bar-compact">
+                        <div class="bar-fill correct" style="width: ${correctPct}%"></div>
+                        <div class="bar-fill incorrect" style="width: ${incorrectPct}%"></div>
                     </div>
 
-                    <div class="accuracy-stats-grid">
-                        <div class="accuracy-stat">
-                            <span class="accuracy-stat-value">${response?.last10Accuracy || 0}%</span>
-                            <span class="accuracy-stat-label">Last 10</span>
-                        </div>
-                        <div class="accuracy-stat">
-                            <span class="accuracy-stat-value">${response?.totalPredictions || 0}</span>
-                            <span class="accuracy-stat-label">Total</span>
-                        </div>
-                        <div class="accuracy-stat">
-                            <span class="accuracy-stat-value" style="color: var(--accent-green);">${response?.correctPredictions || 0}</span>
-                            <span class="accuracy-stat-label">Correct</span>
-                        </div>
-                        <div class="accuracy-stat">
-                            <span class="accuracy-stat-value" style="color: var(--accent-red);">${response?.incorrectPredictions || 0}</span>
-                            <span class="accuracy-stat-label">Incorrect</span>
-                        </div>
-                    </div>
-
-                    <div class="accuracy-breakdown">
-                        <div class="accuracy-breakdown-title">Win/Loss Breakdown</div>
-                        <div class="accuracy-bar">
-                            <div class="accuracy-bar-segment correct" style="width: ${correctPct}%"></div>
-                            <div class="accuracy-bar-segment incorrect" style="width: ${incorrectPct}%"></div>
-                            <div class="accuracy-bar-segment pending" style="width: ${pendingPct}%"></div>
-                        </div>
-                        <div class="accuracy-bar-legend">
-                            <span class="accuracy-legend-item">
-                                <span class="accuracy-legend-dot correct"></span>
-                                Won
-                            </span>
-                            <span class="accuracy-legend-item">
-                                <span class="accuracy-legend-dot incorrect"></span>
-                                Lost
-                            </span>
-                            <span class="accuracy-legend-item">
-                                <span class="accuracy-legend-dot pending"></span>
-                                Pending
-                            </span>
-                        </div>
+                    <div class="model-info-compact">
+                        <span>${response?.modelType || 'N/A'}</span>
+                        <span>${response?.totalPredictions || 0} predictions</span>
                     </div>
                 </div>
             `;
@@ -636,11 +803,11 @@ class DashboardManager {
                 <div class="dashboard-card-header">
                     <h3 class="dashboard-card-title">
                         <span class="dashboard-card-title-icon">🤖</span>
-                        Model Accuracy
+                        AI Model
                     </h3>
                 </div>
                 <div class="dashboard-card-body">
-                    ${this.renderError('Failed to load accuracy', 'dashboardManager.loadModelAccuracy()')}
+                    ${this.renderError('Failed to load', 'dashboardManager.loadModelAccuracy()')}
                 </div>
             `;
         }

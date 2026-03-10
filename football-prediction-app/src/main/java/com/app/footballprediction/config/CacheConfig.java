@@ -65,6 +65,7 @@ public class CacheConfig {
     public static final String CACHE_REFEREE_STATS = "refereeStats";
     public static final String CACHE_ALL_REFEREES = "allReferees";
     public static final String CACHE_ALL_REFEREE_STATS = "allRefereeStats";
+    public static final String CACHE_TOP4_RACE = "top4Race";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -158,6 +159,9 @@ public class CacheConfig {
     @Value("${cache.allRefereeStats.ttl:1800}")
     private int allRefereeStatsTtl;
 
+    @Value("${cache.top4Race.ttl:600}")
+    private int top4RaceTtl;
+
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
     private int standingsMaxSize;
@@ -249,6 +253,9 @@ public class CacheConfig {
 
     @Value("${cache.allRefereeStats.maxSize:10}")
     private int allRefereeStatsMaxSize;
+
+    @Value("${cache.top4Race.maxSize:20}")
+    private int top4RaceMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -355,6 +362,9 @@ public class CacheConfig {
 
         // All referee stats: moderate TTL (30 min), small size (single aggregated list)
         cacheConfigs.put(CACHE_ALL_REFEREE_STATS, buildCache(allRefereeStatsTtl, allRefereeStatsMaxSize));
+
+        // Top 4 race analysis: moderate TTL (10 min), small size for season-based analysis
+        cacheConfigs.put(CACHE_TOP4_RACE, buildCache(top4RaceTtl, top4RaceMaxSize));
 
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
