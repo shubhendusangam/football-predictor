@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -20,16 +21,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Validates authentication, authorization, security headers, and CORS.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
+@ActiveProfiles("test")
 @DisplayName("Security Configuration Integration Tests")
 class SecurityConfigTest {
 
     @Autowired
     private WebApplicationContext context;
 
+    @Autowired
+    private RateLimitFilter rateLimitFilter;
+
     private MockMvc mockMvc() {
         return MockMvcBuilders
                 .webAppContextSetup(context)
                 .apply(springSecurity())
+                .build();
+    }
+
+    private MockMvc mockMvcWithFilters() {
+        return MockMvcBuilders
+                .webAppContextSetup(context)
+                .apply(springSecurity())
+                .addFilters(rateLimitFilter)
                 .build();
     }
 
@@ -128,7 +141,7 @@ class SecurityConfigTest {
         @Test
         @DisplayName("API responses contain rate limit headers")
         void hasRateLimitHeaders() throws Exception {
-            mockMvc().perform(get("/api/model/status"))
+            mockMvcWithFilters().perform(get("/api/model/status"))
                     .andExpect(header().exists("X-RateLimit-Limit"))
                     .andExpect(header().exists("X-RateLimit-Remaining"));
         }

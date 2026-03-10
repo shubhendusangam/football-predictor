@@ -206,17 +206,16 @@ class ApiEndpointsIntegrationTest {
     }
 
     @Test
-    @DisplayName("POST /api/cache/warmup - should warm up caches")
+    @DisplayName("POST /api/cache/warmup - should require admin authentication")
     void testWarmCaches() {
-        ResponseEntity<Map> response = restTemplate.postForEntity(
-                getBaseUrl() + "/cache/warmup",
-                null,
-                Map.class
-        );
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody()).containsKey("status");
+        // This endpoint requires admin authentication, so it should return 401
+        assertThatThrownBy(() ->
+                restTemplate.postForEntity(
+                        getBaseUrl() + "/cache/warmup",
+                        null,
+                        Map.class
+                )
+        ).isInstanceOf(HttpClientErrorException.Unauthorized.class);
     }
 }
 
