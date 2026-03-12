@@ -171,40 +171,37 @@ public class HistoricalPredictionGenerator {
 
         List<Prediction> predictions = new ArrayList<>(2);
 
-        // Check if predictions already exist (safety check for concurrent runs)
-        if (!predictionRepository.existsByMatchIdAndTeamName(match.getId(), homeTeam)) {
-            predictions.add(Prediction.builder()
-                    .matchId(match.getId())
-                    .teamName(homeTeam)
-                    .opponentName(awayTeam)
-                    .isHome(true)
-                    .season(season)
-                    .matchDate(matchDate)
-                    .predictedResult(homeResult)
-                    .confidence(confidence)
-                    .probHomeWin(probs[0])
-                    .probDraw(probs[1])
-                    .probAwayWin(probs[2])
-                    .predictionDate(LocalDateTime.now())
-                    .build());
-        }
+        // No need for existsByMatchIdAndTeamName checks here — generateAll() already
+        // filtered to matches whose IDs have zero predictions via findFinishedMatchesExcludingIds.
+        predictions.add(Prediction.builder()
+                .matchId(match.getId())
+                .teamName(homeTeam)
+                .opponentName(awayTeam)
+                .isHome(true)
+                .season(season)
+                .matchDate(matchDate)
+                .predictedResult(homeResult)
+                .confidence(confidence)
+                .probHomeWin(probs[0])
+                .probDraw(probs[1])
+                .probAwayWin(probs[2])
+                .predictionDate(LocalDateTime.now())
+                .build());
 
-        if (!predictionRepository.existsByMatchIdAndTeamName(match.getId(), awayTeam)) {
-            predictions.add(Prediction.builder()
-                    .matchId(match.getId())
-                    .teamName(awayTeam)
-                    .opponentName(homeTeam)
-                    .isHome(false)
-                    .season(season)
-                    .matchDate(matchDate)
-                    .predictedResult(awayResult)
-                    .confidence(confidence)
-                    .probHomeWin(probs[0])
-                    .probDraw(probs[1])
-                    .probAwayWin(probs[2])
-                    .predictionDate(LocalDateTime.now())
-                    .build());
-        }
+        predictions.add(Prediction.builder()
+                .matchId(match.getId())
+                .teamName(awayTeam)
+                .opponentName(homeTeam)
+                .isHome(false)
+                .season(season)
+                .matchDate(matchDate)
+                .predictedResult(awayResult)
+                .confidence(confidence)
+                .probHomeWin(probs[0])
+                .probDraw(probs[1])
+                .probAwayWin(probs[2])
+                .predictionDate(LocalDateTime.now())
+                .build());
 
         return predictions;
     }

@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.LongAdder;
 
 /**
  * Feature drift detection and data quality monitoring.
@@ -36,8 +37,14 @@ public class FeatureDriftMonitor {
     // Prediction-time running stats per feature
     private final Map<String, RunningStats> predictionStats = new ConcurrentHashMap<>();
 
-    // Null/zero rate tracking
-    private final Map<String, int[]> nullZeroCounts = new ConcurrentHashMap<>(); // [nullCount, totalCount]
+    // Thread-safe null/zero rate tracking using atomic counters
+    private final Map<String, NullZeroCounter> nullZeroCounts = new ConcurrentHashMap<>();
+
+    /** Thread-safe counter pair for null/zero rate tracking. */
+    private static class NullZeroCounter {
+        final LongAdder nullCount = new LongAdder();
+        final LongAdder totalCount = new LongAdder();
+    }
 
     /**
      * Record a feature value during training for baseline statistics.
@@ -71,11 +78,11 @@ public class FeatureDriftMonitor {
             return new DriftResult(featureName, false, "No baseline available");
         }
 
-        // Track null/zero rates
-        int[] counts = nullZeroCounts.computeIfAbsent(featureName, k -> new int[2]);
-        counts[1]++; // totalCount
+        // Track null/zero rates (thread-safe)
+        NullZeroCounter counter = nullZeroCounts.computeIfAbsent(featureName, k -> new NullZeroCounter());
+        counter.totalCount.increment();
         if (value == 0.0 || Double.isNaN(value)) {
-            counts[0]++; // nullCount
+            counter.nullCount.increment();
         }
 
         // Check z-score deviation
@@ -90,12 +97,16 @@ public class FeatureDriftMonitor {
         }
 
         // Check null/zero rate increase
-        double currentNullRate = (double) counts[0] / counts[1];
-        if (counts[1] > 10 && currentNullRate > baseline.nullRate + NULL_RATE_ALERT_THRESHOLD) {
-            String msg = String.format("Null/zero rate increased: training=%.2f, current=%.2f",
-                    baseline.nullRate, currentNullRate);
-            log.warn("⚠️ Data quality issue for '{}': {}", featureName, msg);
-            return new DriftResult(featureName, true, msg);
+        long total = counter.totalCount.sum();
+        long nulls = counter.nullCount.sum();
+        if (total > 10) {
+            double currentNullRate = (double) nulls / total;
+            if (currentNullRate > baseline.nullRate + NULL_RATE_ALERT_THRESHOLD) {
+                String msg = String.format("Null/zero rate increased: training=%.2f, current=%.2f",
+                        baseline.nullRate, currentNullRate);
+                log.warn("⚠️ Data quality issue for '{}': {}", featureName, msg);
+                return new DriftResult(featureName, true, msg);
+            }
         }
 
         return new DriftResult(featureName, false, "OK");
@@ -107,8 +118,10 @@ public class FeatureDriftMonitor {
     public Map<String, String> getDriftSummary() {
         Map<String, String> summary = new HashMap<>();
         trainingStats.forEach((name, stats) -> {
-            int[] counts = nullZeroCounts.getOrDefault(name, new int[]{0, 0});
-            double currentNullRate = counts[1] > 0 ? (double) counts[0] / counts[1] : 0;
+            NullZeroCounter counter = nullZeroCounts.get(name);
+            long total = counter != null ? counter.totalCount.sum() : 0;
+            long nulls = counter != null ? counter.nullCount.sum() : 0;
+            double currentNullRate = total > 0 ? (double) nulls / total : 0;
             summary.put(name, String.format("mean=%.4f, std=%.4f, trainingNullRate=%.2f, currentNullRate=%.2f",
                     stats.mean, stats.std, stats.nullRate, currentNullRate));
         });

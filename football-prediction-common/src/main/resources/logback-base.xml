@@ -1,0 +1,81 @@
+<!--
+    Logback Base Configuration — shared across all modules.
+    ─────────────────────────────────────────────────────────
+    This file is packaged inside football-prediction-common.jar and
+    <include>d by each module's logback-spring.xml.
+
+    Provides:
+      • Standard console & file patterns (with MDC request-id)
+      • Console appender with Spring-Boot colour support
+      • Async-wrapped rolling-file Error appender
+      • Framework-level logger silencing (Spring, Hibernate, etc.)
+-->
+<included>
+
+    <!-- ── Properties ─────────────────────────────────────────── -->
+    <property name="LOG_DIR" value="./logs"/>
+
+    <property name="CONSOLE_PATTERN"
+              value="%d{HH:mm:ss.SSS} %highlight(%-5level) [%15.15t] %cyan(%-40.40logger{39}) : [%X{requestId:-system}] %msg%n%throwable"/>
+
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %-40.40logger{39} : [%X{requestId:-system}] [%X{clientIp:-}] %msg%n%throwable"/>
+
+    <!-- ── Console Appender ───────────────────────────────────── -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- ── Error Log (rolling, shared by all modules) ─────────── -->
+    <appender name="ErrorFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/error/error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/error/error-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>60</maxHistory>
+            <totalSizeCap>500MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Async wrapper for the error appender -->
+    <appender name="AsyncError" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="ErrorFile"/>
+    </appender>
+
+    <!-- ── Framework Loggers — reduce startup / runtime noise ── -->
+    <logger name="org.springframework"              level="WARN"/>
+    <logger name="org.springframework.boot"         level="WARN"/>
+    <logger name="org.springframework.web"          level="WARN"/>
+    <logger name="org.springframework.data"         level="WARN"/>
+    <logger name="org.springframework.security"     level="WARN"/>
+    <logger name="org.hibernate"                    level="WARN"/>
+    <logger name="org.hibernate.SQL"                level="WARN"/>
+    <logger name="org.h2"                           level="WARN"/>
+    <logger name="com.zaxxer.hikari"                level="WARN"/>
+    <logger name="org.apache.http"                  level="WARN"/>
+    <logger name="org.apache.catalina"              level="WARN"/>
+    <logger name="org.apache.tomcat"                level="WARN"/>
+    <logger name="weka"                             level="WARN"/>
+    <logger name="com.fasterxml.jackson"            level="WARN"/>
+    <logger name="org.flywaydb"                     level="WARN"/>
+    <logger name="io.netty"                         level="WARN"/>
+    <logger name="reactor"                          level="WARN"/>
+
+    <!-- ── Performance logger (used by PerformanceLoggingAspect) -->
+    <logger name="PERFORMANCE" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncError"/>
+    </logger>
+
+</included>
+

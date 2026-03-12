@@ -480,6 +480,17 @@
         },
 
         /**
+         * Get form guide for a team
+         * GET /api/teams/{teamName}/form-guide?matches=N
+         */
+        getFormGuide: async (teamName, matches = 10) => {
+            if (!teamName) {
+                throw new ApiError('Team name is required', 400, '/teams/form-guide');
+            }
+            return api.get(`/teams/${encodeURIComponent(teamName)}/form-guide?matches=${matches}`);
+        },
+
+        /**
          * Refresh league standings
          * POST /api/dashboard/league-standings/refresh?leagueId=N
          */

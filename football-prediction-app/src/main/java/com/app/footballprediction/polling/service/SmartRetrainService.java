@@ -3,6 +3,7 @@ package com.app.footballprediction.polling.service;
 import com.app.common.model.SystemSettings;
 import com.app.common.repository.SystemSettingsRepository;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
+import com.app.footballprediction.service.ModelSelfTrainingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,6 +39,7 @@ public class SmartRetrainService {
 
     private final MatchPollingService pollingService;
     private final ModelTrainingService modelTrainingService;
+    private final ModelSelfTrainingService modelSelfTrainingService;
     private final SystemSettingsRepository systemSettingsRepository;
 
     @Value("${retrain.min.new.matches:5}")
@@ -140,7 +142,7 @@ public class SmartRetrainService {
             // Backup current model before retraining
             String modelVersion = backupCurrentModel();
 
-            String report = modelTrainingService.trainAndEvaluate();
+            String report = modelSelfTrainingService.trainWithHistory("SMART_RETRAIN");
 
             long duration = System.currentTimeMillis() - startTime;
             log.info("✅ Model training completed in {}ms", duration);

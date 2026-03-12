@@ -1,7 +1,9 @@
 package com.app.modeltraining.service;
 
+import com.app.common.service.MotivationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,9 @@ import com.app.common.repository.MatchRepository;
 public class FeatureEngineeringService {
 
    private final MatchRepository matchRepository;
+
+   @Autowired(required = false)
+   private MotivationService motivationService;
 
    @Value("${feature.form.window:5}")
    private int formWindow;
@@ -131,6 +136,10 @@ public class FeatureEngineeringService {
             // Phase 5: Possession proxy (estimated from shots + corners)
             .homePossessionProxy(estimatePossession(homeTeamHomeMatches, true))
             .awayPossessionProxy(estimatePossession(awayTeamAwayMatches, false))
+
+            // Phase 9: Motivation levels (based on league position context)
+            .homeMotivationLevel(calcMotivation(homeTeam, beforeDate))
+            .awayMotivationLevel(calcMotivation(awayTeam, beforeDate))
 
             .build();
    }
@@ -353,6 +362,23 @@ public class FeatureEngineeringService {
 
       // Clamp to [0.0, 1.0] range
       return Math.max(0.0, Math.min(1.0, possession));
+   }
+
+   /**
+    * Calculate motivation level for a team at a given date.
+    * Uses MotivationService if available, otherwise returns default.
+    *
+    * @param teamName Team to calculate motivation for
+    * @param asOfDate The date to calculate motivation as of
+    * @return Motivation score (0-10)
+    */
+   private int calcMotivation(String teamName, LocalDate asOfDate) {
+      if (motivationService == null) {
+         log.debug("MotivationService not available, using default motivation");
+         return 5;  // Mid-level default
+      }
+
+      return motivationService.calculateMotivation(teamName, asOfDate);
    }
 }
 

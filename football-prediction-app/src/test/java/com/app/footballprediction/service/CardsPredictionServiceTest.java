@@ -42,6 +42,9 @@ class CardsPredictionServiceTest {
     @Mock
     private RefereeStatsService refereeStatsService;
 
+    @Mock
+    private TeamValidationService teamValidationService;
+
     @InjectMocks
     private CardsPredictionService cardsPredictionService;
 
@@ -54,6 +57,14 @@ class CardsPredictionServiceTest {
     @BeforeEach
     void setUp() {
         sampleMatches = createSampleMatches();
+        lenient().when(teamValidationService.resolveTeamName(any()))
+                .thenAnswer(inv -> {
+                    String name = inv.getArgument(0);
+                    if (name == null || name.isBlank()) {
+                        throw new IllegalArgumentException("Team name cannot be empty");
+                    }
+                    return name;
+                });
     }
 
     // ══════════════════════════════════════════════════════════════════════
@@ -211,8 +222,6 @@ class CardsPredictionServiceTest {
         void getTeamDiscipline_unknownTeam_returnsEmptyStats() {
             // Given
             when(matchRepository.findByTeamBeforeDate(any(), any()))
-                    .thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamBeforeDateIgnoreCase(any(), any()))
                     .thenReturn(Collections.emptyList());
 
             // When

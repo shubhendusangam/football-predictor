@@ -95,6 +95,10 @@ public class TrendingInsightsService {
      * - Streak logic resets at season boundaries
      * - Rankings are per-season
      * - Goal aggregates are per-season
+     *
+     * <p><b>PERFORMANCE:</b> All season matches are fetched once (1 query) and
+     * grouped into a per-team cache. This replaces 80+ individual per-team queries
+     * with a single bulk load.</p>
      */
     @Cacheable(value = "trendingInsights", key = "#season")
     public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
@@ -109,18 +113,30 @@ public class TrendingInsightsService {
 
         LocalDate beforeDate = LocalDate.now().plusDays(1);
 
-        // Get teams that played in the specified season only
-        Set<String> seasonTeams = getTeamsForSeason(season);
+        // ── PERFORMANCE: Fetch ALL season matches once (1 query) ──
+        List<Match> allSeasonMatches = matchRepository.findBySeasonOrderByMatchDateDesc(season);
+
+        // Build per-team match cache (filtered by beforeDate, preserving DESC order)
+        Map<String, List<Match>> teamMatchCache = new HashMap<>();
+        for (Match m : allSeasonMatches) {
+            if (m.getMatchDate().isBefore(beforeDate)) {
+                teamMatchCache.computeIfAbsent(m.getHomeTeam(), k -> new ArrayList<>()).add(m);
+                teamMatchCache.computeIfAbsent(m.getAwayTeam(), k -> new ArrayList<>()).add(m);
+            }
+        }
+
+        // Derive teams from the cache (no separate query needed)
+        Set<String> seasonTeams = new TreeSet<>(teamMatchCache.keySet());
 
         log.debug("Analyzing {} teams for trends in season {}", seasonTeams.size(), season);
 
-        // Calculate all insights using season-filtered data
-        List<HotTeam> hotTeams = calculateHotTeams(seasonTeams, beforeDate, season);
-        List<ColdTeam> coldTeams = calculateColdTeams(seasonTeams, beforeDate, season);
-        List<TopScorer> topScorers = calculateTopScorers(seasonTeams, beforeDate, season);
-        List<DefensiveWall> defensiveWalls = calculateDefensiveWalls(seasonTeams, beforeDate, season);
-        List<UpsetAlert> upsetAlerts = calculateUpsetAlerts(seasonTeams, season);
-        List<GoalFestMatch> goalFestMatches = calculateGoalFestMatches(seasonTeams, season);
+        // Calculate all insights using pre-fetched data (0 additional DB queries)
+        List<HotTeam> hotTeams = calculateHotTeams(seasonTeams, season, teamMatchCache);
+        List<ColdTeam> coldTeams = calculateColdTeams(seasonTeams, season, teamMatchCache);
+        List<TopScorer> topScorers = calculateTopScorers(seasonTeams, season, teamMatchCache);
+        List<DefensiveWall> defensiveWalls = calculateDefensiveWalls(seasonTeams, season, teamMatchCache);
+        List<UpsetAlert> upsetAlerts = calculateUpsetAlerts(seasonTeams, season, teamMatchCache);
+        List<GoalFestMatch> goalFestMatches = calculateGoalFestMatches(seasonTeams, season, teamMatchCache);
 
         log.info("Insights calculated for season {}: {} hot teams, {} cold teams, {} top scorers, {} defensive walls, {} upset alerts, {} goal fest matches",
                 season, hotTeams.size(), coldTeams.size(), topScorers.size(),
@@ -156,23 +172,6 @@ public class TrendingInsightsService {
                 .build();
     }
 
-    /**
-     * Get all teams that played in a specific season.
-     * Only includes teams with completed matches (fullTimeResult IS NOT NULL).
-     */
-    private Set<String> getTeamsForSeason(String season) {
-        List<String> teamNames = matchRepository.findAllDistinctTeamNamesBySeason(season);
-        Set<String> teams = new TreeSet<>(teamNames);
-
-        // Also add away teams
-        List<Match> seasonMatches = matchRepository.findBySeasonOrderByMatchDateDesc(season);
-        for (Match match : seasonMatches) {
-            teams.add(match.getHomeTeam());
-            teams.add(match.getAwayTeam());
-        }
-
-        return teams;
-    }
 
     /**
      * 🔥 Hot Teams: Teams on 3+ match winning streaks OR teams with 4+ wins in last 5 matches.
@@ -182,7 +181,8 @@ public class TrendingInsightsService {
      * <p>All data is filtered to the specified season only - streaks do not carry over
      * from previous seasons.
      */
-    private List<HotTeam> calculateHotTeams(Set<String> teams, LocalDate beforeDate, String season) {
+    private List<HotTeam> calculateHotTeams(Set<String> teams, String season,
+                                              Map<String, List<Match>> teamMatchCache) {
         List<HotTeam> hotTeams = new ArrayList<>();
         Set<String> teamsWithStreak = new HashSet<>();
 
@@ -191,8 +191,8 @@ public class TrendingInsightsService {
 
         // First pass: Find teams with consecutive winning streaks
         for (String team : teams) {
-            // Use season-filtered query - ensures no previous season data leaks
-            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+            // Use pre-fetched cache instead of per-team DB query
+            List<Match> matches = teamMatchCache.getOrDefault(team, Collections.emptyList());
             matchCache.put(team, matches); // Cache for potential second pass
 
             // Minimum match requirement to prevent false positives for new teams
@@ -287,12 +287,13 @@ public class TrendingInsightsService {
      * <p>All data is filtered to the specified season only - streaks do not carry over
      * from previous seasons.
      */
-    private List<ColdTeam> calculateColdTeams(Set<String> teams, LocalDate beforeDate, String season) {
+    private List<ColdTeam> calculateColdTeams(Set<String> teams, String season,
+                                                Map<String, List<Match>> teamMatchCache) {
         List<ColdTeam> coldTeams = new ArrayList<>();
 
         for (String team : teams) {
-            // Use season-filtered query - ensures no previous season data leaks
-            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+            // Use pre-fetched cache instead of per-team DB query
+            List<Match> matches = teamMatchCache.getOrDefault(team, Collections.emptyList());
 
             // Minimum match requirement to prevent false positives for new teams
             if (matches.size() < COLD_STREAK_THRESHOLD) continue;
@@ -353,12 +354,13 @@ public class TrendingInsightsService {
      *
      * <p>All goal aggregates are calculated within the specified season only.
      */
-    private List<TopScorer> calculateTopScorers(Set<String> teams, LocalDate beforeDate, String season) {
+    private List<TopScorer> calculateTopScorers(Set<String> teams, String season,
+                                                  Map<String, List<Match>> teamMatchCache) {
         List<TopScorer> topScorers = new ArrayList<>();
 
         for (String team : teams) {
-            // Use season-filtered query
-            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+            // Use pre-fetched cache instead of per-team DB query
+            List<Match> matches = teamMatchCache.getOrDefault(team, Collections.emptyList());
             if (matches.isEmpty()) continue;
 
             List<Match> recentMatches = matches.stream().limit(RECENT_MATCHES_WINDOW).toList();
@@ -404,12 +406,13 @@ public class TrendingInsightsService {
      *
      * <p>Clean sheet streaks are calculated within the specified season only.
      */
-    private List<DefensiveWall> calculateDefensiveWalls(Set<String> teams, LocalDate beforeDate, String season) {
+    private List<DefensiveWall> calculateDefensiveWalls(Set<String> teams, String season,
+                                                         Map<String, List<Match>> teamMatchCache) {
         List<DefensiveWall> defensiveWalls = new ArrayList<>();
 
         for (String team : teams) {
-            // Use season-filtered query
-            List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+            // Use pre-fetched cache instead of per-team DB query
+            List<Match> matches = teamMatchCache.getOrDefault(team, Collections.emptyList());
             if (matches.isEmpty()) continue;
 
             List<Match> recentMatches = matches.stream().limit(RECENT_MATCHES_WINDOW).toList();
@@ -464,7 +467,8 @@ public class TrendingInsightsService {
      *
      * <p>Analysis is based on teams from the specified season only.
      */
-    private List<UpsetAlert> calculateUpsetAlerts(Set<String> teams, String season) {
+    private List<UpsetAlert> calculateUpsetAlerts(Set<String> teams, String season,
+                                                    Map<String, List<Match>> teamMatchCache) {
         List<UpsetAlert> upsetAlerts = new ArrayList<>();
 
         try {
@@ -474,13 +478,12 @@ public class TrendingInsightsService {
             }
 
             // Get teams that have played in the specified season only
-            LocalDate beforeDate = LocalDate.now().plusDays(1);
             Map<String, Long> teamMatchCounts = new HashMap<>();
             Map<String, Double> teamEloRatings = new HashMap<>();
 
             for (String team : teams) {
-                // Use season-filtered query to get match counts within this season only
-                List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+                // Use pre-fetched cache instead of per-team DB query
+                List<Match> matches = teamMatchCache.getOrDefault(team, Collections.emptyList());
                 long matchCount = matches.size();
                 // Require at least 3 matches in this season to qualify (lowered from 5)
                 if (matchCount >= 3) {
@@ -510,14 +513,24 @@ public class TrendingInsightsService {
             }
 
             // Analyze matchups for upset potential
+            // PERFORMANCE: Pre-filter by Elo difference to avoid expensive feature building
+            // for matchups that can't possibly be upsets
+            int matchupsAnalyzed = 0;
             for (String homeTeam : activeTeams) {
                 for (String awayTeam : activeTeams) {
                     if (homeTeam.equals(awayTeam)) continue;
 
+                    double homeElo = teamEloRatings.getOrDefault(homeTeam, 1500.0);
+                    double awayElo = teamEloRatings.getOrDefault(awayTeam, 1500.0);
+                    double eloDiff = homeElo - awayElo;
+
+                    // Skip matchups with minimal Elo difference (no upset potential)
+                    // unless we haven't found enough alerts yet
+                    if (Math.abs(eloDiff) < ELO_UPSET_THRESHOLD / 2 && upsetAlerts.size() >= TOP_N_RESULTS) {
+                        continue;
+                    }
+
                     try {
-                        double homeElo = teamEloRatings.getOrDefault(homeTeam, 1500.0);
-                        double awayElo = teamEloRatings.getOrDefault(awayTeam, 1500.0);
-                        double eloDiff = homeElo - awayElo;
 
                         // Get ML predictions if model is loaded
                         double[] probs = {0.33, 0.34, 0.33}; // Default
@@ -579,6 +592,7 @@ public class TrendingInsightsService {
                                     .awayTeamFormPoints(features != null ? (int) Math.round(features.getAwayFormPoints() * 5) : 0)
                                     .build());
                         }
+                        matchupsAnalyzed++;
                     } catch (Exception e) {
                         // Skip this matchup - log at debug level to avoid spam
                         log.debug("Skipping matchup {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
@@ -593,7 +607,7 @@ public class TrendingInsightsService {
                 return Double.compare(bMax, aMax);
             });
 
-            log.info("Found {} potential upset alerts for season {}", upsetAlerts.size(), season);
+            log.info("Found {} potential upset alerts for season {} (analyzed {} matchups)", upsetAlerts.size(), season, matchupsAnalyzed);
 
         } catch (Exception e) {
             log.error("Error calculating upset alerts: {}", e.getMessage(), e);
@@ -636,19 +650,18 @@ public class TrendingInsightsService {
      *
      * <p>Goal averages are calculated within the specified season only.
      */
-    private List<GoalFestMatch> calculateGoalFestMatches(Set<String> teams, String season) {
+    private List<GoalFestMatch> calculateGoalFestMatches(Set<String> teams, String season,
+                                                           Map<String, List<Match>> teamMatchCache) {
         List<GoalFestMatch> goalFestMatches = new ArrayList<>();
 
         try {
-            LocalDate beforeDate = LocalDate.now().plusDays(1);
-
             // Get active teams with goal averages from this season only
             Map<String, Double> teamAvgGoals = new HashMap<>();
             Map<String, Double> teamAvgConceded = new HashMap<>();
 
             for (String team : teams) {
-                // Use season-filtered query
-                List<Match> matches = matchRepository.findByTeamAndSeasonBeforeDate(team, season, beforeDate);
+                // Use pre-fetched cache instead of per-team DB query
+                List<Match> matches = teamMatchCache.getOrDefault(team, Collections.emptyList());
                 List<Match> recentMatches = matches.stream().limit(RECENT_MATCHES_WINDOW).toList();
 
                 if (recentMatches.size() >= 5) {

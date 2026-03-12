@@ -8,9 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -19,6 +17,7 @@ import com.app.common.model.MatchFeatures;
 import com.app.common.model.SeasonTeamStats;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.SeasonTeamStatsRepository;
+import com.app.common.util.SeasonHelper;
 
 /**
  * Service for computing match features from historical data.
@@ -47,6 +46,9 @@ public class FeatureEngineeringService {
 
    @Autowired(required = false)
    private LeaguePositionService leaguePositionService;
+
+   @Autowired(required = false)
+   private MotivationService motivationService;
 
    @Autowired(required = false)
    private SeasonTeamStatsRepository seasonTeamStatsRepository;
@@ -95,13 +97,7 @@ public class FeatureEngineeringService {
     * Get all unique team names from the database.
     */
    public Set<String> getAllTeams() {
-      List<Match> allMatches = matchRepository.findAll();
-      Set<String> teams = new TreeSet<>();
-      for (Match match : allMatches) {
-         teams.add(match.getHomeTeam());
-         teams.add(match.getAwayTeam());
-      }
-      return teams;
+      return new TreeSet<>(matchRepository.findAllDistinctTeamNames());
    }
 
    /**
@@ -282,6 +278,10 @@ public class FeatureEngineeringService {
             .homeWeightedForm(calcWeightedFormPoints(homeTeamHomeMatches, homeTeam, formWindow))
             .awayWeightedForm(calcWeightedFormPoints(awayTeamAwayMatches, awayTeam, formWindow))
 
+            // Motivation levels (based on league position context)
+            .homeMotivationLevel(calcMotivation(homeTeam, beforeDate))
+            .awayMotivationLevel(calcMotivation(awayTeam, beforeDate))
+
             .build();
 
       // ── Compute derived interaction features ──────────────────
@@ -308,28 +308,13 @@ public class FeatureEngineeringService {
       return deriveSeason(date);
    }
 
-   /**
-    * Derive season string from a date.
-    * Football season runs Aug-May, so:
-    * - Jan-Jul dates belong to the season that started previous August
-    * - Aug-Dec dates belong to the season starting that August
-    */
-   private String deriveSeason(LocalDate date) {
-      int year = date.getYear();
-      int month = date.getMonthValue();
-
-      int startYear;
-      if (month >= 8) {
-         // Aug-Dec: season started this year
-         startYear = year;
-      } else {
-         // Jan-Jul: season started previous year
-         startYear = year - 1;
-      }
-
-      int endYear = startYear + 1;
-      return String.format("%d-%02d", startYear, endYear % 100);
-   }
+    /**
+     * Derive season string from a date.
+     * Delegates to shared {@link SeasonHelper}.
+     */
+    private String deriveSeason(LocalDate date) {
+       return SeasonHelper.deriveSeason(date);
+    }
 
    // ── Feature calculators ───────────────────────────────────────────────
 
@@ -737,5 +722,24 @@ public class FeatureEngineeringService {
       }
 
       return totalWeight > 0 ? weightedSum / totalWeight : 0.0;
+   }
+
+   // ── Motivation Level ──────────────────────────────────────────────────
+
+   /**
+    * Calculate motivation level for a team at a given date.
+    * Uses MotivationService if available, otherwise returns default.
+    *
+    * @param teamName Team to calculate motivation for
+    * @param asOfDate The date to calculate motivation as of
+    * @return Motivation score (0-10)
+    */
+   private int calcMotivation(String teamName, LocalDate asOfDate) {
+      if (motivationService == null) {
+         log.debug("MotivationService not available, using default motivation");
+         return 5;  // Mid-level default
+      }
+
+      return motivationService.calculateMotivation(teamName, asOfDate);
    }
 }

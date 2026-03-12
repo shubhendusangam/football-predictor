@@ -14,8 +14,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -47,10 +45,7 @@ class ApiDataSyncServiceTest {
     private LeagueStandingService standingService;
 
     @Mock
-    private CacheManager cacheManager;
-
-    @Mock
-    private Cache mockCache;
+    private CacheOrchestrationService cacheOrchestration;
 
     @InjectMocks
     private ApiDataSyncService apiDataSyncService;
@@ -194,9 +189,6 @@ class ApiDataSyncServiceTest {
         doNothing().when(apiService).clearStandingsCache("PL");
         doNothing().when(apiService).clearMatchesCache();
 
-        // Mock cache manager for cache clearing
-        when(cacheManager.getCache(anyString())).thenReturn(mockCache);
-        doNothing().when(mockCache).clear();
 
         // Act & Assert - should not throw
         assertDoesNotThrow(() -> apiDataSyncService.syncAll("PL"));
@@ -224,9 +216,6 @@ class ApiDataSyncServiceTest {
         doNothing().when(apiService).clearStandingsCache("PL");
         doNothing().when(apiService).clearMatchesCache();
 
-        // Mock cache manager
-        when(cacheManager.getCache(anyString())).thenReturn(mockCache);
-        doNothing().when(mockCache).clear();
 
         // Act & Assert - should not throw
         assertDoesNotThrow(() -> apiDataSyncService.smartSync("PL"));
@@ -260,9 +249,6 @@ class ApiDataSyncServiceTest {
         doNothing().when(apiService).clearStandingsCache("PL");
         doNothing().when(apiService).clearMatchesCache();
 
-        // Mock cache manager
-        when(cacheManager.getCache(anyString())).thenReturn(mockCache);
-        doNothing().when(mockCache).clear();
 
         // Act & Assert
         assertDoesNotThrow(() -> apiDataSyncService.smartSync("PL"));

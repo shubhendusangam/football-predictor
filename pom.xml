@@ -34,7 +34,6 @@
         <weka.version>3.8.6</weka.version>
         <opencsv.version>5.12.0</opencsv.version>
         <commons-math3.version>3.6.1</commons-math3.version>
-        <disruptor.version>3.4.4</disruptor.version>
     </properties>
 
     <!-- Dependency Management for all modules -->
@@ -78,10 +77,12 @@
                 <version>${commons-math3.version}</version>
             </dependency>
 
+
+            <!-- Logging: SLF4J + Logback (Spring Boot default) -->
             <dependency>
-                <groupId>com.lmax</groupId>
-                <artifactId>disruptor</artifactId>
-                <version>${disruptor.version}</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-logging</artifactId>
+                <version>4.0.2</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

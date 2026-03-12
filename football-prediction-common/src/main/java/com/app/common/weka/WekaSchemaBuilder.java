@@ -75,12 +75,15 @@ public final class WekaSchemaBuilder {
     // Phase 8 features (Recency-Weighted Form)
     public static final int IDX_HOME_WEIGHTED_FORM = 40;
     public static final int IDX_AWAY_WEIGHTED_FORM = 41;
+    // Phase 9 features (Motivation Level)
+    public static final int IDX_HOME_MOTIVATION    = 42;
+    public static final int IDX_AWAY_MOTIVATION    = 43;
     // Label
-    public static final int IDX_LABEL             = 42;
+    public static final int IDX_LABEL             = 44;
     // Total number of attributes (features + label)
-    public static final int TOTAL_ATTRIBUTES      = 43;
+    public static final int TOTAL_ATTRIBUTES      = 45;
     // Number of input features (excluding label)
-    public static final int FEATURE_COUNT         = 42;
+    public static final int FEATURE_COUNT         = 44;
 
     /**
      * Defines the schema of the Weka dataset.
@@ -147,7 +150,11 @@ public final class WekaSchemaBuilder {
         attrs.add(new Attribute("homeWeightedForm"));      // 40
         attrs.add(new Attribute("awayWeightedForm"));      // 41
 
-        // Nominal label (index 42)
+        // Phase 9 numeric features - Motivation Level (indices 42-43)
+        attrs.add(new Attribute("homeMotivationLevel"));   // 42
+        attrs.add(new Attribute("awayMotivationLevel"));   // 43
+
+        // Nominal label (index 44)
         ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
         attrs.add(new Attribute("result", labels));        // 42
 
@@ -241,6 +248,10 @@ public final class WekaSchemaBuilder {
         // Phase 8 features (Recency-Weighted Form)
         inst.setValue(IDX_HOME_WEIGHTED_FORM, PredictionUtils.safe(f.getHomeWeightedForm()));
         inst.setValue(IDX_AWAY_WEIGHTED_FORM, PredictionUtils.safe(f.getAwayWeightedForm()));
+
+        // Phase 9 features (Motivation Level)
+        inst.setValue(IDX_HOME_MOTIVATION,    PredictionUtils.safe(f.getHomeMotivationLevel()));
+        inst.setValue(IDX_AWAY_MOTIVATION,    PredictionUtils.safe(f.getAwayMotivationLevel()));
 
         // Label only set during training — null at prediction time
         if (f.getActualResult() != null) {

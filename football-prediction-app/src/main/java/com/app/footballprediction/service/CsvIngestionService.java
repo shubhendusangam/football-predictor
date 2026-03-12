@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -44,14 +46,16 @@ public class CsvIngestionService {
    // ── Public API ────────────────────────────────────────────────────────
 
    public void ingestAll() {
-      // Iterate configured CSV paths and ingest each file, logging counts.
+      // Pre-load all existing match keys once (1 query) instead of per-row existence checks
+      Set<String> existingKeys = loadExistingMatchKeys();
+
       String[] paths = csvPaths.split(",");
       int totalLoaded = 0;
 
       for (String path : paths) {
          String trimmed = path.trim();
          log.debug("Ingesting CSV: {}", trimmed);
-         int count = ingestFile(trimmed);
+         int count = ingestFileWithKeys(trimmed, existingKeys);
          log.debug("  → {} new matches loaded from {}", count, trimmed);
          totalLoaded += count;
       }
@@ -69,74 +73,8 @@ public class CsvIngestionService {
     * @return The number of new Match records successfully saved to the database.
     */
    public int ingestFile(String classpathLocation) {
-      long start = System.currentTimeMillis();
-      log.debug("Starting ingestion: {}", classpathLocation);
-
-      // Extract season from filename
-      String season = extractSeasonFromFilename(classpathLocation);
-      if (season != null) {
-         log.debug("Detected season: {}", season);
-      }
-
-      List<Match> toSave = new ArrayList<>();
-      int skippedCount = 0;  // Add this counter
-
-      try (CSVReader reader = new CSVReader(new InputStreamReader(new ClassPathResource(classpathLocation).getInputStream()))) {
-
-         String[] headers = reader.readNext();
-         if (headers == null) {
-            log.warn("Empty file: {}", classpathLocation);
-            return 0;
-         }
-
-         Map<String, Integer> colIndex = buildColumnIndex(headers);
-         validateRequiredColumns(colIndex, classpathLocation);
-
-         String[] row;
-         int lineNum = 1;
-
-         while ((row = reader.readNext()) != null) {
-            lineNum++;
-
-            if (row.length < 8 || row[0].isBlank()) {
-               skippedCount++;  // Increment when skipping
-               continue;
-            }
-
-            try {
-               Match match = parseRow(row, colIndex, season);
-               if (match == null) {
-                  skippedCount++;  // Increment when parseRow returns null
-                  continue;
-               }
-
-               if (matchRepository.existsByMatchDateAndHomeTeamAndAwayTeam(
-                     match.getMatchDate(),
-                     match.getHomeTeam(),
-                     match.getAwayTeam())) {
-                  skippedCount++;  // Increment for duplicates
-                  continue;
-               }
-
-               toSave.add(match);
-
-            } catch (Exception e) {
-               skippedCount++;  // Increment for malformed rows
-               log.warn("Skipping malformed row {} in {}: {}", lineNum, classpathLocation, e.getMessage());
-            }
-         }
-
-      } catch (IOException | CsvValidationException e) {
-         log.error("Failed to read CSV {}: {}", classpathLocation, e.getMessage());
-         return 0;
-      }
-
-      long duration = System.currentTimeMillis() - start;
-      log.debug("Finished ingestion: {} → {} saved, {} skipped, {}ms",
-            classpathLocation, toSave.size(), skippedCount, duration);
-
-      matchRepository.saveAll(toSave);
-      return toSave.size();
+      // Public API: loads keys fresh (for standalone calls)
+      return ingestFileWithKeys(classpathLocation, loadExistingMatchKeys());
    }
 
    /**
@@ -146,13 +84,16 @@ public class CsvIngestionService {
     * @return Number of matches updated with fouls data
     */
    public int updateFoulsData() {
+      // Pre-load all matches into a map for O(1) lookups (1 query instead of N per-row queries)
+      Map<String, Match> matchMap = loadMatchMap();
+
       String[] paths = csvPaths.split(",");
       int totalUpdated = 0;
 
       for (String path : paths) {
          String trimmed = path.trim();
          log.debug("Updating fouls data from CSV: {}", trimmed);
-         int count = updateFoulsFromFile(trimmed);
+         int count = updateFoulsFromFile(trimmed, matchMap);
          log.debug("  → {} matches updated with fouls data from {}", count, trimmed);
          totalUpdated += count;
       }
@@ -175,12 +116,15 @@ public class CsvIngestionService {
     * @return Number of matches enriched with statistics
     */
    public int enrichMissingStats() {
+      // Pre-load all matches into a map for O(1) lookups (1 query instead of N per-row queries)
+      Map<String, Match> matchMap = loadMatchMap();
+
       String[] paths = csvPaths.split(",");
       int totalEnriched = 0;
 
       for (String path : paths) {
          String trimmed = path.trim();
-         int count = enrichStatsFromFile(trimmed);
+         int count = enrichStatsFromFile(trimmed, matchMap);
          if (count > 0) {
             log.debug("  → {} matches enriched with statistics from {}", count, trimmed);
          }
@@ -199,8 +143,9 @@ public class CsvIngestionService {
     * Enriches existing matches from a single CSV with missing statistics.
     * Checks for missing: HS, AS, HST, AST, HC, AC, HY, AY, HR, AR, HF, AF.
     * Only updates matches that exist in DB but lack these stats.
+    * Uses pre-loaded matchMap for O(1) lookups instead of per-row DB queries.
     */
-   private int enrichStatsFromFile(String classpathLocation) {
+   private int enrichStatsFromFile(String classpathLocation, Map<String, Match> matchMap) {
       List<Match> toUpdate = new ArrayList<>();
 
       try (CSVReader reader = new CSVReader(new InputStreamReader(new ClassPathResource(classpathLocation).getInputStream()))) {
@@ -231,7 +176,9 @@ public class CsvIngestionService {
                String awayTeam = getString(row, colIndex, "AwayTeam");
                if (homeTeam == null || awayTeam == null) continue;
 
-               Match existing = matchRepository.findByMatchDateAndHomeTeamAndAwayTeam(date, homeTeam, awayTeam);
+               // Use pre-loaded map for O(1) lookup instead of per-row DB query
+               String key = date + "|" + homeTeam + "|" + awayTeam;
+               Match existing = matchMap.get(key);
                if (existing == null) continue;
 
                // Check if any stats are missing on the existing match
@@ -305,8 +252,9 @@ public class CsvIngestionService {
 
    /**
     * Update fouls data for matches from a single CSV file.
+    * Uses pre-loaded matchMap for O(1) lookups instead of per-row DB queries.
     */
-   private int updateFoulsFromFile(String classpathLocation) {
+   private int updateFoulsFromFile(String classpathLocation, Map<String, Match> matchMap) {
       log.debug("Updating fouls data from: {}", classpathLocation);
 
       List<Match> toUpdate = new ArrayList<>();
@@ -351,8 +299,9 @@ public class CsvIngestionService {
                // Skip if no fouls data in CSV
                if (homeFouls == null && awayFouls == null) continue;
 
-               // Find existing match
-               Match existing = matchRepository.findByMatchDateAndHomeTeamAndAwayTeam(date, homeTeam, awayTeam);
+               // Use pre-loaded map for O(1) lookup instead of per-row DB query
+               String key = date + "|" + homeTeam + "|" + awayTeam;
+               Match existing = matchMap.get(key);
                if (existing == null) continue;
 
                // Update only if fouls data is missing
@@ -382,6 +331,110 @@ public class CsvIngestionService {
 
 
    // ── Private helpers ───────────────────────────────────────────────────
+
+   /**
+    * Pre-load all existing match keys for O(1) duplicate detection.
+    * Uses a lightweight projection (3 columns) instead of loading full entities.
+    */
+   private Set<String> loadExistingMatchKeys() {
+      List<Object[]> projections = matchRepository.findAllMatchKeyProjections();
+      Set<String> keys = new HashSet<>(projections.size());
+      for (Object[] r : projections) {
+         keys.add(r[0] + "|" + r[1] + "|" + r[2]);
+      }
+      log.debug("Pre-loaded {} existing match keys for dedup", keys.size());
+      return keys;
+   }
+
+   /**
+    * Pre-load all matches into a map keyed by "date|homeTeam|awayTeam" for O(1) lookups.
+    * Used by updateFoulsData() and enrichMissingStats() to avoid per-row DB queries.
+    */
+   private Map<String, Match> loadMatchMap() {
+      List<Match> allMatches = matchRepository.findAll();
+      Map<String, Match> map = new HashMap<>(allMatches.size());
+      for (Match m : allMatches) {
+         String key = m.getMatchDate() + "|" + m.getHomeTeam() + "|" + m.getAwayTeam();
+         map.put(key, m);
+      }
+      log.debug("Pre-loaded {} matches into lookup map", map.size());
+      return map;
+   }
+
+   /**
+    * Internal ingestion method that uses a pre-loaded key set for O(1) duplicate detection.
+    * Newly added matches are also added to the key set for cross-file dedup.
+    */
+   private int ingestFileWithKeys(String classpathLocation, Set<String> existingKeys) {
+      long start = System.currentTimeMillis();
+      log.debug("Starting ingestion: {}", classpathLocation);
+
+      // Extract season from filename
+      String season = extractSeasonFromFilename(classpathLocation);
+      if (season != null) {
+         log.debug("Detected season: {}", season);
+      }
+
+      List<Match> toSave = new ArrayList<>();
+      int skippedCount = 0;
+
+      try (CSVReader reader = new CSVReader(new InputStreamReader(new ClassPathResource(classpathLocation).getInputStream()))) {
+
+         String[] headers = reader.readNext();
+         if (headers == null) {
+            log.warn("Empty file: {}", classpathLocation);
+            return 0;
+         }
+
+         Map<String, Integer> colIndex = buildColumnIndex(headers);
+         validateRequiredColumns(colIndex, classpathLocation);
+
+         String[] row;
+         int lineNum = 1;
+
+         while ((row = reader.readNext()) != null) {
+            lineNum++;
+
+            if (row.length < 8 || row[0].isBlank()) {
+               skippedCount++;
+               continue;
+            }
+
+            try {
+               Match match = parseRow(row, colIndex, season);
+               if (match == null) {
+                  skippedCount++;
+                  continue;
+               }
+
+               // O(1) in-memory duplicate check instead of per-row DB query
+               String key = match.getMatchDate() + "|" + match.getHomeTeam() + "|" + match.getAwayTeam();
+               if (existingKeys.contains(key)) {
+                  skippedCount++;
+                  continue;
+               }
+
+               toSave.add(match);
+               existingKeys.add(key); // Track newly added matches for cross-file dedup
+
+            } catch (Exception e) {
+               skippedCount++;
+               log.warn("Skipping malformed row {} in {}: {}", lineNum, classpathLocation, e.getMessage());
+            }
+         }
+
+      } catch (IOException | CsvValidationException e) {
+         log.error("Failed to read CSV {}: {}", classpathLocation, e.getMessage());
+         return 0;
+      }
+
+      long duration = System.currentTimeMillis() - start;
+      log.debug("Finished ingestion: {} → {} saved, {} skipped, {}ms",
+            classpathLocation, toSave.size(), skippedCount, duration);
+
+      matchRepository.saveAll(toSave);
+      return toSave.size();
+   }
 
    private Map<String, Integer> buildColumnIndex(String[] headers) {
       // Build a mapping of header name -> column index for quick lookup while parsing rows.

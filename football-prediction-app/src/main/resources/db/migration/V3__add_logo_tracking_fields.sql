@@ -16,4 +16,3 @@ ALTER TABLE system_settings ADD COLUMN IF NOT EXISTS logo_seeding_timestamp TIME
 
 -- Create index for efficient season-based logo queries
 CREATE INDEX IF NOT EXISTS idx_teams_logo_season ON teams(logo_seeded_season);
-

@@ -38,6 +38,9 @@ class CornerStatsServiceTest {
     @Mock
     private MatchRepository matchRepository;
 
+    @Mock
+    private TeamValidationService teamValidationService;
+
     @InjectMocks
     private CornerStatsService cornerStatsService;
 
@@ -49,6 +52,14 @@ class CornerStatsServiceTest {
     @BeforeEach
     void setUp() {
         sampleMatches = createSampleMatches();
+        lenient().when(teamValidationService.resolveTeamName(any()))
+                .thenAnswer(inv -> {
+                    String name = inv.getArgument(0);
+                    if (name == null || name.isBlank()) {
+                        throw new IllegalArgumentException("Team name cannot be empty");
+                    }
+                    return name;
+                });
     }
 
     /**
@@ -147,8 +158,6 @@ class CornerStatsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findByTeamAndSeasonBeforeDate(any(), eq(TEST_SEASON), any()))
-                    .thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamAndSeasonBeforeDateIgnoreCase(any(), eq(TEST_SEASON), any()))
                     .thenReturn(Collections.emptyList());
 
             // When/Then
@@ -347,13 +356,9 @@ class CornerStatsServiceTest {
         @Test
         @DisplayName("should handle case-insensitive team name matching")
         void calculateCornerStats_caseInsensitive_matchesCorrectly() {
-            // Given - lowercase "arsenal" not found, but case-insensitive finds it
+            // Given - TeamValidationService resolves lowercase to proper case
+            when(teamValidationService.resolveTeamName("arsenal")).thenReturn(TEAM_NAME);
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("arsenal"), eq(TEST_SEASON), any()))
-                    .thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamAndSeasonBeforeDateIgnoreCase(eq("arsenal"), eq(TEST_SEASON), any()))
-                    .thenReturn(sampleMatches);
-            // After resolving to "Arsenal", the service fetches matches with proper casing
             when(matchRepository.findByTeamAndSeasonBeforeDate(eq(TEAM_NAME), eq(TEST_SEASON), any()))
                     .thenReturn(sampleMatches);
 

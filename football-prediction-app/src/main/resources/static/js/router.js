@@ -91,6 +91,18 @@ class Router {
             description: 'System administration and configuration',
             render: () => this.renderAdmin()
         });
+
+        this.routes.set('#referees', {
+            title: 'Referees',
+            description: 'Referee statistics, tendencies, and match impact analysis',
+            render: () => this.renderReferees()
+        });
+
+        this.routes.set('#goals-trends', {
+            title: 'Goals Trends',
+            description: 'League-wide goal-scoring patterns across seasons',
+            render: () => this.renderGoalsTrends()
+        });
     }
 
     /**
@@ -440,6 +452,11 @@ class Router {
             </div>
 
             <!-- Pre-Match Insights Section -->
+            <div class="form-comparison-section" style="margin-top: 2rem;">
+                <div id="formComparisonContainer"></div>
+            </div>
+
+            <!-- Pre-Match Insights Detail Section -->
             <div class="pre-match-insights" id="preMatchInsightsSection">
                 <div class="pre-match-insights-container">
                     <div class="pre-match-insights-header">
@@ -543,6 +560,11 @@ class Router {
 
         // Load Pre-Match Insights asynchronously (homeTeam/awayTeam are already normalized from caller)
         this.loadPreMatchInsights(homeTeam, awayTeam);
+
+        // Load Form Comparison Widget asynchronously
+        if (window.FormComparisonWidget) {
+            window.FormComparisonWidget.render('formComparisonContainer', homeTeam, awayTeam, 10);
+        }
 
         // Load Corner Prediction asynchronously
         this.loadCornerPrediction(homeTeam, awayTeam);
@@ -2746,6 +2768,7 @@ class Router {
                         break;
                     case 'form':
                         content.innerHTML = this.renderFormTab(formStats);
+                        this.loadFormGuideWidget(content, teamName);
                         break;
                     case 'matches':
                         content.innerHTML = this.renderMatchesTab(recentMatches);
@@ -3667,6 +3690,23 @@ class Router {
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Load the visual Form Guide Widget into the form tab.
+     * Appends it above the existing form stats content.
+     */
+    loadFormGuideWidget(content, teamName) {
+        if (!window.FormGuideWidget) {
+            console.warn('[Router] FormGuideWidget not loaded');
+            return;
+        }
+        // Create a container and prepend it
+        const widgetDiv = document.createElement('div');
+        widgetDiv.id = 'formGuideWidgetContainer';
+        widgetDiv.style.marginBottom = '1.5rem';
+        content.prepend(widgetDiv);
+        window.FormGuideWidget.render(widgetDiv, teamName, 10);
     }
 
     /**
@@ -5620,6 +5660,63 @@ class Router {
                 <div class="admin-error">
                     <div class="admin-error-icon">⚠️</div>
                     <p class="admin-error-message">Admin module not loaded</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Render the Referees page with comprehensive referee statistics
+     */
+    renderReferees() {
+        this.mainContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="page-title">🏁 Referees</h2>
+                <p class="page-description">Referee statistics, tendencies, and match impact analysis</p>
+            </div>
+            <div id="refereesPageContent">
+                <div style="text-align: center; padding: 3rem;">
+                    <div class="referees-page__spinner"></div>
+                    <p style="color: var(--text-muted);">Loading referee data...</p>
+                </div>
+            </div>
+        `;
+
+        const container = document.getElementById('refereesPageContent');
+        if (window.RefereesPage && typeof window.RefereesPage.init === 'function') {
+            window.RefereesPage.init(container);
+        } else {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🏁</div>
+                    <h3 style="color: var(--text-primary);">Referees Module Not Loaded</h3>
+                    <p style="color: var(--text-muted);">The referee statistics module is not available.</p>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Render Goals Trends view
+     */
+    renderGoalsTrends() {
+        this.mainContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="page-title">⚽ Goals Trends</h2>
+                <p class="page-description">League-wide goal-scoring patterns across seasons</p>
+            </div>
+            <div id="goalsTrendsPageContent"></div>
+        `;
+
+        const container = document.getElementById('goalsTrendsPageContent');
+        if (window.GoalsTrendsChart && typeof window.GoalsTrendsChart.render === 'function') {
+            window.GoalsTrendsChart.render(container);
+        } else {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 3rem;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">⚽</div>
+                    <h3 style="color: var(--text-primary);">Goals Trends Module Not Loaded</h3>
+                    <p style="color: var(--text-muted);">The goals trends analysis module is not available.</p>
                 </div>
             `;
         }

@@ -163,6 +163,23 @@ public class MatchFeatures {
    @Builder.Default
    private double awayWeightedForm = 0.0;
 
+   // ── Phase 9 features (Motivation Level) ────────────────────
+   /**
+    * Home team's motivation level (0-10).
+    * Based on league position, title/relegation fight, European qualification chances.
+    * 10 = Title fight or survival fight, 1 = Mathematically relegated
+    */
+   @Builder.Default
+   private int homeMotivationLevel = 5;
+
+   /**
+    * Away team's motivation level (0-10).
+    * Based on league position, title/relegation fight, European qualification chances.
+    * 10 = Title fight or survival fight, 1 = Mathematically relegated
+    */
+   @Builder.Default
+   private int awayMotivationLevel = 5;
+
    // ── Label (training only) ──────────────────────────────
    private String actualResult;        // "H", "D", "A" — null at prediction time
 }

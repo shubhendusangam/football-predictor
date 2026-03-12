@@ -1,47 +1,24 @@
 package com.app.footballprediction.config;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
-
-import java.io.IOException;
+import com.app.common.logging.MdcLoggingFilter;
 
 /**
- * Logs every incoming HTTP request and outgoing response.
- * Runs as a Servlet filter — fires before and after every controller call.
+ * Request logging is now handled by the centralized
+ * {@link MdcLoggingFilter} registered via
+ * {@link com.app.common.logging.LoggingAutoConfiguration}.
+ * <p>
+ * The centralized filter provides:
+ * <ul>
+ *   <li>MDC population (requestId, clientIp, httpMethod, requestUri)</li>
+ *   <li>Request/response logging with timing</li>
+ *   <li>X-Request-ID header propagation</li>
+ * </ul>
+ *
+ * @deprecated Replaced by {@link MdcLoggingFilter} in football-prediction-common.
+ *             This class is kept only as a reference and can be safely deleted.
  */
-@Component
-@Slf4j
-public class RequestLoggingFilter implements Filter {
-
-   @Override
-   public void doFilter(ServletRequest request,
-                        ServletResponse response,
-                        FilterChain chain)
-         throws IOException, ServletException {
-
-      HttpServletRequest  httpReq  = (HttpServletRequest)  request;
-      HttpServletResponse httpResp = (HttpServletResponse) response;
-
-      long startTime = System.currentTimeMillis();
-
-      // Log incoming request
-      log.info("→ {} {} [from: {}]",
-            httpReq.getMethod(),
-            httpReq.getRequestURI(),
-            httpReq.getRemoteAddr());
-
-      // Pass through to controller
-      chain.doFilter(request, response);
-
-      // Log outgoing response with timing
-      long duration = System.currentTimeMillis() - startTime;
-      log.info("← {} {} → {} ({}ms)",
-            httpReq.getMethod(),
-            httpReq.getRequestURI(),
-            httpResp.getStatus(),
-            duration);
-   }
+@Deprecated(since = "1.0.0", forRemoval = true)
+public class RequestLoggingFilter {
+    // Replaced by com.app.common.logging.MdcLoggingFilter
+    // See LoggingAutoConfiguration for registration
 }

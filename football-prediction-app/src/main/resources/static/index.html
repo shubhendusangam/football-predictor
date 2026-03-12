@@ -29,6 +29,9 @@
     <link rel="stylesheet" href="css/kickoff-time-card.css?v=1">
     <link rel="stylesheet" href="css/fixture-congestion-card.css?v=1">
     <link rel="stylesheet" href="css/relegation-battle.css?v=1">
+    <link rel="stylesheet" href="css/referee-stats.css?v=1">
+    <link rel="stylesheet" href="css/goals-trends.css?v=1">
+    <link rel="stylesheet" href="css/form-guide.css?v=1">
 
     <!-- Preload critical resources -->
     <link rel="preload" href="js/ui-utils.js?v=3" as="script">
@@ -50,6 +53,7 @@
                 <li><a href="#predictions" class="nav-link">Predictions</a></li>
                 <li><a href="#historical" class="nav-link">Historical</a></li>
                 <li><a href="#insights" class="nav-link">Insights</a></li>
+                <li><a href="#referees" class="nav-link">Referees</a></li>
                 <li><a href="#admin" class="nav-link nav-link-admin" id="adminNavLink">🔐 Admin</a></li>
             </ul>
             <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
@@ -78,6 +82,10 @@
                     <span class="sidebar-icon">💡</span>
                     <span class="sidebar-label">Insights</span>
                 </a>
+                <a href="#referees" class="sidebar-link">
+                    <span class="sidebar-icon">🏁</span>
+                    <span class="sidebar-label">Referees</span>
+                </a>
                 <a href="#teams" class="sidebar-link">
                     <span class="sidebar-icon">🏆</span>
                     <span class="sidebar-label">Teams</span>
@@ -85,6 +93,10 @@
                 <a href="#matches" class="sidebar-link">
                     <span class="sidebar-icon">⚽</span>
                     <span class="sidebar-label">Matches</span>
+                </a>
+                <a href="#goals-trends" class="sidebar-link">
+                    <span class="sidebar-icon">📈</span>
+                    <span class="sidebar-label">Goals Trends</span>
                 </a>
                 <a href="#admin" class="sidebar-link sidebar-link-admin" id="adminSidebarLink">
                     <span class="sidebar-icon">🔐</span>
@@ -158,6 +170,9 @@
     <script src="js/kickoff-time-card.js?v=1"></script>
     <script src="js/fixture-congestion-card.js?v=1"></script>
     <script src="js/half-comparison-widget.js?v=1"></script>
+    <script src="js/goals-trends-chart.js?v=1"></script>
+    <script src="js/form-guide-widget.js?v=1"></script>
+    <script src="js/form-comparison-widget.js?v=1"></script>
     <script src="js/layout.js?v=3"></script>
     <script src="js/router.js?v=3"></script>
     <script src="js/upcoming-matches.js?v=3"></script>
@@ -168,6 +183,7 @@
     <script src="js/league-standings.js?v=1"></script>
     <script src="js/admin.js?v=1"></script>
     <script src="js/system-status.js?v=1"></script>
+    <script src="js/referee-stats-page.js?v=1"></script>
 </body>
 </html>
 

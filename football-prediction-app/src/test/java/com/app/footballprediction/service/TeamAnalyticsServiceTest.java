@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 /**
@@ -46,12 +47,27 @@ class TeamAnalyticsServiceTest {
     @Mock
     private TeamStatsService teamStatsService;
 
+    @Mock
+    private TeamValidationService teamValidationService;
+
     @InjectMocks
     private TeamAnalyticsService teamAnalyticsService;
 
     private static final String TEAM_NAME = "Arsenal";
     private static final String OPPONENT = "Chelsea";
     private static final LocalDate TODAY = LocalDate.now();
+
+    @BeforeEach
+    void setUpTeamValidation() {
+        lenient().when(teamValidationService.resolveTeamName(any()))
+                .thenAnswer(inv -> {
+                    String name = inv.getArgument(0);
+                    if (name == null || name.isBlank()) {
+                        throw new IllegalArgumentException("Team name cannot be empty");
+                    }
+                    return name;
+                });
+    }
 
     @Nested
     @DisplayName("getTeamAnalytics()")
@@ -103,12 +119,8 @@ class TeamAnalyticsServiceTest {
         @Test
         @DisplayName("Should throw exception for unknown team")
         void shouldThrowExceptionForUnknownTeam() {
-            when(matchRepository.findByTeamBeforeDate(anyString(), any(LocalDate.class)))
-                    .thenReturn(List.of());
-            when(matchRepository.findByTeamBeforeDateIgnoreCase(anyString(), any(LocalDate.class)))
-                    .thenReturn(List.of());
-            when(matchRepository.findTeamNamesContaining(anyString()))
-                    .thenReturn(List.of());
+            when(teamValidationService.resolveTeamName("UnknownTeam"))
+                    .thenThrow(new IllegalArgumentException("Team not found: 'UnknownTeam'"));
 
             assertThatThrownBy(() -> teamAnalyticsService.getTeamAnalytics("UnknownTeam"))
                     .isInstanceOf(IllegalArgumentException.class)

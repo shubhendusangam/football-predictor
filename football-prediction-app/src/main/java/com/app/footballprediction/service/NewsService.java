@@ -35,7 +35,7 @@ public class NewsService {
     );
 
     // Simple cache to minimize requests
-    private final Map<String, CacheEntry> cache = new HashMap<>();
+    private final Map<String, CacheEntry> cache = new java.util.concurrent.ConcurrentHashMap<>();
     private static final long CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
     /**
@@ -159,54 +159,58 @@ public class NewsService {
         conn.setConnectTimeout(10000);
         conn.setReadTimeout(10000);
 
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
-        factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc = builder.parse(conn.getInputStream());
+        try (InputStream inputStream = conn.getInputStream()) {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
+            factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            Document doc = builder.parse(inputStream);
 
-        // Parse items
-        NodeList items = doc.getElementsByTagName("item");
-        int maxItems = Math.min(items.getLength(), 10);
+            // Parse items
+            NodeList items = doc.getElementsByTagName("item");
+            int maxItems = Math.min(items.getLength(), 10);
 
-        for (int i = 0; i < maxItems; i++) {
-            Element item = (Element) items.item(i);
+            for (int i = 0; i < maxItems; i++) {
+                Element item = (Element) items.item(i);
 
-            NewsResponse.Article article = new NewsResponse.Article();
+                NewsResponse.Article article = new NewsResponse.Article();
 
-            // Source
-            NewsResponse.Source source = new NewsResponse.Source();
-            source.setName(getSourceDisplayName(sourceName));
-            article.setSource(source);
+                // Source
+                NewsResponse.Source source = new NewsResponse.Source();
+                source.setName(getSourceDisplayName(sourceName));
+                article.setSource(source);
 
-            // Title
-            article.setTitle(getElementText(item, "title"));
+                // Title
+                article.setTitle(getElementText(item, "title"));
 
-            // Description
-            String desc = getElementText(item, "description");
-            if (desc != null) {
-                // Strip HTML tags
-                desc = desc.replaceAll("<[^>]*>", "").trim();
-                if (desc.length() > 200) {
-                    desc = desc.substring(0, 200) + "...";
+                // Description
+                String desc = getElementText(item, "description");
+                if (desc != null) {
+                    // Strip HTML tags
+                    desc = desc.replaceAll("<[^>]*>", "").trim();
+                    if (desc.length() > 200) {
+                        desc = desc.substring(0, 200) + "...";
+                    }
                 }
+                article.setDescription(desc);
+
+                // URL
+                article.setUrl(getElementText(item, "link"));
+
+                // Published date
+                String pubDate = getElementText(item, "pubDate");
+                if (pubDate != null) {
+                    article.setPublishedAt(pubDate);
+                }
+
+                // Try to get image from media:thumbnail or enclosure
+                String imageUrl = getImageFromItem(item);
+                article.setUrlToImage(imageUrl);
+
+                articles.add(article);
             }
-            article.setDescription(desc);
-
-            // URL
-            article.setUrl(getElementText(item, "link"));
-
-            // Published date
-            String pubDate = getElementText(item, "pubDate");
-            if (pubDate != null) {
-                article.setPublishedAt(pubDate);
-            }
-
-            // Try to get image from media:thumbnail or enclosure
-            String imageUrl = getImageFromItem(item);
-            article.setUrlToImage(imageUrl);
-
-            articles.add(article);
+        } finally {
+            conn.disconnect();
         }
 
         return articles;

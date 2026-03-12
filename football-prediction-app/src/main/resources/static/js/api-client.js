@@ -210,6 +210,15 @@ class APIClient {
     }
 
     /**
+     * Get league-wide goals trends across multiple seasons
+     * @param {string[]} seasons - Array of season identifiers (e.g., ["2020-21", "2021-22"])
+     */
+    async getGoalsTrends(seasons = []) {
+        const params = seasons.length > 0 ? `?seasons=${encodeURIComponent(seasons.join(','))}` : '';
+        return this.fetch(`/league/goals-trends${params}`);
+    }
+
+    /**
      * Get statistics for a specific season
      * @param {string} season Season identifier (e.g., "2023-24")
      * @param {object} params Query parameters (page, pageSize, sortBy, sortDir, team)

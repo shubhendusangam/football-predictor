@@ -2,8 +2,10 @@ package com.app.footballprediction.listener;
 
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
+import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.footballprediction.service.ApiDataSyncService;
 import com.app.footballprediction.service.CsvIngestionService;
+import com.app.footballprediction.service.MatchCompletionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +35,8 @@ public class StartupDataSyncListener {
     private final MatchRepository matchRepository;
     private final ApiDataSyncService apiDataSyncService;
     private final CsvIngestionService csvIngestionService;
+    private final MatchCompletionService matchCompletionService;
+    private final SeasonTeamStatsRepository seasonTeamStatsRepository;
 
     @Value("${startup.sync.enabled:true}")
     private boolean startupSyncEnabled;
@@ -73,6 +77,9 @@ public class StartupDataSyncListener {
             } else {
                 log.info("✅ Data is fresh. No sync needed.");
             }
+
+            // Process season stats for any unprocessed matches (from API sync)
+            processUncomputedSeasonStats();
 
             logCompletionBanner();
 
@@ -211,6 +218,58 @@ public class StartupDataSyncListener {
             log.error("❌ Startup sync FAILED after {}ms: {}", duration, e.getMessage(), e);
             log.warn("⚠️ Application will continue with stale data");
             log.info("💡 Try manual sync: POST /api/admin/sync/all?competition={}", competition);
+        }
+    }
+
+    /**
+     * Process season stats for completed matches that haven't been processed yet.
+     * <p>
+     * Matches inserted via API polling lack season team stats (Elo, form, streaks).
+     * This finds affected seasons and recalculates stats for them.
+     * Uses incremental processing: only recalculates seasons that have unprocessed matches.
+     */
+    private void processUncomputedSeasonStats() {
+        try {
+            // Find completed matches that haven't had their stats processed
+            List<Match> unprocessed = matchRepository.findAllByOrderByMatchDateAsc().stream()
+                    .filter(m -> m.getFullTimeResult() != null)
+                    .filter(m -> !Boolean.TRUE.equals(m.getStatsProcessed()))
+                    .toList();
+
+            if (unprocessed.isEmpty()) {
+                log.debug("All completed matches already have season stats computed.");
+                return;
+            }
+
+            // Get distinct seasons affected
+            List<String> affectedSeasons = unprocessed.stream()
+                    .map(Match::getSeason)
+                    .distinct()
+                    .sorted()
+                    .toList();
+
+            log.info("📊 Computing season stats for {} unprocessed matches across {} seasons...",
+                    unprocessed.size(), affectedSeasons.size());
+            long start = System.currentTimeMillis();
+
+            int processed = 0;
+            for (String season : affectedSeasons) {
+                try {
+                    matchCompletionService.recalculateSeasonStats(season);
+                    processed++;
+                    log.debug("   Processed season: {}", season);
+                } catch (Exception e) {
+                    log.error("Failed to compute stats for season {}: {}", season, e.getMessage());
+                }
+            }
+
+            long duration = System.currentTimeMillis() - start;
+            long totalStats = seasonTeamStatsRepository.count();
+            log.info("✅ Season stats updated: {} records across {} seasons in {}ms",
+                    totalStats, processed, duration);
+
+        } catch (Exception e) {
+            log.warn("⚠️ Season stats computation failed (non-fatal): {}", e.getMessage());
         }
     }
 

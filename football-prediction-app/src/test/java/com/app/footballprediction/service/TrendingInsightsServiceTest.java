@@ -17,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,6 +27,10 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for TrendingInsightsService.
+ *
+ * <p>After performance optimization, all season matches are bulk-loaded via
+ * {@code findBySeasonOrderByMatchDateDesc} and grouped into a per-team cache.
+ * Tests now provide match data through this single mock instead of per-team mocks.</p>
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("TrendingInsightsService Unit Tests")
@@ -45,11 +51,8 @@ class TrendingInsightsServiceTest {
     @InjectMocks
     private TrendingInsightsService trendingInsightsService;
 
-    private Set<String> sampleTeams;
-
     @BeforeEach
     void setUp() {
-        sampleTeams = new TreeSet<>(Set.of("Arsenal", "Chelsea", "Liverpool", "Man City", "Tottenham"));
     }
 
     private static final String TEST_SEASON = "2024-25";
@@ -87,6 +90,17 @@ class TrendingInsightsServiceTest {
         return matches;
     }
 
+    /**
+     * Helper: combine multiple match lists into a single list sorted by matchDate DESC
+     * (matching the behavior of findBySeasonOrderByMatchDateDesc).
+     */
+    private List<Match> combineAndSortDesc(List<Match>... matchLists) {
+        return Stream.of(matchLists)
+                .flatMap(Collection::stream)
+                .sorted(Comparator.comparing(Match::getMatchDate).reversed())
+                .collect(Collectors.toList());
+    }
+
     @Nested
     @DisplayName("getTrendingInsights()")
     class GetTrendingInsightsTests {
@@ -94,12 +108,10 @@ class TrendingInsightsServiceTest {
         @Test
         @DisplayName("should return response with all insight categories")
         void getTrendingInsights_returnsAllCategories() {
-            // Given - mock season availability
+            // Given - mock season availability, no matches (empty season)
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(new ArrayList<>(sampleTeams));
             when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamAndSeasonBeforeDate(any(), eq(TEST_SEASON), any())).thenReturn(Collections.emptyList());
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -128,11 +140,9 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("Arsenal"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> arsenalMatches = createWinningStreak("Arsenal", 5);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Arsenal"), eq(TEST_SEASON), any())).thenReturn(arsenalMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(arsenalMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -150,11 +160,9 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("Chelsea"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> chelseaMatches = createWinningStreak("Chelsea", 2);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Chelsea"), eq(TEST_SEASON), any())).thenReturn(chelseaMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(chelseaMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -175,11 +183,9 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("Tottenham"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> tottenhamMatches = createLosingStreak("Tottenham", 6);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Tottenham"), eq(TEST_SEASON), any())).thenReturn(tottenhamMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(tottenhamMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -197,11 +203,9 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("Liverpool"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> liverpoolMatches = createWinningStreak("Liverpool", 3);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Liverpool"), eq(TEST_SEASON), any())).thenReturn(liverpoolMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(liverpoolMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -222,8 +226,6 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("Man City", "Arsenal"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> manCityMatches = Arrays.asList(
                     createMatch("Man City", "Chelsea", 5, 0, "H", LocalDate.now().minusDays(7)),
@@ -234,8 +236,8 @@ class TrendingInsightsServiceTest {
                     createMatch("Arsenal", "West Ham", 1, 0, "H", LocalDate.now().minusDays(14))
             );
 
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Man City"), eq(TEST_SEASON), any())).thenReturn(manCityMatches);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Arsenal"), eq(TEST_SEASON), any())).thenReturn(arsenalMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON))
+                    .thenReturn(combineAndSortDesc(manCityMatches, arsenalMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -258,8 +260,6 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("Chelsea"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> chelseaMatches = Arrays.asList(
                     createMatch("Chelsea", "Arsenal", 1, 0, "H", LocalDate.now().minusDays(7)),
@@ -267,7 +267,7 @@ class TrendingInsightsServiceTest {
                     createMatch("Chelsea", "Man City", 0, 0, "D", LocalDate.now().minusDays(21))
             );
 
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("Chelsea"), eq(TEST_SEASON), any())).thenReturn(chelseaMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(chelseaMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -275,8 +275,13 @@ class TrendingInsightsServiceTest {
 
             // Then
             assertThat(response.getDefensiveWalls()).isNotEmpty();
-            assertThat(response.getDefensiveWalls().get(0).getTeamName()).isEqualTo("Chelsea");
-            assertThat(response.getDefensiveWalls().get(0).getCleanSheets()).isEqualTo(3);
+            // Chelsea appears as both home and away team in match cache
+            // Find Chelsea's entry
+            var chelseaWall = response.getDefensiveWalls().stream()
+                    .filter(w -> w.getTeamName().equals("Chelsea"))
+                    .findFirst();
+            assertThat(chelseaWall).isPresent();
+            assertThat(chelseaWall.get().getCleanSheets()).isEqualTo(3);
         }
     }
 
@@ -290,9 +295,7 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(new ArrayList<>(sampleTeams));
             when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamAndSeasonBeforeDate(any(), eq(TEST_SEASON), any())).thenReturn(Collections.emptyList());
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -313,15 +316,13 @@ class TrendingInsightsServiceTest {
             // Given - team with only 3 matches (less than HOT_FORM_WINDOW)
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("NewTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> newTeamMatches = Arrays.asList(
                     createMatch("NewTeam", "Opponent1", 3, 0, "H", LocalDate.now().minusDays(7)),
                     createMatch("NewTeam", "Opponent2", 2, 0, "H", LocalDate.now().minusDays(14)),
                     createMatch("NewTeam", "Opponent3", 1, 0, "H", LocalDate.now().minusDays(21))
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("NewTeam"), eq(TEST_SEASON), any())).thenReturn(newTeamMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(newTeamMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -337,8 +338,6 @@ class TrendingInsightsServiceTest {
             // Given - team with only 4 matches (less than COLD_STREAK_THRESHOLD)
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("NewTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> newTeamMatches = Arrays.asList(
                     createMatch("NewTeam", "Opponent1", 0, 2, "A", LocalDate.now().minusDays(7)),
@@ -346,7 +345,7 @@ class TrendingInsightsServiceTest {
                     createMatch("NewTeam", "Opponent3", 0, 3, "A", LocalDate.now().minusDays(21)),
                     createMatch("NewTeam", "Opponent4", 0, 2, "A", LocalDate.now().minusDays(28))
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("NewTeam"), eq(TEST_SEASON), any())).thenReturn(newTeamMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(newTeamMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -362,8 +361,6 @@ class TrendingInsightsServiceTest {
             // Given - team with 3 draws and 3 losses (6 matches without win)
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("StrugglingTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     createMatch("StrugglingTeam", "Opponent1", 1, 1, "D", LocalDate.now().minusDays(7)),
@@ -375,7 +372,7 @@ class TrendingInsightsServiceTest {
                     // 7th match is a win - should not be counted
                     createMatch("StrugglingTeam", "Opponent7", 2, 0, "H", LocalDate.now().minusDays(49))
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("StrugglingTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -395,8 +392,6 @@ class TrendingInsightsServiceTest {
             // Given - match with null goals
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("TestTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             Match matchWithNulls = Match.builder()
                     .homeTeam("TestTeam")
@@ -413,7 +408,7 @@ class TrendingInsightsServiceTest {
             for (int i = 0; i < 5; i++) {
                 matches.add(createMatch("TestTeam", "Opp" + i, 2, 1, "H", LocalDate.now().minusDays(14 + i * 7)));
             }
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TestTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When/Then - Should not throw NPE
@@ -427,23 +422,24 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("DefensiveTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     createMatch("DefensiveTeam", "Opponent1", 1, 0, "H", LocalDate.now().minusDays(7)),
                     createMatch("DefensiveTeam", "Opponent2", 2, 0, "H", LocalDate.now().minusDays(14))
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("DefensiveTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
             TrendingInsightsResponse response = trendingInsightsService.getTrendingInsights();
 
-            // Then
-            assertThat(response.getDefensiveWalls()).isNotEmpty();
-            assertThat(response.getDefensiveWalls().get(0).getCleanSheetPercentage()).isEqualTo(100.0);
-            assertThat(response.getDefensiveWalls().get(0).getAvgGoalsConceded()).isEqualTo(0.0);
+            // Then - DefensiveTeam has 2 clean sheets in the cache
+            var wall = response.getDefensiveWalls().stream()
+                    .filter(w -> w.getTeamName().equals("DefensiveTeam"))
+                    .findFirst();
+            assertThat(wall).isPresent();
+            assertThat(wall.get().getCleanSheetPercentage()).isEqualTo(100.0);
+            assertThat(wall.get().getAvgGoalsConceded()).isEqualTo(0.0);
         }
 
         @Test
@@ -452,8 +448,6 @@ class TrendingInsightsServiceTest {
             // Given - team plays 2 home, 2 away matches
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("TestTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     // Home matches - team concedes via fullTimeAwayGoals
@@ -463,21 +457,23 @@ class TrendingInsightsServiceTest {
                     createMatch("Opponent3", "TestTeam", 3, 1, "H", LocalDate.now().minusDays(21)), // Conceded 3
                     createMatch("Opponent4", "TestTeam", 0, 2, "A", LocalDate.now().minusDays(28))  // Conceded 0 (clean sheet)
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TestTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
             TrendingInsightsResponse response = trendingInsightsService.getTrendingInsights();
 
-            // Then
-            assertThat(response.getDefensiveWalls()).isNotEmpty();
-            TrendingInsightsResponse.DefensiveWall wall = response.getDefensiveWalls().get(0);
+            // Then - Find TestTeam's defensive wall entry
+            var wall = response.getDefensiveWalls().stream()
+                    .filter(w -> w.getTeamName().equals("TestTeam"))
+                    .findFirst();
+            assertThat(wall).isPresent();
             // Total conceded: 1 + 2 + 3 + 0 = 6
-            assertThat(wall.getGoalsConceded()).isEqualTo(6);
+            assertThat(wall.get().getGoalsConceded()).isEqualTo(6);
             // Avg: 6 / 4 = 1.5
-            assertThat(wall.getAvgGoalsConceded()).isEqualTo(1.5);
+            assertThat(wall.get().getAvgGoalsConceded()).isEqualTo(1.5);
             // Clean sheets: only 1 (last away match)
-            assertThat(wall.getCleanSheets()).isEqualTo(1);
+            assertThat(wall.get().getCleanSheets()).isEqualTo(1);
         }
 
         @Test
@@ -486,8 +482,6 @@ class TrendingInsightsServiceTest {
             // Given - team with 4 wins in 5 matches but not consecutive
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("FormTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     createMatch("FormTeam", "Opponent1", 2, 0, "H", LocalDate.now().minusDays(7)),  // Win
@@ -496,7 +490,7 @@ class TrendingInsightsServiceTest {
                     createMatch("FormTeam", "Opponent4", 2, 1, "H", LocalDate.now().minusDays(28)), // Win
                     createMatch("FormTeam", "Opponent5", 1, 0, "H", LocalDate.now().minusDays(35))  // Win
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("FormTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -514,8 +508,6 @@ class TrendingInsightsServiceTest {
             // Given - team plays mostly away
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("AwayTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     createMatch("Opponent1", "AwayTeam", 1, 3, "A", LocalDate.now().minusDays(7)),  // Scored 3 (away)
@@ -524,18 +516,20 @@ class TrendingInsightsServiceTest {
                     createMatch("Opponent4", "AwayTeam", 2, 1, "H", LocalDate.now().minusDays(28)), // Scored 1 (away)
                     createMatch("Opponent5", "AwayTeam", 1, 2, "A", LocalDate.now().minusDays(35))  // Scored 2 (away)
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("AwayTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
             TrendingInsightsResponse response = trendingInsightsService.getTrendingInsights();
 
-            // Then
-            assertThat(response.getTopScorers()).isNotEmpty();
-            TrendingInsightsResponse.TopScorer scorer = response.getTopScorers().get(0);
+            // Then - Find AwayTeam's top scorer entry
+            var scorer = response.getTopScorers().stream()
+                    .filter(s -> s.getTeamName().equals("AwayTeam"))
+                    .findFirst();
+            assertThat(scorer).isPresent();
             // Total goals: 3 + 2 + 4 + 1 + 2 = 12
-            assertThat(scorer.getGoalsScored()).isEqualTo(12);
-            assertThat(scorer.getAvgGoalsPerMatch()).isEqualTo(2.4);
+            assertThat(scorer.get().getGoalsScored()).isEqualTo(12);
+            assertThat(scorer.get().getAvgGoalsPerMatch()).isEqualTo(2.4);
         }
 
         @Test
@@ -566,9 +560,7 @@ class TrendingInsightsServiceTest {
             // Given
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(new ArrayList<>(sampleTeams));
             when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamAndSeasonBeforeDate(any(), eq(TEST_SEASON), any())).thenReturn(Collections.emptyList());
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -592,8 +584,6 @@ class TrendingInsightsServiceTest {
             // Given - 1 win in 5 matches = 20% win rate
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("TestTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     createMatch("TestTeam", "Opponent1", 1, 0, "H", LocalDate.now().minusDays(7)),  // Win
@@ -602,7 +592,7 @@ class TrendingInsightsServiceTest {
                     createMatch("TestTeam", "Opponent4", 0, 2, "A", LocalDate.now().minusDays(28)), // Loss
                     createMatch("TestTeam", "Opponent5", 1, 1, "D", LocalDate.now().minusDays(35))  // Draw
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TestTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -620,24 +610,25 @@ class TrendingInsightsServiceTest {
             // Given - 5 goals in 3 matches = 1.67 avg
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("TestTeam"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             List<Match> matches = Arrays.asList(
                     createMatch("TestTeam", "Opponent1", 2, 0, "H", LocalDate.now().minusDays(7)),
                     createMatch("TestTeam", "Opponent2", 1, 0, "H", LocalDate.now().minusDays(14)),
                     createMatch("TestTeam", "Opponent3", 2, 1, "H", LocalDate.now().minusDays(21))
             );
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TestTeam"), eq(TEST_SEASON), any())).thenReturn(matches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(combineAndSortDesc(matches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
             TrendingInsightsResponse response = trendingInsightsService.getTrendingInsights();
 
-            // Then
-            assertThat(response.getTopScorers()).isNotEmpty();
+            // Then - Find TestTeam's entry
+            var scorer = response.getTopScorers().stream()
+                    .filter(s -> s.getTeamName().equals("TestTeam"))
+                    .findFirst();
+            assertThat(scorer).isPresent();
             // 5 goals / 3 matches = 1.67 (not 1 from integer division)
-            assertThat(response.getTopScorers().get(0).getAvgGoalsPerMatch()).isEqualTo(1.67);
+            assertThat(scorer.get().getAvgGoalsPerMatch()).isEqualTo(1.67);
         }
     }
 
@@ -651,8 +642,6 @@ class TrendingInsightsServiceTest {
             // Given - Two teams with same total goals, different matches
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("TeamA", "TeamB"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             // TeamA: 6 goals in 3 matches = 2.0 avg
             List<Match> teamAMatches = Arrays.asList(
@@ -671,8 +660,8 @@ class TrendingInsightsServiceTest {
                     createMatch("TeamB", "Opp6", 1, 0, "H", LocalDate.now().minusDays(42))
             );
 
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TeamA"), eq(TEST_SEASON), any())).thenReturn(teamAMatches);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TeamB"), eq(TEST_SEASON), any())).thenReturn(teamBMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON))
+                    .thenReturn(combineAndSortDesc(teamAMatches, teamBMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When
@@ -689,8 +678,6 @@ class TrendingInsightsServiceTest {
             // Given - Two teams with same clean sheets, different total matches
             when(matchRepository.findCurrentSeason()).thenReturn(TEST_SEASON);
             when(matchRepository.findAllSeasons()).thenReturn(List.of(TEST_SEASON));
-            when(matchRepository.findAllDistinctTeamNamesBySeason(TEST_SEASON)).thenReturn(List.of("TeamA", "TeamB"));
-            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON)).thenReturn(Collections.emptyList());
 
             // TeamA: 2 clean sheets in 4 matches = 50%
             List<Match> teamAMatches = Arrays.asList(
@@ -706,8 +693,8 @@ class TrendingInsightsServiceTest {
                     createMatch("TeamB", "Opp2", 2, 0, "H", LocalDate.now().minusDays(14))
             );
 
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TeamA"), eq(TEST_SEASON), any())).thenReturn(teamAMatches);
-            when(matchRepository.findByTeamAndSeasonBeforeDate(eq("TeamB"), eq(TEST_SEASON), any())).thenReturn(teamBMatches);
+            when(matchRepository.findBySeasonOrderByMatchDateDesc(TEST_SEASON))
+                    .thenReturn(combineAndSortDesc(teamAMatches, teamBMatches));
             when(modelTrainingService.isModelLoaded()).thenReturn(false);
 
             // When

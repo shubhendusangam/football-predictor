@@ -343,6 +343,7 @@ class DashboardManager {
                 break;
             case 'relegation':
                 contentDiv.innerHTML = this.renderRelegationBattleView(data);
+                this.animateRelegationBars();
                 break;
             default:
                 contentDiv.innerHTML = this.renderCombinedStandingsTable(data.standings, data.uclMap, data.relegationMap);
@@ -401,41 +402,94 @@ class DashboardManager {
     }
 
     /**
-     * Render Relegation Battle focused view
+     * Render Relegation Battle focused view (enhanced)
      */
     renderRelegationBattleView(data) {
         const teams = data.relegationResponse?.teamsInBattle || [];
         const summary = data.relegationSummary || {};
 
+        // Split teams into above safety and in relegation zone
+        const aboveSafety = teams.filter(t => (t.currentPosition || 99) < 18);
+        const inDanger = teams.filter(t => (t.currentPosition || 99) >= 18);
+        const teamsInDangerCount = inDanger.length || 3;
+        const bottomTeam = teams.length > 0 ? teams[teams.length - 1] : null;
+        const maxPossibleBottom = bottomTeam ? (bottomTeam.points || 0) + ((bottomTeam.remainingMatches || 0) * 3) : 0;
+
         return `
             <div class="relegation-battle-view">
+                <!-- Enhanced Summary -->
                 <div class="relegation-summary-header">
                     <div class="relegation-summary-stat">
-                        <span class="stat-label">17th pts</span>
                         <span class="stat-value">${summary.safetyLinePoints || 0}</span>
+                        <span class="stat-label">17th pts</span>
                     </div>
                     <div class="relegation-gap-indicator ${(summary.gapAtRelegationLine || 0) <= 2 ? 'gap-tight' : ''}">
-                        ${summary.gapAtRelegationLine || 0} pt gap
+                        <span class="gap-number">${summary.gapAtRelegationLine || 0}</span>
+                        <span class="gap-label">pt gap</span>
                     </div>
                     <div class="relegation-summary-stat danger">
-                        <span class="stat-label">18th pts</span>
                         <span class="stat-value">${summary.relegationLinePoints || 0}</span>
+                        <span class="stat-label">18th pts</span>
+                    </div>
+                    <div class="relegation-summary-extra">
+                        <span class="relegation-danger-count">${teamsInDangerCount} in zone</span>
+                        ${maxPossibleBottom > 0 ? `<span class="relegation-max-pts" title="Max possible pts for bottom team">Max: ${maxPossibleBottom}</span>` : ''}
                     </div>
                     <span class="relegation-intensity-badge ${(summary.intensity || 'Calm').toLowerCase()}">${summary.intensity || 'Calm'}</span>
                 </div>
-                <div class="relegation-teams">
-                    ${teams.map((team, index) => this.renderRelegationTeamRow(team, index)).join('')}
+
+                <!-- Column Headers -->
+                <div class="relegation-header-row">
+                    <span class="rh-pos">#</span>
+                    <span class="rh-team">Team</span>
+                    <span class="rh-form">Form</span>
+                    <span class="rh-pts">Pts</span>
+                    <span class="rh-gd hide-mobile-rel">GD</span>
+                    <span class="rh-gap">Gap</span>
+                    <span class="rh-left hide-mobile-rel">Left</span>
+                    <span class="rh-surv">Survival</span>
                 </div>
+
+                <!-- Teams above safety line -->
+                <div class="relegation-teams">
+                    ${aboveSafety.map((team, index) => this.renderRelegationTeamRow(team, index)).join('')}
+                </div>
+
+                <!-- Safety Line Separator -->
+                <div class="relegation-safety-line">
+                    <span class="safety-line-text">── SAFETY LINE ──</span>
+                </div>
+
+                <!-- Teams in relegation zone -->
+                <div class="relegation-teams relegation-zone-teams">
+                    ${inDanger.map((team, index) => this.renderRelegationTeamRow(team, index)).join('')}
+                </div>
+
+                <!-- Footer -->
                 <div class="relegation-battle-footer">
-                    <span>Target: ${data.relegationResponse?.survivalPointsTarget || 38} pts</span>
-                    <span>${data.relegationResponse?.matchdaysCompleted || 0}/${data.relegationResponse?.totalMatchesInSeason || 38} played</span>
+                    <span>🎯 Target: ${data.relegationResponse?.survivalPointsTarget || 38} pts</span>
+                    <span>📅 ${data.relegationResponse?.matchdaysCompleted || 0}/${data.relegationResponse?.totalMatchesInSeason || 38} played</span>
                 </div>
             </div>
         `;
     }
 
     /**
-     * Render Relegation team row
+     * Render form dots (W=green, D=gray, L=red)
+     */
+    renderFormDots(form) {
+        if (!form) return '<span class="form-empty">—</span>';
+        const colorMap = { 'W': '#34d399', 'D': '#94a3b8', 'L': '#f87171' };
+        const labelMap = { 'W': 'Win', 'D': 'Draw', 'L': 'Loss' };
+        return form.split('').map(ch => {
+            const color = colorMap[ch] || '#4b5563';
+            const label = labelMap[ch] || ch;
+            return `<span class="form-dot" style="background:${color}" title="${label}"></span>`;
+        }).join('');
+    }
+
+    /**
+     * Render Relegation team row (enhanced with form, GD, remaining matches, tooltip)
      */
     renderRelegationTeamRow(team, index) {
         const position = team.currentPosition || (14 + index);
@@ -459,6 +513,11 @@ class DashboardManager {
             'Relegated': '💀'
         };
 
+        const gd = team.goalDifference || 0;
+        const gdClass = gd > 0 ? 'gd-positive' : gd < 0 ? 'gd-negative' : 'gd-neutral';
+        const ppg = team.pointsPerGame ? team.pointsPerGame.toFixed(2) : '—';
+        const needPts = team.pointsNeededForSafety > 0 ? team.pointsNeededForSafety : 0;
+
         return `
             <div class="relegation-team-row ${isInRelegationZone ? 'in-relegation-zone' : ''} ${isOnSafetyLine ? 'on-safety-line' : ''}">
                 <span class="relegation-position">
@@ -469,16 +528,41 @@ class DashboardManager {
                     <span class="relegation-team-name">${team.teamName}</span>
                     ${desperationIcon[team.desperationLevel] ? `<span class="desperation-icon">${desperationIcon[team.desperationLevel]}</span>` : ''}
                 </div>
+                <div class="relegation-form">${this.renderFormDots(team.form)}</div>
                 <span class="relegation-points">${team.points} pts</span>
+                <span class="relegation-gd ${gdClass} hide-mobile-rel">${gd > 0 ? '+' : ''}${gd}</span>
                 <span class="relegation-gap ${team.gapToSafety >= 0 ? 'gap-safe' : 'gap-danger'}">
                     ${team.gapToSafety >= 0 ? '+' : ''}${team.gapToSafety}
                 </span>
+                <div class="relegation-remaining hide-mobile-rel">
+                    <span class="remaining-count">${team.remainingMatches || '—'}</span>
+                    ${needPts > 0 ? `<span class="need-pts-label">need ${needPts}</span>` : ''}
+                </div>
                 <div class="relegation-prob-container">
-                    <div class="relegation-prob-bar ${probClass}" style="width: ${team.survivalProbability}%"></div>
+                    <div class="relegation-prob-bar ${probClass}" data-probability="${team.survivalProbability || 0}" style="width: 0%"></div>
                     <span class="relegation-prob-text">${Math.round(team.survivalProbability)}%</span>
+                </div>
+                <!-- Hover tooltip with detailed stats -->
+                <div class="relegation-tooltip">
+                    <div class="tooltip-row"><span>PPG</span><strong>${ppg}</strong></div>
+                    <div class="tooltip-row"><span>Win Rate</span><strong>${team.winRate ? team.winRate.toFixed(1) + '%' : '—'}</strong></div>
+                    <div class="tooltip-row"><span>Played</span><strong>${team.played || '—'}</strong></div>
+                    <div class="tooltip-row"><span>Gap to 18th</span><strong>${team.gapToRelegation !== undefined ? (team.gapToRelegation >= 0 ? '+' : '') + team.gapToRelegation : '—'}</strong></div>
+                    ${needPts > 0 ? `<div class="tooltip-row danger"><span>Pts Needed</span><strong>${needPts}</strong></div>` : ''}
                 </div>
             </div>
         `;
+    }
+
+    /**
+     * Animate relegation probability bars (smooth width transition)
+     */
+    animateRelegationBars() {
+        setTimeout(() => {
+            document.querySelectorAll('.relegation-prob-bar[data-probability]').forEach(bar => {
+                bar.style.width = `${bar.dataset.probability}%`;
+            });
+        }, 100);
     }
 
     /**

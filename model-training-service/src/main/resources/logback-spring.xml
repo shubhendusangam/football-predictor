@@ -1,0 +1,144 @@
+<!--
+    Logback Configuration — model-training-service
+    ───────────────────────────────────────────────
+    Includes the shared base from football-prediction-common,
+    then adds training-specific rolling-file appenders and loggers.
+-->
+<configuration scan="true" scanPeriod="30 seconds">
+
+    <!-- Import shared base (console, error appender, framework loggers) -->
+    <include resource="logback-base.xml"/>
+
+    <!-- Override LOG_DIR for training service -->
+    <property name="LOG_DIR" value="../logs/model-training"/>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         TRAINING-SPECIFIC APPENDERS
+         ═══════════════════════════════════════════════════════════ -->
+
+    <!-- Training log file -->
+    <appender name="TrainingFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/training.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/training-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- API log file -->
+    <appender name="ApiFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/api.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/api-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Error log file (training-specific, supplements shared error appender) -->
+    <appender name="TrainingErrorFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/error-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>300MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Async wrappers -->
+    <appender name="AsyncTraining" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>1024</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="TrainingFile"/>
+    </appender>
+
+    <appender name="AsyncApi" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="ApiFile"/>
+    </appender>
+
+    <appender name="AsyncTrainingError" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+        <appender-ref ref="TrainingErrorFile"/>
+    </appender>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         APPLICATION LOGGERS
+         ═══════════════════════════════════════════════════════════ -->
+
+    <!-- Application root package → training.log + console + error -->
+    <logger name="com.app.modeltraining" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncTraining"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </logger>
+
+    <!-- Controller layer → api.log + console + error -->
+    <logger name="com.app.modeltraining.controller" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncApi"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </logger>
+
+    <!-- Scheduler → training.log + console + error -->
+    <logger name="com.app.modeltraining.scheduler" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncTraining"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </logger>
+
+    <!-- MDC Logging Filter (request entry/exit) → api.log -->
+    <logger name="com.app.common.logging.MdcLoggingFilter" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncApi"/>
+    </logger>
+
+    <!-- Common module services -->
+    <logger name="com.app.common" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncTraining"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </logger>
+
+    <!-- Category loggers (used via AppLoggerFactory) -->
+    <logger name="MODEL" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncTraining"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </logger>
+
+    <logger name="SCHEDULER" level="INFO" additivity="false">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncTraining"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </logger>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ROOT LOGGER
+         ═══════════════════════════════════════════════════════════ -->
+    <root level="INFO">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncTraining"/>
+        <appender-ref ref="AsyncTrainingError"/>
+    </root>
+
+</configuration>
+

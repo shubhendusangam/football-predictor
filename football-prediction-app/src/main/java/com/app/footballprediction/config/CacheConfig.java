@@ -65,8 +65,15 @@ public class CacheConfig {
     public static final String CACHE_REFEREE_STATS = "refereeStats";
     public static final String CACHE_ALL_REFEREES = "allReferees";
     public static final String CACHE_ALL_REFEREE_STATS = "allRefereeStats";
+    public static final String CACHE_REFEREE_COMPREHENSIVE = "refereeComprehensive";
+    public static final String CACHE_ALL_REFEREE_COMPREHENSIVE = "allRefereeComprehensive";
+    public static final String CACHE_REFEREE_IMPACT = "refereeImpact";
+    public static final String CACHE_REFEREE_SUMMARY = "refereeSummary";
+    public static final String CACHE_REFEREE_COMPARE = "refereeCompare";
     public static final String CACHE_TOP4_RACE = "top4Race";
     public static final String CACHE_RELEGATION_BATTLE = "relegationBattle";
+    public static final String CACHE_GOALS_TRENDS = "goalsTrends";
+    public static final String CACHE_FORM_GUIDE = "formGuide";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -160,11 +167,32 @@ public class CacheConfig {
     @Value("${cache.allRefereeStats.ttl:1800}")
     private int allRefereeStatsTtl;
 
+    @Value("${cache.refereeComprehensive.ttl:900}")
+    private int refereeComprehensiveTtl;
+
+    @Value("${cache.allRefereeComprehensive.ttl:1800}")
+    private int allRefereeComprehensiveTtl;
+
+    @Value("${cache.refereeImpact.ttl:600}")
+    private int refereeImpactTtl;
+
+    @Value("${cache.refereeSummary.ttl:1800}")
+    private int refereeSummaryTtl;
+
+    @Value("${cache.refereeCompare.ttl:600}")
+    private int refereeCompareTtl;
+
     @Value("${cache.top4Race.ttl:600}")
     private int top4RaceTtl;
 
     @Value("${cache.relegationBattle.ttl:600}")
     private int relegationBattleTtl;
+
+    @Value("${cache.goalsTrends.ttl:1800}")
+    private int goalsTrendsTtl;
+
+    @Value("${cache.formGuide.ttl:600}")
+    private int formGuideTtl;
 
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
@@ -258,11 +286,32 @@ public class CacheConfig {
     @Value("${cache.allRefereeStats.maxSize:10}")
     private int allRefereeStatsMaxSize;
 
+    @Value("${cache.refereeComprehensive.maxSize:100}")
+    private int refereeComprehensiveMaxSize;
+
+    @Value("${cache.allRefereeComprehensive.maxSize:10}")
+    private int allRefereeComprehensiveMaxSize;
+
+    @Value("${cache.refereeImpact.maxSize:200}")
+    private int refereeImpactMaxSize;
+
+    @Value("${cache.refereeSummary.maxSize:10}")
+    private int refereeSummaryMaxSize;
+
+    @Value("${cache.refereeCompare.maxSize:100}")
+    private int refereeCompareMaxSize;
+
     @Value("${cache.top4Race.maxSize:20}")
     private int top4RaceMaxSize;
 
     @Value("${cache.relegationBattle.maxSize:20}")
     private int relegationBattleMaxSize;
+
+    @Value("${cache.goalsTrends.maxSize:50}")
+    private int goalsTrendsMaxSize;
+
+    @Value("${cache.formGuide.maxSize:200}")
+    private int formGuideMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -370,11 +419,32 @@ public class CacheConfig {
         // All referee stats: moderate TTL (30 min), small size (single aggregated list)
         cacheConfigs.put(CACHE_ALL_REFEREE_STATS, buildCache(allRefereeStatsTtl, allRefereeStatsMaxSize));
 
+        // Comprehensive referee stats: moderate TTL (15 min), moderate size for individual lookups
+        cacheConfigs.put(CACHE_REFEREE_COMPREHENSIVE, buildCache(refereeComprehensiveTtl, refereeComprehensiveMaxSize));
+
+        // All comprehensive referee stats: moderate TTL (30 min), small size (single list)
+        cacheConfigs.put(CACHE_ALL_REFEREE_COMPREHENSIVE, buildCache(allRefereeComprehensiveTtl, allRefereeComprehensiveMaxSize));
+
+        // Referee impact: moderate TTL (10 min), larger size for match combinations
+        cacheConfigs.put(CACHE_REFEREE_IMPACT, buildCache(refereeImpactTtl, refereeImpactMaxSize));
+
+        // Referee league summary: longer TTL (30 min), small size (single aggregated result)
+        cacheConfigs.put(CACHE_REFEREE_SUMMARY, buildCache(refereeSummaryTtl, refereeSummaryMaxSize));
+
+        // Referee comparison: moderate TTL (10 min), moderate size for referee pair combinations
+        cacheConfigs.put(CACHE_REFEREE_COMPARE, buildCache(refereeCompareTtl, refereeCompareMaxSize));
+
         // Top 4 race analysis: moderate TTL (10 min), small size for season-based analysis
         cacheConfigs.put(CACHE_TOP4_RACE, buildCache(top4RaceTtl, top4RaceMaxSize));
 
         // Relegation battle analysis: moderate TTL (10 min), small size for season-based analysis
         cacheConfigs.put(CACHE_RELEGATION_BATTLE, buildCache(relegationBattleTtl, relegationBattleMaxSize));
+
+        // Goals trends: longer TTL (30 min), moderate size for season combination queries
+        cacheConfigs.put(CACHE_GOALS_TRENDS, buildCache(goalsTrendsTtl, goalsTrendsMaxSize));
+
+        // Form guide: moderate TTL (10 min), larger size for team+matchCount combinations
+        cacheConfigs.put(CACHE_FORM_GUIDE, buildCache(formGuideTtl, formGuideMaxSize));
 
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
@@ -446,6 +516,11 @@ public class CacheConfig {
             case CACHE_REFEREE_STATS -> refereeStatsTtl;
             case CACHE_ALL_REFEREES -> allRefereesTtl;
             case CACHE_ALL_REFEREE_STATS -> allRefereeStatsTtl;
+            case CACHE_REFEREE_COMPREHENSIVE -> refereeComprehensiveTtl;
+            case CACHE_ALL_REFEREE_COMPREHENSIVE -> allRefereeComprehensiveTtl;
+            case CACHE_REFEREE_IMPACT -> refereeImpactTtl;
+            case CACHE_REFEREE_SUMMARY -> refereeSummaryTtl;
+            case CACHE_REFEREE_COMPARE -> refereeCompareTtl;
             default -> 300;
         };
     }

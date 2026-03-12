@@ -1,0 +1,342 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Goals Trends Chart — League-wide Goals Trends Analysis
+   ═══════════════════════════════════════════════════════════════════ */
+
+.goals-trends-page {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ── Header ────────────────────────────────────────────────────── */
+
+.goals-trends-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.goals-trends-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.goals-trends-header-icon {
+    font-size: 2rem;
+}
+
+.goals-trends-header-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.goals-trends-header-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0.25rem 0 0 0;
+}
+
+/* ── Season Selector ───────────────────────────────────────────── */
+
+.goals-trends-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.goals-trends-season-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+}
+
+.goals-trends-season-btn {
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 0.375rem;
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.goals-trends-season-btn:hover {
+    border-color: var(--accent-blue);
+    color: var(--accent-blue);
+}
+
+.goals-trends-season-btn.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+    color: #fff;
+}
+
+.goals-trends-apply-btn {
+    padding: 0.375rem 1rem;
+    border: none;
+    border-radius: 0.375rem;
+    background: var(--accent-green);
+    color: #fff;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.goals-trends-apply-btn:hover {
+    background: #16a34a;
+}
+
+/* ── Trend Summary Banner ──────────────────────────────────────── */
+
+.goals-trends-summary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.25rem;
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.goals-trends-summary-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.goals-trends-summary-value {
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.goals-trends-summary-value.increasing {
+    color: var(--accent-green);
+}
+
+.goals-trends-summary-value.decreasing {
+    color: #ef4444;
+}
+
+.goals-trends-summary-value.stable {
+    color: var(--accent-blue);
+}
+
+.goals-trends-trend-arrow {
+    font-size: 1.25rem;
+}
+
+.goals-trends-divider {
+    width: 1px;
+    height: 1.5rem;
+    background: var(--border-color);
+}
+
+/* ── Chart Cards ───────────────────────────────────────────────── */
+
+.goals-trends-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.goals-trends-card {
+    background: var(--bg-secondary);
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-color);
+    padding: 1.5rem;
+}
+
+.goals-trends-card-full {
+    grid-column: 1 / -1;
+}
+
+.goals-trends-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.goals-trends-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.goals-trends-canvas-container {
+    position: relative;
+    width: 100%;
+    height: 280px;
+}
+
+.goals-trends-canvas-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────── */
+
+.goals-trends-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.25rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.goals-trends-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.goals-trends-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+/* ── Stats Table ───────────────────────────────────────────────── */
+
+.goals-trends-table-container {
+    overflow-x: auto;
+    margin-top: 1rem;
+}
+
+.goals-trends-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.goals-trends-table th {
+    text-align: left;
+    padding: 0.625rem 0.75rem;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.goals-trends-table td {
+    padding: 0.625rem 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.goals-trends-table tr:hover td {
+    background: var(--bg-tertiary);
+}
+
+.goals-trends-table .goals-trends-season-col {
+    font-weight: 600;
+}
+
+.goals-trends-highlight-high {
+    color: var(--accent-green);
+    font-weight: 600;
+}
+
+.goals-trends-highlight-low {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+/* ── Loading / Error / Empty ───────────────────────────────────── */
+
+.goals-trends-loading,
+.goals-trends-error,
+.goals-trends-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+}
+
+.goals-trends-loading .loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--accent-blue);
+    border-radius: 50%;
+    animation: goals-trends-spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes goals-trends-spin {
+    to { transform: rotate(360deg); }
+}
+
+.goals-trends-error-icon,
+.goals-trends-empty-icon {
+    font-size: 3rem;
+    opacity: 0.5;
+    margin-bottom: 0.75rem;
+}
+
+.goals-trends-error-message,
+.goals-trends-empty-message {
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.goals-trends-retry-btn {
+    margin-top: 1rem;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--accent-blue);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--accent-blue);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.goals-trends-retry-btn:hover {
+    background: var(--accent-blue);
+    color: #fff;
+}
+
+/* ── Responsive ────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+    .goals-trends-charts {
+        grid-template-columns: 1fr;
+    }
+
+    .goals-trends-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .goals-trends-divider {
+        width: 100%;
+        height: 1px;
+    }
+}
+
+@media (max-width: 600px) {
+    .goals-trends-header {
+        flex-direction: column;
+    }
+
+    .goals-trends-canvas-container {
+        height: 220px;
+    }
+}
+

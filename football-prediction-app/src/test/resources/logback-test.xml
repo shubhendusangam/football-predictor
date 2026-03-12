@@ -1,0 +1,33 @@
+<!--
+    Logback Test Configuration — football-prediction-app
+    ────────────────────────────────────────────────────
+    Minimal console-only config for unit/integration tests.
+-->
+<configuration>
+
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%15.15t] %-40.40logger{39} : %msg%n%throwable</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Suppress noisy Spring / framework logs during tests -->
+    <logger name="org.springframework"         level="WARN"/>
+    <logger name="org.hibernate"               level="WARN"/>
+    <logger name="com.zaxxer.hikari"           level="WARN"/>
+    <logger name="org.flywaydb"                level="WARN"/>
+    <logger name="org.apache"                  level="WARN"/>
+
+    <!-- Application logs -->
+    <logger name="com.app.footballprediction"  level="INFO"/>
+    <logger name="com.app.common"              level="INFO"/>
+
+    <root level="WARN">
+        <appender-ref ref="Console"/>
+    </root>
+
+</configuration>
+

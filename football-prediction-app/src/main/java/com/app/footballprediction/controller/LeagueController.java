@@ -1,7 +1,9 @@
 package com.app.footballprediction.controller;
 
+import com.app.footballprediction.dto.GoalsTrendsDTO;
 import com.app.footballprediction.dto.RelegationBattleAnalysisDTO;
 import com.app.footballprediction.dto.Top4RaceAnalysisDTO;
+import com.app.footballprediction.service.GoalsTrendsService;
 import com.app.footballprediction.service.RelegationBattleService;
 import com.app.footballprediction.service.Top4RaceService;
 import com.app.footballprediction.util.SeasonUtils;
@@ -11,11 +13,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * REST Controller for league-related endpoints.
- * Provides Champions League race analysis, title battles, relegation battle, and league metrics.
+ * Provides Champions League race analysis, title battles, relegation battle, goals trends, and league metrics.
  */
 @RestController
 @RequestMapping("/api/league")
@@ -25,6 +30,7 @@ public class LeagueController {
 
     private final Top4RaceService top4RaceService;
     private final RelegationBattleService relegationBattleService;
+    private final GoalsTrendsService goalsTrendsService;
 
     /**
      * Get Top 4 (Champions League) race analysis for a season.
@@ -175,6 +181,55 @@ public class LeagueController {
             log.error("Failed to get historical relegation battle analysis: {}", e.getMessage(), e);
             return ResponseEntity.internalServerError().body(Map.of(
                     "error", "Failed to get historical analysis",
+                    "details", e.getMessage()
+            ));
+        }
+    }
+
+    // ========== Goals Trends ==========
+
+    /**
+     * Get league-wide goals trends analysis across multiple seasons.
+     *
+     * Tracks how goal-scoring patterns change across seasons including:
+     * - Average goals per game
+     * - Home vs away goals breakdown
+     * - Clean sheet percentage
+     * - High-scoring (>4 goals) and low-scoring (<2 goals) game percentages
+     * - Overall trend direction (Increasing / Decreasing / Stable)
+     *
+     * GET /api/league/goals-trends?seasons=2020-21,2021-22,2022-23
+     *
+     * @param seasons Comma-separated season identifiers. If omitted, defaults to last 6 seasons.
+     * @return GoalsTrendsDTO with per-season stats and trend analysis
+     */
+    @GetMapping("/goals-trends")
+    public ResponseEntity<?> getGoalsTrends(
+            @RequestParam(required = false) String seasons) {
+
+        try {
+            log.debug("GET /api/league/goals-trends seasons={}", seasons);
+            long startTime = System.currentTimeMillis();
+
+            List<String> seasonList = null;
+            if (seasons != null && !seasons.isBlank()) {
+                seasonList = Arrays.stream(seasons.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toList());
+            }
+
+            GoalsTrendsDTO trends = goalsTrendsService.calculateGoalsTrends(seasonList);
+
+            log.debug("Goals trends analysis completed in {}ms ({} seasons)",
+                    System.currentTimeMillis() - startTime, trends.getSeasonsAnalyzed());
+
+            return ResponseEntity.ok(trends);
+
+        } catch (Exception e) {
+            log.error("Failed to calculate goals trends: {}", e.getMessage(), e);
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to calculate goals trends",
                     "details", e.getMessage()
             ));
         }

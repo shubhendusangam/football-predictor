@@ -36,6 +36,7 @@ import java.util.List;
 public class FixtureCongestionService {
 
     private final MatchRepository matchRepository;
+    private final TeamValidationService teamValidationService;
 
     // ══════════════════════════════════════════════════════════════════════
     // CONSTANTS
@@ -271,16 +272,7 @@ public class FixtureCongestionService {
     }
 
     private String resolveTeamName(String teamName, LocalDate before) {
-        List<Match> exact = matchRepository.findByTeamBeforeDate(teamName, before);
-        if (!exact.isEmpty()) return teamName;
-
-        List<Match> ci = matchRepository.findByTeamBeforeDateIgnoreCase(teamName, before);
-        if (!ci.isEmpty()) {
-            Match first = ci.getFirst();
-            return first.getHomeTeam().equalsIgnoreCase(teamName)
-                    ? first.getHomeTeam() : first.getAwayTeam();
-        }
-        return teamName;
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     private void validateTeamName(String teamName) {

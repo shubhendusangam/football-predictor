@@ -39,6 +39,7 @@ public class TeamAnalyticsService {
     private final PredictionRepository predictionRepository;
     private final TeamRepository teamRepository;
     private final TeamStatsService teamStatsService;
+    private final TeamValidationService teamValidationService;
     private final FootballDataApiService footballDataApiService;
     private final FeatureEngineeringService featureEngineeringService;
     private final ModelTrainingService modelTrainingService;
@@ -105,38 +106,10 @@ public class TeamAnalyticsService {
     }
 
     /**
-     * Resolve team name using smart matching
+     * Resolve team name via centralized validation service.
      */
     private String resolveTeamName(String teamName) {
-        if (teamName == null || teamName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Team name cannot be empty");
-        }
-
-        String trimmedName = teamName.trim();
-        LocalDate beforeDate = LocalDate.now().plusDays(1);
-
-        // Try exact match
-        List<Match> exactMatches = matchRepository.findByTeamBeforeDate(trimmedName, beforeDate);
-        if (!exactMatches.isEmpty()) {
-            return trimmedName;
-        }
-
-        // Try case-insensitive match
-        List<Match> caseInsensitiveMatches = matchRepository.findByTeamBeforeDateIgnoreCase(trimmedName, beforeDate);
-        if (!caseInsensitiveMatches.isEmpty()) {
-            Match firstMatch = caseInsensitiveMatches.get(0);
-            return firstMatch.getHomeTeam().equalsIgnoreCase(trimmedName)
-                    ? firstMatch.getHomeTeam()
-                    : firstMatch.getAwayTeam();
-        }
-
-        // Try fuzzy match
-        List<String> similarTeams = matchRepository.findTeamNamesContaining(trimmedName);
-        if (!similarTeams.isEmpty()) {
-            return similarTeams.get(0);  // Return best match
-        }
-
-        throw new IllegalArgumentException("Team not found: " + trimmedName);
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     /**

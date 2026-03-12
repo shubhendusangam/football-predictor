@@ -91,10 +91,11 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                                                           @Param("before") LocalDate before);
 
    /**
-    * Get all distinct team names from the database.
+    * Get all distinct team names from the database (both home and away).
     * Used for team name suggestions and validation.
     */
-   @Query("SELECT DISTINCT m.homeTeam FROM Match m ORDER BY m.homeTeam")
+   @Query("SELECT DISTINCT m.homeTeam FROM Match m " +
+         "UNION SELECT DISTINCT m.awayTeam FROM Match m")
    List<String> findAllDistinctTeamNames();
 
    /**
@@ -187,9 +188,10 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
                                                         @Param("before") LocalDate before);
 
    /**
-    * Get all distinct team names from a specific season.
+    * Get all distinct team names from a specific season (both home and away).
     */
-   @Query("SELECT DISTINCT m.homeTeam FROM Match m WHERE m.season = :season AND m.fullTimeResult IS NOT NULL")
+   @Query("SELECT DISTINCT m.homeTeam FROM Match m WHERE m.season = :season AND m.fullTimeResult IS NOT NULL " +
+         "UNION SELECT DISTINCT m.awayTeam FROM Match m WHERE m.season = :season AND m.fullTimeResult IS NOT NULL")
    List<String> findAllDistinctTeamNamesBySeason(@Param("season") String season);
 
    /**
@@ -429,10 +431,18 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
    @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL ORDER BY m.matchDate ASC")
    List<Match> findAllFinishedMatchesAsc();
 
-   /**
-    * Find all finished matches before a date, keyed for map lookup.
-    * Used by MatchResultProcessor for bulk pre-loading instead of per-prediction queries.
-    */
-   @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL AND m.matchDate <= :beforeDate")
-   List<Match> findAllFinishedMatchesBeforeDate(@Param("beforeDate") LocalDate beforeDate);
+    /**
+     * Find all finished matches before a date, keyed for map lookup.
+     * Used by MatchResultProcessor for bulk pre-loading instead of per-prediction queries.
+     */
+    @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL AND m.matchDate <= :beforeDate")
+    List<Match> findAllFinishedMatchesBeforeDate(@Param("beforeDate") LocalDate beforeDate);
+
+    /**
+     * Lightweight projection returning only (matchDate, homeTeam, awayTeam) for all matches.
+     * Used by CsvIngestionService to pre-load existing match keys for O(1) duplicate checks
+     * instead of per-row existence queries.
+     */
+    @Query("SELECT m.matchDate, m.homeTeam, m.awayTeam FROM Match m")
+    List<Object[]> findAllMatchKeyProjections();
 }

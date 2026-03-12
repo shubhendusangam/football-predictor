@@ -2,6 +2,7 @@ package com.app.footballprediction.service;
 
 import com.app.common.model.ModelAccuracy;
 import com.app.common.model.ModelTrainingHistory;
+import com.app.common.repository.MatchRepository;
 import com.app.common.repository.ModelAccuracyRepository;
 import com.app.common.repository.ModelTrainingHistoryRepository;
 import com.app.common.repository.PredictionEvaluationRepository;
@@ -41,6 +42,7 @@ public class ModelSelfTrainingService {
     private final ModelAccuracyRepository accuracyRepository;
     private final ModelTrainingHistoryRepository trainingHistoryRepository;
     private final PredictionEvaluationRepository evaluationRepository;
+    private final MatchRepository matchRepository;
 
     @Value("${retrain.cooldown.hours:24}")
     private int cooldownHours;
@@ -252,6 +254,63 @@ public class ModelSelfTrainingService {
     private boolean isInCooldown() {
         LocalDateTime cooldownSince = LocalDateTime.now().minusHours(cooldownHours);
         return trainingHistoryRepository.hasRecentSuccessfulTraining(cooldownSince);
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Centralized Training + History Recording
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Train the model and record a {@link ModelTrainingHistory} entry.
+     * <p>
+     * This is the single entry-point that <strong>all</strong> callsites should use
+     * (startup, scheduled CSV update, smart retrain, etc.) so that every training
+     * event is audited in the {@code model_training_history} table.
+     *
+     * @param triggerReason free-form label stored in the history row
+     *                      (e.g. STARTUP_INITIAL, SCHEDULED_CSV_UPDATE, SMART_RETRAIN)
+     * @return the training report produced by {@link ModelTrainingService#trainAndEvaluate()}
+     * @throws Exception re-thrown after recording a failed history entry
+     */
+    @Transactional
+    public String trainWithHistory(String triggerReason) throws Exception {
+        long startTime = System.currentTimeMillis();
+
+        ModelTrainingHistory history = ModelTrainingHistory.builder()
+                .trainingTime(LocalDateTime.now())
+                .triggerReason(triggerReason)
+                .matchesUsed((int) matchRepository.count())
+                .build();
+
+        // Capture previous accuracy if available
+        accuracyRepository.findTopByScopeAndScopeKeyOrderByCalculatedAtDesc("GLOBAL", null)
+                .ifPresent(acc -> history.setPreviousWinnerAccuracy(acc.getWinnerAccuracy()));
+
+        try {
+            String report = modelTrainingService.trainAndEvaluate();
+            long duration = System.currentTimeMillis() - startTime;
+
+            history.setTrainingDurationMs(duration);
+            history.setSuccess(true);
+            history.setModelVersion("v" + System.currentTimeMillis());
+
+            // Capture new accuracy after training
+            accuracyRepository.findTopByScopeAndScopeKeyOrderByCalculatedAtDesc("GLOBAL", null)
+                    .ifPresent(acc -> history.setNewWinnerAccuracy(acc.getWinnerAccuracy()));
+
+            trainingHistoryRepository.save(history);
+            log.info("Model training recorded: trigger={}, duration={}ms", triggerReason, duration);
+
+            return report;
+
+        } catch (Exception e) {
+            long duration = System.currentTimeMillis() - startTime;
+            history.setTrainingDurationMs(duration);
+            history.setSuccess(false);
+            history.setErrorMessage(e.getMessage());
+            trainingHistoryRepository.save(history);
+            throw e; // re-throw so callers know it failed
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════════

@@ -44,6 +44,7 @@ public class CardsPredictionService {
 
     private final MatchRepository matchRepository;
     private final RefereeStatsService refereeStatsService;
+    private final TeamValidationService teamValidationService;
 
     // ══════════════════════════════════════════════════════════════════════
     // CONSTANTS
@@ -566,29 +567,10 @@ public class CardsPredictionService {
     }
 
     /**
-     * Resolve team name with case-insensitive matching.
+     * Resolve team name via centralized validation service.
      */
     private String resolveTeamName(String teamName, LocalDate beforeDate) {
-        String trimmed = teamName.trim();
-
-        // Try exact match
-        List<Match> exactMatches = matchRepository.findByTeamBeforeDate(trimmed, beforeDate);
-        if (!exactMatches.isEmpty()) {
-            return trimmed;
-        }
-
-        // Try case-insensitive
-        List<Match> caseInsensitive = matchRepository.findByTeamBeforeDateIgnoreCase(trimmed, beforeDate);
-        if (!caseInsensitive.isEmpty()) {
-            Match first = caseInsensitive.get(0);
-            String actual = first.getHomeTeam().equalsIgnoreCase(trimmed)
-                    ? first.getHomeTeam()
-                    : first.getAwayTeam();
-            log.debug("Resolved '{}' to '{}'", trimmed, actual);
-            return actual;
-        }
-
-        return trimmed;
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     /**

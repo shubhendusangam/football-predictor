@@ -13,6 +13,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import com.app.footballprediction.exception.DataSyncException;
+import com.app.footballprediction.exception.ModelNotReadyException;
+import com.app.footballprediction.exception.TeamNotFoundException;
+
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -135,6 +139,47 @@ public class GlobalExceptionHandler {
         // Don't log error level to reduce noise
         log.debug("Static resource not found: {}", ex.getResourcePath());
         return ResponseEntity.notFound().build();
+    }
+
+    // ── Domain-specific exception handlers ─────────────────────────────
+
+    /**
+     * Handle team not found (unknown team name supplied by user).
+     */
+    @ExceptionHandler(TeamNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleTeamNotFound(TeamNotFoundException ex) {
+        log.warn("Team not found: {}", ex.getTeamName());
+        return ResponseEntity.badRequest().body(buildErrorResponse(
+            HttpStatus.BAD_REQUEST,
+            ex.getMessage(),
+            Map.of("hint", "Use GET /api/teams to see valid team names")
+        ));
+    }
+
+    /**
+     * Handle model-not-ready (prediction requested before training).
+     */
+    @ExceptionHandler(ModelNotReadyException.class)
+    public ResponseEntity<Map<String, Object>> handleModelNotReady(ModelNotReadyException ex) {
+        log.warn("Model not ready: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(buildErrorResponse(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            ex.getMessage(),
+            Map.of("hint", "Call POST /api/model/train first")
+        ));
+    }
+
+    /**
+     * Handle data sync failures.
+     */
+    @ExceptionHandler(DataSyncException.class)
+    public ResponseEntity<Map<String, Object>> handleDataSyncFailure(DataSyncException ex) {
+        log.error("Data sync failed: {}", ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildErrorResponse(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            ex.getMessage(),
+            Map.of("hint", "Check external API connectivity and API key configuration")
+        ));
     }
 
     /**

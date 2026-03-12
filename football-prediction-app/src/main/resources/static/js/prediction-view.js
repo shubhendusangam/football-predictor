@@ -300,8 +300,12 @@
             elements.predictionResults.classList.remove('hidden');
         }
 
-        // Load team form insights
-        if (typeof window.loadTeamFormData === 'function') {
+        // Load team form insights — prefer the merged Form Comparison Widget
+        const fcSection = document.getElementById('formComparisonSection');
+        if (window.FormComparisonWidget) {
+            if (fcSection) fcSection.classList.remove('hidden');
+            window.FormComparisonWidget.render('formComparisonContainer', homeTeam, awayTeam, 10);
+        } else if (typeof window.loadTeamFormData === 'function') {
             window.loadTeamFormData(homeTeam, awayTeam);
         }
 
@@ -525,6 +529,12 @@
         if (typeof window.clearTeamFormPanels === 'function') {
             window.clearTeamFormPanels();
         }
+
+        // Clear form comparison section
+        const fcSection = document.getElementById('formComparisonSection');
+        if (fcSection) fcSection.classList.add('hidden');
+        const fcContainer = document.getElementById('formComparisonContainer');
+        if (fcContainer) fcContainer.innerHTML = '';
 
         // Reset date to today
         if (elements.matchDateInput) {

@@ -6,32 +6,22 @@ import com.app.common.model.Match;
 import com.app.common.repository.LeagueRepository;
 import com.app.common.repository.LeagueStandingRepository;
 import com.app.common.repository.MatchRepository;
-import com.app.footballprediction.config.CacheConfig;
+import com.app.common.util.SeasonHelper;
 import com.app.footballprediction.dto.external.FootballApiResponse;
 import com.app.footballprediction.dto.external.StandingsResponse;
-import com.app.footballprediction.util.SeasonUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.Cache;
-import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 /**
  * Service for synchronizing data from football-data.org API to the local database.
  *
- * This service bridges the gap between the external API and the local database,
- * ensuring that the UI displays fresh data instead of stale CSV data.
- *
- * Features:
- * - Sync standings from API to league_standings table
- * - Sync finished matches from API to matches table
- * - Sync scheduled matches (fixtures) from API to matches table
- * - Automatic cache invalidation after sync
+ * <p>Mapping between API DTOs and entities is handled by {@link MatchMapper}.
+ * Cache invalidation is delegated to {@link CacheOrchestrationService}.</p>
  */
 @Service
 @RequiredArgsConstructor
@@ -43,7 +33,7 @@ public class ApiDataSyncService {
     private final MatchRepository matchRepository;
     private final LeagueRepository leagueRepository;
     private final LeagueStandingService standingService;
-    private final CacheManager cacheManager;
+    private final CacheOrchestrationService cacheOrchestration;
 
     // ══════════════════════════════════════════════════════════════
     // Main Sync Methods
@@ -181,21 +171,19 @@ public class ApiDataSyncService {
                 String awayTeam = apiService.normalizeTeamName(apiMatch.getAwayTeam().getName());
 
                 // Extract match date
-                LocalDate matchDate = extractMatchDate(apiMatch.getUtcDate());
+                LocalDate matchDate = MatchMapper.extractMatchDate(apiMatch.getUtcDate());
 
                 // Check if match already exists
                 Match existingMatch = matchRepository.findByMatchDateAndHomeTeamAndAwayTeam(
                         matchDate, homeTeam, awayTeam);
 
                 if (existingMatch == null) {
-                    // Create new match
-                    Match newMatch = buildMatchFromApi(apiMatch, homeTeam, awayTeam, matchDate);
+                    Match newMatch = MatchMapper.fromApi(apiMatch, homeTeam, awayTeam, matchDate);
                     matchRepository.save(newMatch);
                     newMatches++;
                     log.debug("New match saved: {} vs {} on {}", homeTeam, awayTeam, matchDate);
                 } else {
-                    // Update existing match if scores changed
-                    if (updateMatchFromApi(existingMatch, apiMatch)) {
+                    if (MatchMapper.updateFromApi(existingMatch, apiMatch)) {
                         matchRepository.save(existingMatch);
                         updatedMatches++;
                         log.debug("Match updated: {} vs {} on {}", homeTeam, awayTeam, matchDate);
@@ -242,7 +230,7 @@ public class ApiDataSyncService {
                 String awayTeam = apiService.normalizeTeamName(apiMatch.getAwayTeam().getName());
 
                 // Extract match date
-                LocalDate matchDate = extractMatchDate(apiMatch.getUtcDate());
+                LocalDate matchDate = MatchMapper.extractMatchDate(apiMatch.getUtcDate());
 
                 // Check if fixture already exists
                 boolean exists = matchRepository.existsByMatchDateAndHomeTeamAndAwayTeam(
@@ -254,8 +242,8 @@ public class ApiDataSyncService {
                             .homeTeam(homeTeam)
                             .awayTeam(awayTeam)
                             .matchDate(matchDate)
-                            .season(getCurrentSeason())
-                            .kickoffTime(extractKickoffTime(apiMatch.getUtcDate()))
+                            .season(SeasonHelper.deriveSeason(matchDate))
+                            .kickoffTime(MatchMapper.extractKickoffTime(apiMatch.getUtcDate()))
                             // No scores set - this is a fixture
                             .fullTimeHomeGoals(null)
                             .fullTimeAwayGoals(null)
@@ -305,7 +293,7 @@ public class ApiDataSyncService {
             log.info("📅 Scheduled matches sync completed: {} fixtures", scheduledCount);
 
             // Step 4: Clear all related caches
-            clearAllRelatedCaches();
+            cacheOrchestration.clearAllDataCaches();
             log.info("🧹 All related caches cleared");
 
             long duration = System.currentTimeMillis() - startTime;
@@ -361,7 +349,7 @@ public class ApiDataSyncService {
             log.info("📅 Scheduled matches sync completed: {} fixtures", scheduledCount);
 
             // Step 4: Clear all related caches
-            clearAllRelatedCaches();
+            cacheOrchestration.clearAllDataCaches();
             log.info("🧹 All related caches cleared");
 
             long duration = System.currentTimeMillis() - startTime;
@@ -404,7 +392,7 @@ public class ApiDataSyncService {
                 }
 
                 // Extract match date
-                LocalDate matchDate = extractMatchDate(apiMatch.getUtcDate());
+                LocalDate matchDate = MatchMapper.extractMatchDate(apiMatch.getUtcDate());
 
                 // Skip matches before the sinceDate
                 if (matchDate.isBefore(sinceDate)) {
@@ -420,14 +408,12 @@ public class ApiDataSyncService {
                         matchDate, homeTeam, awayTeam);
 
                 if (existingMatch == null) {
-                    // Create new match
-                    Match newMatch = buildMatchFromApi(apiMatch, homeTeam, awayTeam, matchDate);
+                    Match newMatch = MatchMapper.fromApi(apiMatch, homeTeam, awayTeam, matchDate);
                     matchRepository.save(newMatch);
                     newMatches++;
                     log.debug("New match saved: {} vs {} on {}", homeTeam, awayTeam, matchDate);
                 } else {
-                    // Update existing match if scores changed
-                    if (updateMatchFromApi(existingMatch, apiMatch)) {
+                    if (MatchMapper.updateFromApi(existingMatch, apiMatch)) {
                         matchRepository.save(existingMatch);
                         updatedMatches++;
                         log.debug("Match updated: {} vs {} on {}", homeTeam, awayTeam, matchDate);
@@ -468,7 +454,7 @@ public class ApiDataSyncService {
             java.util.List<Match> allMatches = matchRepository.findAll();
             for (Match match : allMatches) {
                 if (match.getSeason() != null) {
-                    String normalized = SeasonUtils.normalizeSeason(match.getSeason());
+                    String normalized = SeasonHelper.normalizeSeason(match.getSeason());
                     if (!normalized.equals(match.getSeason())) {
                         match.setSeason(normalized);
                         matchRepository.save(match);
@@ -485,7 +471,7 @@ public class ApiDataSyncService {
 
                 // Normalize season
                 if (standing.getSeason() != null) {
-                    String normalized = SeasonUtils.normalizeSeason(standing.getSeason());
+                    String normalized = SeasonHelper.normalizeSeason(standing.getSeason());
                     if (!normalized.equals(standing.getSeason())) {
                         standing.setSeason(normalized);
                         standingsNormalized++;
@@ -512,7 +498,7 @@ public class ApiDataSyncService {
                     standingsNormalized, formCalculated);
 
             // Step 3: Clear all caches
-            clearAllRelatedCaches();
+            cacheOrchestration.clearAllDataCaches();
             log.info("🧹 All caches cleared");
 
             log.info("✅ Season normalization completed: {} matches, {} standings, {} forms calculated",
@@ -535,174 +521,18 @@ public class ApiDataSyncService {
     // ══════════════════════════════════════════════════════════════
 
     /**
-     * Build a Match entity from API response data.
-     */
-    private Match buildMatchFromApi(FootballApiResponse.ApiMatch apiMatch,
-                                     String homeTeam,
-                                     String awayTeam,
-                                     LocalDate matchDate) {
-        Integer homeGoals = null;
-        Integer awayGoals = null;
-        Integer htHomeGoals = null;
-        Integer htAwayGoals = null;
-        String result = null;
-        String htResult = null;
-
-        if (apiMatch.getScore() != null) {
-            if (apiMatch.getScore().getFullTime() != null) {
-                homeGoals = apiMatch.getScore().getFullTime().getHome();
-                awayGoals = apiMatch.getScore().getFullTime().getAway();
-                result = determineResult(homeGoals, awayGoals);
-            }
-            if (apiMatch.getScore().getHalfTime() != null) {
-                htHomeGoals = apiMatch.getScore().getHalfTime().getHome();
-                htAwayGoals = apiMatch.getScore().getHalfTime().getAway();
-                htResult = determineResult(htHomeGoals, htAwayGoals);
-            }
-        }
-
-        return Match.builder()
-                .homeTeam(homeTeam)
-                .awayTeam(awayTeam)
-                .matchDate(matchDate)
-                .season(getCurrentSeason())
-                .kickoffTime(extractKickoffTime(apiMatch.getUtcDate()))
-                .fullTimeHomeGoals(homeGoals)
-                .fullTimeAwayGoals(awayGoals)
-                .fullTimeResult(result)
-                .halfTimeHomeGoals(htHomeGoals)
-                .halfTimeAwayGoals(htAwayGoals)
-                .halfTimeResult(htResult)
-                .build();
-    }
-
-    /**
-     * Update existing match with API data.
-     * Returns true if any changes were made.
-     */
-    private boolean updateMatchFromApi(Match existing, FootballApiResponse.ApiMatch apiMatch) {
-        boolean changed = false;
-
-        if (apiMatch.getScore() != null && apiMatch.getScore().getFullTime() != null) {
-            Integer newHomeGoals = apiMatch.getScore().getFullTime().getHome();
-            Integer newAwayGoals = apiMatch.getScore().getFullTime().getAway();
-
-            if (newHomeGoals != null && !newHomeGoals.equals(existing.getFullTimeHomeGoals())) {
-                existing.setFullTimeHomeGoals(newHomeGoals);
-                changed = true;
-            }
-            if (newAwayGoals != null && !newAwayGoals.equals(existing.getFullTimeAwayGoals())) {
-                existing.setFullTimeAwayGoals(newAwayGoals);
-                changed = true;
-            }
-
-            if (changed) {
-                existing.setFullTimeResult(determineResult(newHomeGoals, newAwayGoals));
-            }
-        }
-
-        if (apiMatch.getScore() != null && apiMatch.getScore().getHalfTime() != null) {
-            Integer htHome = apiMatch.getScore().getHalfTime().getHome();
-            Integer htAway = apiMatch.getScore().getHalfTime().getAway();
-
-            if (htHome != null && !htHome.equals(existing.getHalfTimeHomeGoals())) {
-                existing.setHalfTimeHomeGoals(htHome);
-                existing.setHalfTimeResult(determineResult(htHome, htAway));
-                changed = true;
-            }
-            if (htAway != null && !htAway.equals(existing.getHalfTimeAwayGoals())) {
-                existing.setHalfTimeAwayGoals(htAway);
-                existing.setHalfTimeResult(determineResult(htHome, htAway));
-                changed = true;
-            }
-        }
-
-        // Backfill kick-off time if missing
-        if (existing.getKickoffTime() == null || existing.getKickoffTime().isBlank()) {
-            String kickoff = extractKickoffTime(apiMatch.getUtcDate());
-            if (kickoff != null) {
-                existing.setKickoffTime(kickoff);
-                changed = true;
-            }
-        }
-
-        return changed;
-    }
-
-    /**
-     * Determine match result based on goals.
-     * @return "H" for home win, "D" for draw, "A" for away win
-     */
-    private String determineResult(Integer homeGoals, Integer awayGoals) {
-        if (homeGoals == null || awayGoals == null) {
-            return null;
-        }
-        if (homeGoals > awayGoals) {
-            return "H";
-        } else if (homeGoals < awayGoals) {
-            return "A";
-        } else {
-            return "D";
-        }
-    }
-
-    /**
-     * Get current season string in standard format (YYYY-YY).
-     * If current month is before August, returns previous season.
-     */
-    private String getCurrentSeason() {
-        return SeasonUtils.getCurrentSeason();
-    }
-
-    /**
      * Extract season from API response and normalize to standard format.
      */
     private String extractSeason(StandingsResponse response) {
         if (response.getSeason() != null && response.getSeason().getStartDate() != null) {
-            return SeasonUtils.extractSeasonFromStartDate(response.getSeason().getStartDate());
+            return SeasonHelper.extractSeasonFromStartDate(response.getSeason().getStartDate());
         }
-        return getCurrentSeason();
-    }
-
-    /**
-     * Extract LocalDate from API UTC date string.
-     */
-    private LocalDate extractMatchDate(String utcDate) {
-        if (utcDate == null || utcDate.isEmpty()) {
-            return LocalDate.now();
-        }
-        try {
-            // Format: 2026-02-15T15:00:00Z
-            return LocalDate.parse(utcDate.substring(0, 10), DateTimeFormatter.ISO_LOCAL_DATE);
-        } catch (Exception e) {
-            log.warn("Failed to parse date: {}", utcDate);
-            return LocalDate.now();
-        }
-    }
-
-    /**
-     * Extract kick-off time (HH:mm) from API UTC date string.
-     * Format: "2026-02-15T15:00:00Z" → "15:00"
-     *
-     * @param utcDate UTC date string from API
-     * @return Kick-off time string (e.g., "15:00") or null if unparsable
-     */
-    private String extractKickoffTime(String utcDate) {
-        if (utcDate == null || utcDate.length() < 16) {
-            return null;
-        }
-        try {
-            // Format: 2026-02-15T15:00:00Z → extract "15:00"
-            return utcDate.substring(11, 16);
-        } catch (Exception e) {
-            log.warn("Failed to extract kick-off time from: {}", utcDate);
-            return null;
-        }
+        return SeasonHelper.currentSeason();
     }
 
     /**
      * Normalize form string from API format to display format.
-     * API: "W,W,D,L,W" -> Display: "W W D L W"
+     * API: "W,W,D,L,W" → Display: "W W D L W"
      */
     private String normalizeForm(String apiForm) {
         if (apiForm == null || apiForm.isEmpty()) {
@@ -714,14 +544,9 @@ public class ApiDataSyncService {
     /**
      * Calculate team form from recent match results.
      * Used as fallback when API doesn't provide form data.
-     *
-     * @param teamName The team name to calculate form for
-     * @param matchCount Number of recent matches to consider (e.g., 5)
-     * @return Form string like "W D L W W" or null if no matches found
      */
     private String calculateFormFromMatches(String teamName, int matchCount) {
         try {
-            // Get recent finished matches for the team
             java.util.List<Match> recentMatches = matchRepository.findAllByOrderByMatchDateDesc()
                     .stream()
                     .filter(m -> m.getFullTimeResult() != null &&
@@ -737,22 +562,18 @@ public class ApiDataSyncService {
             for (Match match : recentMatches) {
                 boolean isHome = teamName.equalsIgnoreCase(match.getHomeTeam());
                 String result = match.getFullTimeResult();
-
                 if (result == null) continue;
 
-                // Convert match result to team-specific result
                 String teamResult;
                 if ("D".equals(result)) {
                     teamResult = "D";
                 } else if ("H".equals(result)) {
                     teamResult = isHome ? "W" : "L";
-                } else { // "A"
+                } else {
                     teamResult = isHome ? "L" : "W";
                 }
 
-                if (form.length() > 0) {
-                    form.append(" ");
-                }
+                if (form.length() > 0) form.append(" ");
                 form.append(teamResult);
             }
 
@@ -785,42 +606,6 @@ public class ApiDataSyncService {
                     log.info("Created new league: {} ({})", leagueName, competitionCode);
                     return leagueRepository.save(newLeague);
                 });
-    }
-
-    /**
-     * Clear all caches that depend on match or standings data.
-     * This ensures the UI displays fresh data after sync.
-     */
-    private void clearAllRelatedCaches() {
-        String[] cachesToClear = {
-            CacheConfig.CACHE_STANDINGS,
-            CacheConfig.CACHE_MATCHES,
-            CacheConfig.CACHE_TEAM_STATS,
-            CacheConfig.CACHE_TEAM_FORM,
-            CacheConfig.CACHE_H2H_INSIGHTS,
-            CacheConfig.CACHE_TRENDING_INSIGHTS,
-            CacheConfig.CACHE_PREDICTIONS,
-            CacheConfig.CACHE_TEAM_ANALYTICS,
-            CacheConfig.CACHE_PRE_MATCH_INSIGHTS,
-            CacheConfig.CACHE_LEAGUE_STATS,
-            CacheConfig.CACHE_ELO_RATINGS,
-            CacheConfig.CACHE_API_RESPONSES,
-            CacheConfig.CACHE_SEASONS,
-            CacheConfig.CACHE_SEASON_STATS,
-            CacheConfig.CACHE_API_SYNC
-        };
-
-        for (String cacheName : cachesToClear) {
-            try {
-                Cache cache = cacheManager.getCache(cacheName);
-                if (cache != null) {
-                    cache.clear();
-                    log.debug("Cleared cache: {}", cacheName);
-                }
-            } catch (Exception e) {
-                log.warn("Failed to clear cache {}: {}", cacheName, e.getMessage());
-            }
-        }
     }
 }
 

@@ -84,6 +84,25 @@ public class TeamValidationService {
     );
 
     /**
+     * Resolve a team name to its canonical database form.
+     *
+     * <p>Convenience method that delegates to {@link #validateTeam(String)} and
+     * either returns the normalized name or throws {@link IllegalArgumentException}.
+     * Use this from services that need a simple team-name-or-throw contract.</p>
+     *
+     * @param teamName raw team name (alias, API name, partial, etc.)
+     * @return canonical database team name
+     * @throws IllegalArgumentException if the team cannot be resolved
+     */
+    public String resolveTeamName(String teamName) {
+        ValidationResult result = validateTeam(teamName);
+        if (result.isValid()) {
+            return result.getNormalizedName();
+        }
+        throw new IllegalArgumentException(result.getErrorMessage());
+    }
+
+    /**
      * Validate and normalize a team name.
      *
      * @param teamName The team name to validate

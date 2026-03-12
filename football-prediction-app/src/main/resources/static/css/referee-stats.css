@@ -1,0 +1,1251 @@
+/* ==========================================
+   REFEREE STATISTICS & IMPACT ANALYSIS STYLES
+   Football Forecaster - Referee Component
+   ========================================== */
+
+/* ==========================================
+   REFEREES PAGE LAYOUT
+   ========================================== */
+
+.referees-page {
+    padding: 0;
+}
+
+.referees-page__header {
+    margin-bottom: 1.5rem;
+}
+
+.referees-page__title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0 0 0.25rem;
+}
+
+.referees-page__subtitle {
+    color: var(--text-muted, #64748b);
+    font-size: 0.875rem;
+    margin: 0;
+}
+
+/* Search & Filter Bar */
+.referees-page__controls {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.referees-page__search {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.625rem 1rem;
+    padding-left: 2.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-secondary, #1e293b);
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+}
+
+.referees-page__search:focus {
+    outline: none;
+    border-color: var(--accent-blue, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.referees-page__search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+}
+
+.referees-page__search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.referees-page__sort-select {
+    padding: 0.625rem 1rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color, #334155);
+    background: var(--bg-secondary, #1e293b);
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.875rem;
+    cursor: pointer;
+    min-width: 180px;
+}
+
+.referees-page__sort-select:focus {
+    outline: none;
+    border-color: var(--accent-blue, #3b82f6);
+}
+
+/* ==========================================
+   REFEREE STATS CARD
+   ========================================== */
+
+.referee-stats-card {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.referee-stats-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+    border-color: var(--accent-blue, #3b82f6);
+}
+
+.referee-stats-card__header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.referee-stats-card__avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--bg-tertiary, #0f172a), var(--bg-secondary, #1e293b));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    border: 2px solid var(--border-color, #334155);
+    flex-shrink: 0;
+}
+
+.referee-stats-card__name {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.referee-stats-card__matches {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+    margin: 0;
+}
+
+/* Type Badge */
+.referee-stats-card__badge {
+    margin-left: auto;
+    padding: 0.25rem 0.75rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+}
+
+.referee-stats-card__badge--strict {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.referee-stats-card__badge--lenient {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.referee-stats-card__badge--balanced {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.referee-stats-card__badge--unknown {
+    background: rgba(100, 116, 139, 0.15);
+    color: #64748b;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+}
+
+/* Stats Grid */
+.referee-stats-card__stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.referee-stats-card__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.referee-stats-card__stat-label {
+    font-size: 0.6875rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.referee-stats-card__stat-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.referee-stats-card__stat-value--yellow {
+    color: #fbbf24;
+}
+
+.referee-stats-card__stat-value--red {
+    color: #ef4444;
+}
+
+.referee-stats-card__stat-value--green {
+    color: #22c55e;
+}
+
+/* Card Bar */
+.referee-stats-card__bar-container {
+    height: 6px;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 0.5rem;
+}
+
+.referee-stats-card__bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.referee-stats-card__bar--yellow {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+.referee-stats-card__bar--red {
+    background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.referee-stats-card__bar--blue {
+    background: linear-gradient(90deg, #3b82f6, #2563eb);
+}
+
+/* Cards Container */
+.referee-stats-card__cards-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.referee-stats-card__cards-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+    min-width: 60px;
+}
+
+.referee-stats-card__cards-value {
+    font-size: 0.875rem;
+    font-weight: 600;
+    min-width: 36px;
+    text-align: right;
+}
+
+/* Footer */
+.referee-stats-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border-color, #334155);
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+}
+
+/* ==========================================
+   REFEREES GRID
+   ========================================== */
+
+.referees-page__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+    .referees-page__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ==========================================
+   REFEREE DETAIL MODAL / EXPANDED VIEW
+   ========================================== */
+
+.referee-detail {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.referee-detail__header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color, #334155);
+}
+
+.referee-detail__avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--bg-tertiary, #0f172a), var(--bg-secondary, #1e293b));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    border: 2px solid var(--border-color, #334155);
+}
+
+.referee-detail__name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.referee-detail__meta {
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    margin: 0.25rem 0 0;
+}
+
+/* Stats Sections */
+.referee-detail__sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+}
+
+.referee-detail__section {
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.referee-detail__section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin: 0 0 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.referee-detail__stat-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.referee-detail__stat-row:last-child {
+    border-bottom: none;
+}
+
+.referee-detail__stat-name {
+    font-size: 0.8125rem;
+    color: var(--text-muted, #64748b);
+}
+
+.referee-detail__stat-val {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* ==========================================
+   REFEREE IMPACT WIDGET
+   ========================================== */
+
+.referee-impact-widget {
+    background: linear-gradient(135deg, var(--bg-secondary, #1e293b) 0%, var(--bg-tertiary, #0f172a) 100%);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+}
+
+.referee-impact-widget__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.referee-impact-widget__icon {
+    font-size: 1.25rem;
+}
+
+.referee-impact-widget__title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.referee-impact-widget__ref-name {
+    font-size: 0.875rem;
+    color: var(--accent-blue, #3b82f6);
+    margin: 0.125rem 0 0;
+}
+
+.referee-impact-widget__stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.referee-impact-widget__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: 0.625rem;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 0.375rem;
+}
+
+.referee-impact-widget__stat-label {
+    font-size: 0.6875rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.referee-impact-widget__stat-value {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* Warning banner */
+.referee-impact-widget__warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 0.5rem;
+    margin-top: 0.75rem;
+}
+
+.referee-impact-widget__warning--info {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.referee-impact-widget__warning-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
+}
+
+.referee-impact-widget__warning-text {
+    font-size: 0.8125rem;
+    color: var(--text-secondary, #94a3b8);
+    line-height: 1.4;
+}
+
+/* Risk level indicator */
+.referee-impact-widget__risk {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.referee-impact-widget__risk--high {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.referee-impact-widget__risk--medium {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.referee-impact-widget__risk--low {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+/* Home advantage note */
+.referee-impact-widget__home-adv {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 0.375rem;
+    margin-top: 0.75rem;
+    font-size: 0.8125rem;
+}
+
+.referee-impact-widget__home-adv-icon {
+    font-size: 1rem;
+}
+
+.referee-impact-widget__home-adv-text {
+    color: var(--text-secondary, #94a3b8);
+}
+
+.referee-impact-widget__home-adv-value {
+    font-weight: 700;
+    margin-left: auto;
+}
+
+.referee-impact-widget__home-adv-value--positive {
+    color: #22c55e;
+}
+
+.referee-impact-widget__home-adv-value--negative {
+    color: #ef4444;
+}
+
+.referee-impact-widget__home-adv-value--neutral {
+    color: var(--text-muted, #64748b);
+}
+
+/* ==========================================
+   LOADING & ERROR STATES
+   ========================================== */
+
+.referees-page--loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.referees-page__loader {
+    text-align: center;
+    color: var(--text-muted, #64748b);
+}
+
+.referees-page__spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color, #334155);
+    border-top-color: var(--accent-blue, #3b82f6);
+    border-radius: 50%;
+    animation: referee-spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes referee-spin {
+    to { transform: rotate(360deg); }
+}
+
+.referees-page--error {
+    text-align: center;
+    padding: 3rem;
+}
+
+.referees-page__error-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.referees-page__error-text {
+    color: var(--text-muted, #64748b);
+    margin-bottom: 1rem;
+}
+
+.referees-page__retry-btn {
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--accent-blue, #3b82f6);
+    background: transparent;
+    color: var(--accent-blue, #3b82f6);
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background 0.2s;
+}
+
+.referees-page__retry-btn:hover {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+/* Empty state */
+.referees-page__empty {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-muted, #64748b);
+}
+
+.referees-page__empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Count badge */
+.referees-page__count {
+    font-size: 0.875rem;
+    color: var(--text-muted, #64748b);
+    margin-bottom: 1rem;
+}
+
+/* Back button */
+.referees-page__back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    border: 1px solid var(--border-color, #334155);
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    cursor: pointer;
+    font-size: 0.8125rem;
+    transition: background 0.2s, color 0.2s;
+    margin-bottom: 1rem;
+}
+
+.referees-page__back-btn:hover {
+    background: var(--bg-tertiary, #0f172a);
+    color: var(--text-primary, #f1f5f9);
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media (max-width: 640px) {
+    .referee-stats-card__stats {
+        grid-template-columns: 1fr;
+    }
+
+    .referee-detail__sections {
+        grid-template-columns: 1fr;
+    }
+
+    .referee-impact-widget__stats {
+        grid-template-columns: 1fr;
+    }
+
+    .referees-page__controls {
+        flex-direction: column;
+    }
+
+    .referees-page__search-wrapper {
+        width: 100%;
+    }
+
+    .referees-page__sort-select {
+        width: 100%;
+    }
+}
+
+/* ==========================================
+   STAGGERED CARD FADE-IN ANIMATION
+   ========================================== */
+
+.referee-stats-card--animated {
+    opacity: 0;
+    animation: refCardFadeIn 0.45s ease forwards;
+}
+
+@keyframes refCardFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==========================================
+   TOOLBAR (FILTER BUTTONS + COMPARE TOGGLE)
+   ========================================== */
+
+.referees-page__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.referees-page__filters {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.referees-page__filter-btn {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.referees-page__filter-btn:hover {
+    border-color: var(--accent-blue, #3b82f6);
+    color: var(--text-primary, #f1f5f9);
+}
+
+.referees-page__filter-btn--active {
+    background: var(--accent-blue, #3b82f6);
+    border-color: var(--accent-blue, #3b82f6);
+    color: #fff;
+}
+
+.referees-page__filter-count {
+    background: rgba(255,255,255,0.15);
+    padding: 0.1rem 0.4rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.referees-page__filter-btn--active .referees-page__filter-count {
+    background: rgba(255,255,255,0.25);
+}
+
+.referees-page__compare-toggle {
+    padding: 0.4rem 0.9rem;
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.referees-page__compare-toggle:hover {
+    border-color: #06b6d4;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.referees-page__compare-toggle--active {
+    background: #06b6d4;
+    border-color: #06b6d4;
+    color: #fff;
+}
+
+/* ==========================================
+   LEAGUE SUMMARY
+   ========================================== */
+
+.league-summary {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.league-summary__header {
+    margin-bottom: 1rem;
+}
+
+.league-summary__title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.league-summary__tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.league-summary__tile {
+    background: rgba(255,255,255,0.04);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.league-summary__tile-icon { font-size: 1.3rem; }
+
+.league-summary__tile-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.league-summary__tile-label {
+    font-size: 0.72rem;
+    color: var(--text-muted, #64748b);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.league-summary__type-row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.league-summary__type-badge {
+    padding: 0.3rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.league-summary__type-badge--strict   { background: rgba(239,68,68,0.15); color: #fca5a5; }
+.league-summary__type-badge--balanced { background: rgba(251,191,36,0.15); color: #fde68a; }
+.league-summary__type-badge--lenient  { background: rgba(34,197,94,0.15);  color: #86efac; }
+
+.league-summary__panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.league-summary__panel {
+    background: rgba(255,255,255,0.03);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.league-summary__panel-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 0.5rem;
+}
+
+.league-summary__panel-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.league-summary__panel-row {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.league-summary__rank {
+    color: var(--text-muted, #64748b);
+    width: 20px;
+}
+
+.league-summary__name { flex: 1; font-weight: 500; }
+
+.league-summary__avg {
+    color: var(--text-muted, #64748b);
+    font-size: 0.72rem;
+}
+
+.league-summary__panel-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted, #64748b);
+}
+
+.league-summary__no-data {
+    color: var(--text-muted, #64748b);
+    font-size: 0.8rem;
+}
+
+/* ==========================================
+   STRICTNESS GAUGE
+   ========================================== */
+
+.strictness-gauge {
+    display: flex;
+    justify-content: center;
+    padding: 0.5rem 0;
+}
+
+.strictness-gauge svg {
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.25));
+}
+
+/* ==========================================
+   RESULTS DISTRIBUTION BAR
+   ========================================== */
+
+.results-dist { padding: 0.75rem 0; }
+
+.results-dist__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 0.5rem;
+}
+
+.results-dist__bar {
+    display: flex;
+    height: 32px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.05);
+}
+
+.results-dist__segment {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.results-dist__segment-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: rgba(0,0,0,0.75);
+    white-space: nowrap;
+    padding: 0 4px;
+}
+
+.results-dist__legend {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.results-dist__legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.results-dist__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* ==========================================
+   STATS BAR CHARTS
+   ========================================== */
+
+.ref-bars { padding: 0.75rem 0; }
+
+.ref-bars__title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 0.75rem;
+}
+
+.ref-bars__row {
+    display: grid;
+    grid-template-columns: 150px 1fr 55px;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    animation: refBarFadeIn 0.4s ease both;
+}
+
+.ref-bars__label {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #94a3b8);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.ref-bars__icon { font-size: 0.9rem; }
+
+.ref-bars__track {
+    height: 12px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.ref-bars__fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.6s ease;
+}
+
+.ref-bars__value {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+    text-align: right;
+}
+
+@keyframes refBarFadeIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ==========================================
+   DETAIL VIEW VISUAL ROW + BAR CHARTS
+   ========================================== */
+
+.referee-detail__visual-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1.5rem;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+}
+
+.referee-detail__visual-item {
+    min-width: 0;
+}
+
+.referee-detail__bar-charts {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-tertiary, #0f172a);
+    border-radius: 0.5rem;
+}
+
+/* ==========================================
+   COMPARISON PANEL
+   ========================================== */
+
+.ref-compare {
+    background: var(--bg-secondary, #1e293b);
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.ref-compare__header { margin-bottom: 1rem; }
+
+.ref-compare__title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin: 0;
+}
+
+.ref-compare__selectors {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+}
+
+.ref-compare__select {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color, #334155);
+    border-radius: 0.5rem;
+    background: var(--bg-tertiary, #0f172a);
+    color: var(--text-primary, #f1f5f9);
+    font-size: 0.85rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.ref-compare__select:focus {
+    border-color: var(--accent-blue, #3b82f6);
+}
+
+.ref-compare__vs {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-muted, #64748b);
+}
+
+.ref-compare__btn {
+    padding: 0.5rem 1.25rem;
+    background: var(--accent-blue, #3b82f6);
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.ref-compare__btn:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+}
+
+.ref-compare__loading,
+.ref-compare__hint,
+.ref-compare__error {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.85rem;
+}
+
+.ref-compare__error { color: #fca5a5; }
+
+.ref-compare__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ref-compare__card {
+    background: rgba(255,255,255,0.03);
+    border-radius: 0.625rem;
+    padding: 1rem;
+    text-align: center;
+}
+
+.ref-compare__card-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary, #f1f5f9);
+    margin-bottom: 0.4rem;
+}
+
+.ref-compare__badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.ref-compare__badge--strict   { background: rgba(239,68,68,0.15); color: #fca5a5; }
+.ref-compare__badge--balanced { background: rgba(251,191,36,0.15); color: #fde68a; }
+.ref-compare__badge--lenient  { background: rgba(34,197,94,0.15);  color: #86efac; }
+.ref-compare__badge--unknown  { background: rgba(100,116,139,0.15); color: #94a3b8; }
+
+.ref-compare__gauge {
+    margin: 0.5rem auto;
+    max-width: 200px;
+}
+
+.ref-compare__stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+    text-align: left;
+}
+
+.ref-compare__stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0.4rem;
+    font-size: 0.75rem;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+}
+
+.ref-compare__stat-label { color: var(--text-muted, #64748b); }
+
+.ref-compare__stat-value {
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.ref-compare__verdicts {
+    background: rgba(255,255,255,0.03);
+    border-radius: 0.625rem;
+    padding: 1rem;
+}
+
+.ref-compare__verdicts-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary, #94a3b8);
+    margin-bottom: 0.5rem;
+}
+
+.ref-compare__verdict-row {
+    display: grid;
+    grid-template-columns: 130px 130px 1fr;
+    gap: 0.5rem;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 0.78rem;
+    align-items: center;
+}
+
+.ref-compare__verdict-row:last-child { border-bottom: none; }
+
+.ref-compare__verdict-metric {
+    font-weight: 600;
+    color: var(--text-primary, #f1f5f9);
+}
+
+.ref-compare__verdict-winner {
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.ref-compare__verdict-winner--tie { color: var(--text-muted, #64748b); }
+
+.ref-compare__verdict-note {
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.72rem;
+}
+
+/* ==========================================
+   COMPARISON RESPONSIVE
+   ========================================== */
+
+@media (max-width: 640px) {
+    .ref-compare__grid { grid-template-columns: 1fr; }
+    .ref-compare__verdict-row { grid-template-columns: 1fr; gap: 0.15rem; }
+    .referee-detail__visual-row { grid-template-columns: 1fr; }
+    .ref-bars__row { grid-template-columns: 120px 1fr 45px; }
+    .referees-page__toolbar { flex-direction: column; align-items: flex-start; }
+    .league-summary__tiles { grid-template-columns: repeat(2, 1fr); }
+    .league-summary__panels { grid-template-columns: 1fr; }
+}

@@ -19,7 +19,11 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.when;
 
 /**
@@ -32,6 +36,9 @@ class TeamStatsServiceTest {
     @Mock
     private MatchRepository matchRepository;
 
+    @Mock
+    private TeamValidationService teamValidationService;
+
     @InjectMocks
     private TeamStatsService teamStatsService;
 
@@ -39,6 +46,14 @@ class TeamStatsServiceTest {
 
     @BeforeEach
     void setUp() {
+        lenient().when(teamValidationService.resolveTeamName(any()))
+                .thenAnswer(inv -> {
+                    String name = inv.getArgument(0);
+                    if (name == null || name.isBlank()) {
+                        throw new IllegalArgumentException("Team name cannot be empty");
+                    }
+                    return name;
+                });
         // Create sample match data for Arsenal
         arsenalMatches = Arrays.asList(
                 createMatch("Arsenal", "Chelsea", 2, 1, "H", LocalDate.of(2025, 12, 1)),
@@ -103,8 +118,8 @@ class TeamStatsServiceTest {
     void getTeamStats_noMatches_throwsException() {
         // Given
         String teamName = "NonExistentFC";
-        when(matchRepository.findByTeamBeforeDate(eq(teamName), any()))
-                .thenReturn(Collections.emptyList());
+        when(teamValidationService.resolveTeamName(teamName))
+                .thenThrow(new IllegalArgumentException("No matches found for team: 'NonExistentFC'"));
 
         // When/Then
         assertThatThrownBy(() -> teamStatsService.getTeamStats(teamName))

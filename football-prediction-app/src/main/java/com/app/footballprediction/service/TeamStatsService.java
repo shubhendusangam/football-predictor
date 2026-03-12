@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class TeamStatsService {
 
     private final MatchRepository matchRepository;
+    private final TeamValidationService teamValidationService;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -66,145 +67,10 @@ public class TeamStatsService {
     }
 
     /**
-     * Resolve team name using smart matching:
-     * 1. Try exact match
-     * 2. Try case-insensitive match
-     * 3. Try fuzzy/partial match
-     * 4. Suggest similar teams if not found
+     * Resolve team name via centralized validation service.
      */
     private String resolveTeamName(String teamName, LocalDate beforeDate) {
-        if (teamName == null || teamName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Team name cannot be empty");
-        }
-
-        String trimmedName = teamName.trim();
-
-        // 1. Try exact match first
-        List<Match> exactMatches = matchRepository.findByTeamBeforeDate(trimmedName, beforeDate);
-        if (!exactMatches.isEmpty()) {
-            return trimmedName;
-        }
-
-        // 2. Try case-insensitive match
-        List<Match> caseInsensitiveMatches = matchRepository.findByTeamBeforeDateIgnoreCase(trimmedName, beforeDate);
-        if (!caseInsensitiveMatches.isEmpty()) {
-            // Return the actual team name from the database (proper casing)
-            Match firstMatch = caseInsensitiveMatches.get(0);
-            String actualName = firstMatch.getHomeTeam().equalsIgnoreCase(trimmedName)
-                    ? firstMatch.getHomeTeam()
-                    : firstMatch.getAwayTeam();
-            log.info("Resolved '{}' to '{}' (case-insensitive match)", trimmedName, actualName);
-            return actualName;
-        }
-
-        // 3. Try fuzzy/partial match
-        List<String> similarTeams = matchRepository.findTeamNamesContaining(trimmedName);
-        if (!similarTeams.isEmpty()) {
-            // Find the best match using similarity scoring
-            String bestMatch = findBestMatch(trimmedName, similarTeams);
-            if (bestMatch != null) {
-                log.info("Resolved '{}' to '{}' (fuzzy match)", trimmedName, bestMatch);
-                return bestMatch;
-            }
-        }
-
-        // 4. No match found - provide helpful error with suggestions
-        long totalMatchesInDb = matchRepository.count();
-        if (totalMatchesInDb == 0) {
-            throw new IllegalArgumentException(
-                    "No matches found for team: '" + trimmedName + "'. " +
-                    "Database is empty - please call POST /api/ingestion/ingest first to load match data.");
-        }
-
-        // Get some similar team suggestions
-        List<String> suggestions = getSimilarTeamSuggestions(trimmedName, 5);
-        String suggestionText = suggestions.isEmpty()
-                ? "Use GET /api/teams to see available teams."
-                : "Did you mean: " + String.join(", ", suggestions) + "?";
-
-        throw new IllegalArgumentException(
-                "No matches found for team: '" + trimmedName + "'. " +
-                "Database has " + totalMatchesInDb + " matches. " + suggestionText);
-    }
-
-    /**
-     * Find the best matching team name from a list of candidates.
-     * Uses simple string similarity scoring.
-     */
-    private String findBestMatch(String input, List<String> candidates) {
-        if (candidates == null || candidates.isEmpty()) {
-            return null;
-        }
-
-        String inputLower = input.toLowerCase();
-        String bestMatch = null;
-        double bestScore = 0.3; // Minimum threshold
-
-        for (String candidate : candidates) {
-            double score = calculateSimilarity(inputLower, candidate.toLowerCase());
-            if (score > bestScore) {
-                bestScore = score;
-                bestMatch = candidate;
-            }
-        }
-
-        return bestMatch;
-    }
-
-    /**
-     * Calculate string similarity using Jaro-Winkler-like approach.
-     * Returns value between 0 (no match) and 1 (exact match).
-     */
-    private double calculateSimilarity(String s1, String s2) {
-        if (s1.equals(s2)) return 1.0;
-        if (s1.isEmpty() || s2.isEmpty()) return 0.0;
-
-        // Check if one contains the other
-        if (s1.contains(s2) || s2.contains(s1)) {
-            double lengthRatio = (double) Math.min(s1.length(), s2.length()) / Math.max(s1.length(), s2.length());
-            return 0.6 + (0.4 * lengthRatio);
-        }
-
-        // Check common prefix
-        int prefixLength = 0;
-        int maxPrefixLength = Math.min(4, Math.min(s1.length(), s2.length()));
-        while (prefixLength < maxPrefixLength && s1.charAt(prefixLength) == s2.charAt(prefixLength)) {
-            prefixLength++;
-        }
-
-        // Simple character overlap calculation
-        int matches = 0;
-        for (char c : s1.toCharArray()) {
-            if (s2.indexOf(c) >= 0) {
-                matches++;
-            }
-        }
-        double charOverlap = (double) matches / s1.length();
-
-        return (prefixLength * 0.1) + (charOverlap * 0.5);
-    }
-
-    /**
-     * Get suggestions for similar team names.
-     */
-    private List<String> getSimilarTeamSuggestions(String teamName, int limit) {
-        // First try partial match
-        List<String> partialMatches = matchRepository.findTeamNamesContaining(teamName);
-        if (!partialMatches.isEmpty()) {
-            return partialMatches.stream().limit(limit).collect(Collectors.toList());
-        }
-
-        // If no partial matches, get all teams and find similar ones
-        List<String> allTeams = matchRepository.findAllDistinctTeamNames();
-        String inputLower = teamName.toLowerCase();
-
-        return allTeams.stream()
-                .map(team -> new AbstractMap.SimpleEntry<>(team, calculateSimilarity(inputLower, team.toLowerCase())))
-                .filter(e -> e.getValue() > 0.2)
-                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
-                .limit(limit)
-                .map(AbstractMap.SimpleEntry::getKey)
-                .collect(Collectors.toList());
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     /**

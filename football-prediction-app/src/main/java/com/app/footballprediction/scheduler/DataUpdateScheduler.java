@@ -2,7 +2,7 @@ package com.app.footballprediction.scheduler;
 
 import com.app.footballprediction.service.ApiDataSyncService;
 import com.app.footballprediction.service.CsvIngestionService;
-import com.app.footballprediction.modeltraining.ModelTrainingService;
+import com.app.footballprediction.service.ModelSelfTrainingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,7 @@ import java.nio.file.*;
 public class DataUpdateScheduler {
 
     private final CsvIngestionService csvIngestionService;
-    private final ModelTrainingService modelTrainingService;
+    private final ModelSelfTrainingService modelSelfTrainingService;
     private final ApiDataSyncService apiDataSyncService;
 
     @Value("${scheduler.enabled:true}")
@@ -74,7 +74,7 @@ public class DataUpdateScheduler {
                 // Retrain model with new data
                 if (autoRetrain) {
                     log.info("🧠 Retraining model with updated data...");
-                    String report = modelTrainingService.trainAndEvaluate();
+                    String report = modelSelfTrainingService.trainWithHistory("SCHEDULED_CSV_UPDATE");
                     log.info("✅ Model retrained successfully:\n{}", report);
                 }
             }
@@ -145,7 +145,7 @@ public class DataUpdateScheduler {
                 csvIngestionService.ingestAll();
 
                 if (autoRetrain) {
-                    return modelTrainingService.trainAndEvaluate();
+                    return modelSelfTrainingService.trainWithHistory("MANUAL_CSV_UPDATE");
                 }
                 return "Data updated successfully. Model retrain disabled.";
             }

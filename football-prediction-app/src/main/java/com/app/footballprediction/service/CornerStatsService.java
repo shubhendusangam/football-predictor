@@ -46,6 +46,7 @@ import java.util.List;
 public class CornerStatsService {
 
     private final MatchRepository matchRepository;
+    private final TeamValidationService teamValidationService;
 
     /**
      * Minimum matches required for confident statistics.
@@ -627,29 +628,11 @@ public class CornerStatsService {
      * @param season     Current season
      * @return Resolved team name
      */
+    /**
+     * Resolve team name via centralized validation service.
+     */
     private String resolveTeamName(String teamName, LocalDate beforeDate, String season) {
-        String trimmed = teamName.trim();
-
-        // Try exact match first within season
-        List<Match> exactMatches = matchRepository.findByTeamAndSeasonBeforeDate(trimmed, season, beforeDate);
-        if (!exactMatches.isEmpty()) {
-            return trimmed;
-        }
-
-        // Try case-insensitive match within season
-        List<Match> caseInsensitiveMatches = matchRepository.findByTeamAndSeasonBeforeDateIgnoreCase(trimmed, season, beforeDate);
-        if (!caseInsensitiveMatches.isEmpty()) {
-            Match first = caseInsensitiveMatches.get(0);
-            String actual = first.getHomeTeam().equalsIgnoreCase(trimmed)
-                    ? first.getHomeTeam()
-                    : first.getAwayTeam();
-            log.debug("Resolved '{}' to '{}' (case-insensitive) in season {}", trimmed, actual, season);
-            return actual;
-        }
-
-        // No match found in current season
-        log.warn("Could not resolve team name '{}' in season {}", trimmed, season);
-        return trimmed;
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     /**

@@ -13,4 +13,3 @@ CREATE INDEX IF NOT EXISTS idx_matches_stats_processed ON matches(stats_processe
 
 -- Add version column to season_team_stats for optimistic locking
 ALTER TABLE season_team_stats ADD COLUMN IF NOT EXISTS version BIGINT DEFAULT 0;
-

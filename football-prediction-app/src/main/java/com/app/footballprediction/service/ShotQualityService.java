@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 public class ShotQualityService {
 
     private final MatchRepository matchRepository;
+    private final TeamValidationService teamValidationService;
 
     // League average constants (Premier League typical values)
     private static final double LEAGUE_AVG_SHOT_ACCURACY = 0.32; // 32%
@@ -242,38 +243,11 @@ public class ShotQualityService {
     /**
      * Resolve team name using case-insensitive matching.
      */
+    /**
+     * Resolve team name via centralized validation service.
+     */
     private String resolveTeamName(String teamName) {
-        if (teamName == null || teamName.trim().isEmpty()) {
-            throw new IllegalArgumentException("Team name cannot be empty");
-        }
-
-        String trimmedName = teamName.trim();
-        LocalDate beforeDate = LocalDate.now().plusDays(1);
-
-        // Try exact match first
-        List<Match> exactMatches = matchRepository.findByTeamBeforeDate(trimmedName, beforeDate);
-        if (!exactMatches.isEmpty()) {
-            return trimmedName;
-        }
-
-        // Try case-insensitive match
-        List<Match> caseInsensitiveMatches = matchRepository.findByTeamBeforeDateIgnoreCase(trimmedName, beforeDate);
-        if (!caseInsensitiveMatches.isEmpty()) {
-            Match firstMatch = caseInsensitiveMatches.get(0);
-            return firstMatch.getHomeTeam().equalsIgnoreCase(trimmedName)
-                    ? firstMatch.getHomeTeam()
-                    : firstMatch.getAwayTeam();
-        }
-
-        // Try fuzzy match
-        List<String> similarTeams = matchRepository.findTeamNamesContaining(trimmedName);
-        if (!similarTeams.isEmpty()) {
-            log.info("Resolved '{}' to '{}' (fuzzy match)", trimmedName, similarTeams.get(0));
-            return similarTeams.get(0);
-        }
-
-        throw new IllegalArgumentException("Team not found: " + trimmedName +
-                ". Use GET /api/teams to see available teams.");
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     /**

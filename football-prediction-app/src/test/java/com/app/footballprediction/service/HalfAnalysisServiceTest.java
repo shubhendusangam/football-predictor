@@ -3,6 +3,7 @@ package com.app.footballprediction.service;
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.dto.HalfAnalysisDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -40,8 +41,23 @@ class HalfAnalysisServiceTest {
     @Mock
     private MatchRepository matchRepository;
 
+    @Mock
+    private TeamValidationService teamValidationService;
+
     @InjectMocks
     private HalfAnalysisService halfAnalysisService;
+
+    @BeforeEach
+    void setUpTeamValidation() {
+        lenient().when(teamValidationService.resolveTeamName(any()))
+                .thenAnswer(inv -> {
+                    String name = inv.getArgument(0);
+                    if (name == null || name.isBlank()) {
+                        throw new IllegalArgumentException("Team name cannot be null or empty");
+                    }
+                    return name;
+                });
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     // TEST DATA BUILDERS
@@ -181,8 +197,6 @@ class HalfAnalysisServiceTest {
             String teamName = "NonExistent FC";
 
             when(matchRepository.findByTeamBeforeDate(eq(teamName), any(LocalDate.class)))
-                    .thenReturn(Collections.emptyList());
-            when(matchRepository.findByTeamBeforeDateIgnoreCase(eq(teamName), any(LocalDate.class)))
                     .thenReturn(Collections.emptyList());
 
             // When
@@ -511,13 +525,9 @@ class HalfAnalysisServiceTest {
             String actualName = "Arsenal"; // proper case
             List<Match> matches = createBalancedMatches(actualName);
 
-            // First call with lowercase returns empty (exact match fails)
-            when(matchRepository.findByTeamBeforeDate(eq(inputName), any(LocalDate.class)))
-                    .thenReturn(Collections.emptyList());
-            // Case-insensitive search returns matches with proper case
-            when(matchRepository.findByTeamBeforeDateIgnoreCase(eq(inputName), any(LocalDate.class)))
-                    .thenReturn(matches);
-            // After resolving to "Arsenal", fetch again with resolved name
+            // TeamValidationService resolves lowercase to proper case
+            when(teamValidationService.resolveTeamName(inputName)).thenReturn(actualName);
+            // After resolving to "Arsenal", fetch matches with resolved name
             when(matchRepository.findByTeamBeforeDate(eq(actualName), any(LocalDate.class)))
                     .thenReturn(matches);
 
@@ -753,5 +763,4 @@ class HalfAnalysisServiceTest {
         }
     }
 }
-
 

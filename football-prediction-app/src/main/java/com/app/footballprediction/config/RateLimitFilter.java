@@ -231,7 +231,7 @@ public class RateLimitFilter implements Filter {
             return false;
         }
 
-        public long getAvailableTokens() {
+        public synchronized long getAvailableTokens() {
             refill();
             return tokens.get();
         }
@@ -240,7 +240,7 @@ public class RateLimitFilter implements Filter {
          * A bucket is stale if it hasn't been accessed in 15 minutes
          * and has fully refilled.
          */
-        public boolean isStale() {
+        public synchronized boolean isStale() {
             long idleMs = System.currentTimeMillis() - lastAccessTime;
             return idleMs > 900_000 && tokens.get() >= maxTokens; // 15 min idle + full
         }

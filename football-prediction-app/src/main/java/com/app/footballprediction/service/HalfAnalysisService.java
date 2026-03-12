@@ -39,6 +39,7 @@ import java.util.List;
 public class HalfAnalysisService {
 
     private final MatchRepository matchRepository;
+    private final TeamValidationService teamValidationService;
 
     // ══════════════════════════════════════════════════════════════════════
     // CONSTANTS
@@ -382,29 +383,10 @@ public class HalfAnalysisService {
     }
 
     /**
-     * Resolve team name with case-insensitive matching.
+     * Resolve team name via centralized validation service.
      */
     private String resolveTeamName(String teamName, LocalDate beforeDate) {
-        String trimmed = teamName.trim();
-
-        // Try exact match
-        List<Match> exactMatches = matchRepository.findByTeamBeforeDate(trimmed, beforeDate);
-        if (!exactMatches.isEmpty()) {
-            return trimmed;
-        }
-
-        // Try case-insensitive
-        List<Match> caseInsensitive = matchRepository.findByTeamBeforeDateIgnoreCase(trimmed, beforeDate);
-        if (!caseInsensitive.isEmpty()) {
-            Match first = caseInsensitive.getFirst();
-            String actual = first.getHomeTeam().equalsIgnoreCase(trimmed)
-                    ? first.getHomeTeam()
-                    : first.getAwayTeam();
-            log.debug("Resolved '{}' to '{}'", trimmed, actual);
-            return actual;
-        }
-
-        return trimmed;
+        return teamValidationService.resolveTeamName(teamName);
     }
 
     /**
