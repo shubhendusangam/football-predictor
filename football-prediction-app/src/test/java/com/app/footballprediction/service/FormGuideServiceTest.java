@@ -199,7 +199,7 @@ class FormGuideServiceTest {
         }
 
         @Test
-        @DisplayName("should return stable trend when difference < 3")
+        @DisplayName("should return stable trend when difference <= 3")
         void shouldReturnStableTrend() {
             // 3 wins + 2 draws (last 5: 11pts) vs 3 wins + 2 draws (prev 5: 11pts)
             List<Match> matches = new ArrayList<>();
@@ -286,7 +286,7 @@ class FormGuideServiceTest {
         }
 
         @Test
-        @DisplayName("should return Stable trend when fewer than 6 matches")
+        @DisplayName("should return Stable trend when fewer than 10 matches")
         void shouldReturnStableWhenFewMatches() {
             List<Match> matches = List.of(
                     createMatch("Arsenal", "Chelsea", 2, 0, 3),

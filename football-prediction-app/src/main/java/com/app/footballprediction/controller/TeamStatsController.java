@@ -3,11 +3,13 @@ package com.app.footballprediction.controller;
 import com.app.common.dto.ShotQualityDTO;
 import com.app.footballprediction.config.TeamLogoSeeder;
 import com.app.footballprediction.dto.FoulsAnalysisDTO;
+import com.app.footballprediction.dto.PositionHistoryDTO;
 import com.app.footballprediction.dto.TeamAnalyticsDto;
 import com.app.footballprediction.dto.TeamDTO;
 import com.app.footballprediction.dto.TeamFormResponse;
 import com.app.footballprediction.dto.TeamStatsResponse;
 import com.app.footballprediction.service.FoulsAnalysisService;
+import com.app.footballprediction.service.PositionHistoryService;
 import com.app.footballprediction.service.ShotQualityService;
 import com.app.footballprediction.service.TeamAnalyticsService;
 import com.app.footballprediction.service.TeamService;
@@ -44,6 +46,7 @@ public class TeamStatsController {
     private final FeatureEngineeringService featureEngineeringService;
     private final ShotQualityService shotQualityService;
     private final FoulsAnalysisService foulsAnalysisService;
+    private final PositionHistoryService positionHistoryService;
 
     /**
      * Get all available teams with logo information.
@@ -538,6 +541,39 @@ public class TeamStatsController {
         }
     }
 
+
+    /**
+     * Get league position progression for a team across a season.
+     *
+     * GET /api/teams/{teamName}/position-history?season=2025-26
+     *
+     * @param teamName The team name (e.g., "Arsenal", "Man City")
+     * @param season   Optional season (e.g., "2025-26"). Defaults to current season.
+     * @return PositionHistoryDTO with gameweek-by-gameweek position data
+     */
+    @GetMapping("/{teamName}/position-history")
+    public ResponseEntity<?> getPositionHistory(
+            @PathVariable String teamName,
+            @RequestParam(required = false) String season) {
+        try {
+            log.info("Fetching position history for team: {}, season: {}", teamName, season);
+            PositionHistoryDTO history = positionHistoryService.getPositionHistory(teamName, season);
+            return ResponseEntity.ok(history);
+        } catch (IllegalArgumentException e) {
+            log.warn("Team not found for position history: {} - {}", teamName, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Team not found",
+                    "message", e.getMessage(),
+                    "suggestion", "Use GET /api/teams to see available teams"
+            ));
+        } catch (Exception e) {
+            log.error("Failed to fetch position history for {}: {}", teamName, e.getMessage());
+            return ResponseEntity.internalServerError().body(Map.of(
+                    "error", "Failed to fetch position history",
+                    "details", e.getMessage()
+            ));
+        }
+    }
 
     /**
      * Compare two teams side-by-side.

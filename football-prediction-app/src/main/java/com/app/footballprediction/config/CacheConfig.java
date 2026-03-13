@@ -74,6 +74,7 @@ public class CacheConfig {
     public static final String CACHE_RELEGATION_BATTLE = "relegationBattle";
     public static final String CACHE_GOALS_TRENDS = "goalsTrends";
     public static final String CACHE_FORM_GUIDE = "formGuide";
+    public static final String CACHE_POSITION_HISTORY = "positionHistory";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -194,6 +195,9 @@ public class CacheConfig {
     @Value("${cache.formGuide.ttl:600}")
     private int formGuideTtl;
 
+    @Value("${cache.positionHistory.ttl:900}")
+    private int positionHistoryTtl;
+
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
     private int standingsMaxSize;
@@ -312,6 +316,9 @@ public class CacheConfig {
 
     @Value("${cache.formGuide.maxSize:200}")
     private int formGuideMaxSize;
+
+    @Value("${cache.positionHistory.maxSize:100}")
+    private int positionHistoryMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -446,6 +453,9 @@ public class CacheConfig {
         // Form guide: moderate TTL (10 min), larger size for team+matchCount combinations
         cacheConfigs.put(CACHE_FORM_GUIDE, buildCache(formGuideTtl, formGuideMaxSize));
 
+        // Position history: longer TTL (15 min), moderate size for team+season combinations
+        cacheConfigs.put(CACHE_POSITION_HISTORY, buildCache(positionHistoryTtl, positionHistoryMaxSize));
+
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
 
@@ -521,6 +531,7 @@ public class CacheConfig {
             case CACHE_REFEREE_IMPACT -> refereeImpactTtl;
             case CACHE_REFEREE_SUMMARY -> refereeSummaryTtl;
             case CACHE_REFEREE_COMPARE -> refereeCompareTtl;
+            case CACHE_POSITION_HISTORY -> positionHistoryTtl;
             default -> 300;
         };
     }

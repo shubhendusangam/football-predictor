@@ -1,0 +1,164 @@
+/* ═════════════════════════════════════════════════════════════════
+   Position Progression Chart Styles
+   ═════════════════════════════════════════════════════════════════ */
+
+/* ── Wrapper ─────────────────────────────────────────────────── */
+.pos-chart-wrapper {
+    background: var(--bg-secondary, #1e293b);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.12));
+}
+
+/* ── Summary strip ───────────────────────────────────────────── */
+.pos-chart-summary {
+    display: flex;
+    justify-content: center;
+    gap: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.pos-summary-item {
+    text-align: center;
+}
+
+.pos-summary-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary, #f8fafc);
+}
+
+.pos-summary-value.pos-best {
+    color: #22c55e;
+}
+
+.pos-summary-value.pos-worst {
+    color: #ef4444;
+}
+
+.pos-summary-label {
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+/* ── Canvas container ────────────────────────────────────────── */
+.pos-chart-canvas-container {
+    position: relative;
+    height: 340px;
+    width: 100%;
+}
+
+/* ── Legend ───────────────────────────────────────────────────── */
+.pos-chart-legend {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.legend-color {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-cl {
+    background: rgba(59, 130, 246, 0.45);
+}
+
+.legend-rel {
+    background: rgba(239, 68, 68, 0.45);
+}
+
+/* ── Key moments badges ──────────────────────────────────────── */
+.pos-chart-moments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    justify-content: center;
+}
+
+.pos-moment {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 1rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.pos-moment.moment-up {
+    background: rgba(34, 197, 94, 0.12);
+    color: #22c55e;
+}
+
+.pos-moment.moment-down {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+}
+
+/* ── States ──────────────────────────────────────────────────── */
+.pos-chart-loading,
+.pos-chart-empty,
+.pos-chart-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    gap: 0.75rem;
+    color: var(--text-muted, #94a3b8);
+    font-size: 0.875rem;
+}
+
+.pos-chart-loading .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border-color, rgba(148, 163, 184, 0.2));
+    border-top-color: var(--accent-blue, #3b82f6);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.pos-chart-empty .empty-icon,
+.pos-chart-error .error-icon {
+    font-size: 1.75rem;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .pos-chart-canvas-container {
+        height: 260px;
+    }
+
+    .pos-chart-summary {
+        gap: 1.25rem;
+    }
+
+    .pos-summary-value {
+        font-size: 1.25rem;
+    }
+
+    .pos-chart-moments {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+

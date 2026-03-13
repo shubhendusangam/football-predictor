@@ -149,16 +149,18 @@ public class FormGuideService {
 
     /**
      * Determine the form trend by comparing the last 5 vs previous 5 points.
-     * If fewer than 6 matches are available, trend is "Stable".
+     * Requires a full 10-match history (both windows filled) for a meaningful comparison.
+     * A difference of more than 3 points (i.e. 4+) is needed to classify as Improving/Declining,
+     * since a 3-point swing can result from a single match outcome change.
      */
     private String determineTrend(int pointsLast5, int pointsPrev5, int totalMatches) {
-        if (totalMatches < TREND_WINDOW + 1) {
-            // Not enough data for a meaningful trend
+        if (totalMatches < TREND_WINDOW * 2) {
+            // Need both 5-match windows filled for meaningful trend
             return "Stable";
         }
         int diff = pointsLast5 - pointsPrev5;
-        if (diff >= 3) return "Improving";
-        if (diff <= -3) return "Declining";
+        if (diff > 3) return "Improving";
+        if (diff < -3) return "Declining";
         return "Stable";
     }
 

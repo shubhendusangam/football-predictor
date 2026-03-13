@@ -36,6 +36,7 @@ public class CacheInvalidationListener {
     private static final String CACHE_H2H_INSIGHTS = "h2hInsights";
     private static final String CACHE_SEASON_STATS = "seasonStats";
     private static final String CACHE_STANDINGS = "standings";
+    private static final String CACHE_FORM_GUIDE = "formGuide";
 
     /**
      * Handle explicit cache invalidation event.
@@ -92,6 +93,10 @@ public class CacheInvalidationListener {
         evictFromCache(CACHE_PREDICTIONS, homeTeam);
         evictFromCache(CACHE_PREDICTIONS, awayTeam);
 
+        // Invalidate form guide cache — keys are compound (teamName-numMatches)
+        // so a full clear is needed to ensure both teams' form data refreshes
+        clearCache(CACHE_FORM_GUIDE);
+
         log.debug("Cache invalidation complete for match: {} vs {}", homeTeam, awayTeam);
     }
 
@@ -132,7 +137,8 @@ public class CacheInvalidationListener {
             CACHE_MATCHES,
             CACHE_PREDICTIONS,
             CACHE_H2H_INSIGHTS,
-            CACHE_SEASON_STATS
+            CACHE_SEASON_STATS,
+            CACHE_FORM_GUIDE
         );
 
         for (String cacheName : matchCaches) {
@@ -150,6 +156,7 @@ public class CacheInvalidationListener {
         evictFromCache(CACHE_TRENDING_INSIGHTS, "all");
         evictFromCache(CACHE_SEASON_STATS, season);
         clearCache(CACHE_STANDINGS);
+        clearCache(CACHE_FORM_GUIDE);
 
         log.info("Caches invalidated for season: {}", season);
     }

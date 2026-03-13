@@ -2709,6 +2709,7 @@ class Router {
                 <button class="team-stats-tab" data-tab="kickofftime">🕐 Kickoff Time</button>
                 <button class="team-stats-tab" data-tab="congestion">📅 Congestion</button>
                 <button class="team-stats-tab" data-tab="form">📈 Form</button>
+                <button class="team-stats-tab" data-tab="position">📉 Position</button>
                 <button class="team-stats-tab" data-tab="matches">🏟️ Matches</button>
                 <button class="team-stats-tab" data-tab="rivals">⚔️ Rivals</button>
             </div>
@@ -2769,6 +2770,9 @@ class Router {
                     case 'form':
                         content.innerHTML = this.renderFormTab(formStats);
                         this.loadFormGuideWidget(content, teamName);
+                        break;
+                    case 'position':
+                        this.renderPositionTab(content, teamName);
                         break;
                     case 'matches':
                         content.innerHTML = this.renderMatchesTab(recentMatches);
@@ -3707,6 +3711,29 @@ class Router {
         widgetDiv.style.marginBottom = '1.5rem';
         content.prepend(widgetDiv);
         window.FormGuideWidget.render(widgetDiv, teamName, 10);
+    }
+
+    /**
+     * Render Position History tab with a progression chart.
+     * Uses PositionProgressionChart component loaded from position-progression-chart.js.
+     */
+    renderPositionTab(content, teamName) {
+        content.innerHTML = `
+            <div class="stats-section">
+                <h3 class="stats-section-title">📉 Season Position Progression</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">
+                    How league position changed over the season, gameweek by gameweek.
+                </p>
+                <div id="positionChartContainer"></div>
+            </div>
+        `;
+        if (typeof window.PositionProgressionChart === 'function') {
+            var chart = new window.PositionProgressionChart('positionChartContainer');
+            chart.load(teamName);
+        } else {
+            document.getElementById('positionChartContainer').innerHTML =
+                '<p style="color:var(--text-muted);">Position chart component not available.</p>';
+        }
     }
 
     /**

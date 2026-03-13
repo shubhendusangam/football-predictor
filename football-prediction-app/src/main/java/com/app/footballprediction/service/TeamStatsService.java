@@ -574,8 +574,8 @@ public class TeamStatsService {
         double last5Points = calcFormPoints(last5, teamName);
         double prev5Points = calcFormPoints(prev5, teamName);
 
-        if (last5Points > prev5Points + 0.2) return "up";
-        if (last5Points < prev5Points - 0.2) return "down";
+        if (last5Points > prev5Points + 0.6) return "up";
+        if (last5Points < prev5Points - 0.6) return "down";
         return "stable";
     }
 
