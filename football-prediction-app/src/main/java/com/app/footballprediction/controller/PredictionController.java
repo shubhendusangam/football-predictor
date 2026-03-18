@@ -10,6 +10,11 @@ import com.app.footballprediction.service.PredictionOrchestrationService;
 import com.app.footballprediction.service.PredictionTrackingService;
 import com.app.footballprediction.service.TeamValidationService;
 import com.app.footballprediction.service.TrendingInsightsService;
+import com.app.footballprediction.scheduler.DailyPredictionScheduler;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -21,17 +26,12 @@ import java.util.Map;
 
 /**
  * REST controller for match predictions, H2H insights, and trending insights.
- *
- * <p>Model training, cache management, data lifecycle, match history, and dashboard
- * endpoints have been extracted into dedicated controllers:
- * {@link ModelTrainingController}, {@link CacheManagementController},
- * {@link DataManagementController}, {@link MatchHistoryController},
- * {@link DashboardController}.</p>
  */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Predictions", description = "Match outcome predictions, H2H insights, and trending analytics")
 public class PredictionController {
 
     private final PredictionOrchestrationService predictionOrchestrationService;
@@ -40,6 +40,7 @@ public class PredictionController {
     private final TrendingInsightsService trendingInsightsService;
     private final PredictionTrackingService predictionTrackingService;
     private final FootballDataApiService footballDataApiService;
+    private final DailyPredictionScheduler dailyPredictionScheduler;
 
     // ── Prediction ────────────────────────────────────────────────────────
 
@@ -47,6 +48,13 @@ public class PredictionController {
      * Predict match outcome.
      * POST /api/predict
      */
+    @Operation(summary = "Predict match outcome",
+            description = "Predicts the result of a match between two teams using ML model",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Prediction generated successfully"),
+                    @ApiResponse(responseCode = "400", description = "Invalid team name or request"),
+                    @ApiResponse(responseCode = "503", description = "Model not trained yet")
+            })
     @PostMapping("/predict")
     public ResponseEntity<?> predict(@RequestBody PredictRequest request) {
 
@@ -99,10 +107,11 @@ public class PredictionController {
      * Get enhanced H2H insights between two teams.
      * GET /api/h2h?homeTeam=Arsenal&awayTeam=Chelsea
      */
+    @Operation(summary = "Get head-to-head insights", description = "Returns historical H2H record, recent meetings, and venue advantage between two teams")
     @GetMapping("/h2h")
     public ResponseEntity<?> getH2HInsights(
-            @RequestParam String homeTeam,
-            @RequestParam String awayTeam) {
+            @Parameter(description = "Home team name", example = "Arsenal") @RequestParam String homeTeam,
+            @Parameter(description = "Away team name", example = "Chelsea") @RequestParam String awayTeam) {
 
         if (homeTeam == null || homeTeam.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -134,6 +143,7 @@ public class PredictionController {
      * GET /api/insights/trending
      * GET /api/insights/trending?season=2024-25
      */
+    @Operation(summary = "Get trending insights", description = "Hot/cold teams, upset alerts, and trending stats for a season")
     @GetMapping("/insights/trending")
     public ResponseEntity<TrendingInsightsResponse> getTrendingInsights(
             @RequestParam(required = false) String season) {
@@ -153,6 +163,7 @@ public class PredictionController {
      * Get list of available seasons for insights.
      * GET /api/insights/seasons
      */
+    @Operation(summary = "Get available seasons for insights")
     @GetMapping("/insights/seasons")
     public ResponseEntity<Map<String, Object>> getAvailableSeasons() {
         log.info("Fetching available seasons for insights...");
@@ -170,6 +181,7 @@ public class PredictionController {
      * Update unresolved predictions with actual results.
      * POST /api/predictions/update-results
      */
+    @Operation(summary = "Update unresolved predictions with actual results")
     @PostMapping("/predictions/update-results")
     public ResponseEntity<Map<String, Object>> updatePredictionResults() {
         log.info("Manual prediction results update triggered via API");
@@ -184,6 +196,7 @@ public class PredictionController {
      * Get all predictions.
      * GET /api/predictions
      */
+    @Operation(summary = "Get all predictions", description = "Returns upcoming match list from external data source")
     @GetMapping("/predictions")
     public ResponseEntity<Map<String, Object>> getAllPredictions() {
         var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
@@ -202,6 +215,7 @@ public class PredictionController {
      * Get today's predictions from upcoming matches.
      * GET /api/predictions/today
      */
+    @Operation(summary = "Get today's predictions from upcoming matches")
     @GetMapping("/predictions/today")
     public ResponseEntity<Map<String, Object>> getTodaysPredictions() {
         var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
@@ -218,6 +232,25 @@ public class PredictionController {
                 "predictions", todaysMatches,
                 "count", todaysMatches.size(),
                 "hint", "Use GET /api/external/predict for ML predictions"
+        ));
+    }
+
+    /**
+     * Manually trigger prediction generation for all upcoming scheduled matches.
+     * POST /api/predictions/generate
+     */
+    @Operation(summary = "Generate predictions for all upcoming matches",
+            description = "Triggers the prediction engine to generate and store predictions for all upcoming scheduled matches")
+    @PostMapping("/predictions/generate")
+    public ResponseEntity<Map<String, Object>> generatePredictions() {
+        log.info("Manual prediction generation triggered via API");
+        int generated = dailyPredictionScheduler.executePredictionGeneration("MANUAL_API");
+        return ResponseEntity.ok(Map.of(
+                "status", "success",
+                "predictionsGenerated", generated,
+                "message", generated > 0
+                        ? "Generated " + generated + " predictions for upcoming matches"
+                        : "No predictions generated — check if model is loaded and matches are available"
         ));
     }
 }

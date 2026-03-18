@@ -1,0 +1,35 @@
+# ============================================
+# Prometheus Configuration
+# Football Prediction Platform
+# ============================================
+
+global:
+  scrape_interval: 15s       # Scrape targets every 15 seconds
+  evaluation_interval: 15s   # Evaluate rules every 15 seconds
+
+scrape_configs:
+  # ── Main Football Prediction Application ──────────────────
+  - job_name: 'football-predictor'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['football-predictor:8080']
+        labels:
+          application: 'football-prediction-app'
+          module: 'main'
+
+  # ── Model Training Service ────────────────────────────────
+  - job_name: 'model-training-service'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['model-training-service:8081']
+        labels:
+          application: 'model-training-service'
+          module: 'training'
+
+  # ── Prometheus self-monitoring ────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+

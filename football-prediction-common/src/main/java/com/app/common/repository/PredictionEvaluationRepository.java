@@ -137,5 +137,21 @@ public interface PredictionEvaluationRepository extends JpaRepository<Prediction
      * Find evaluations within a time window (for sliding window accuracy).
      */
     List<PredictionEvaluation> findByEvaluationTimeAfterOrderByEvaluationTimeDesc(LocalDateTime cutoff);
+
+    // ═══════════════════════════════════════════════════════════════════
+    // Time-bounded queries (for metrics / gauges)
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Count evaluations created since a given timestamp.
+     */
+    @Query("SELECT COUNT(e) FROM PredictionEvaluation e WHERE e.evaluationTime >= :since")
+    long countEvaluationsSince(@Param("since") LocalDateTime since);
+
+    /**
+     * Count correct winner predictions since a given timestamp.
+     */
+    @Query("SELECT COUNT(e) FROM PredictionEvaluation e WHERE e.evaluationTime >= :since AND e.winnerCorrect = true")
+    long countCorrectWinnerSince(@Param("since") LocalDateTime since);
 }
 

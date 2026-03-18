@@ -1,5 +1,6 @@
 package com.app.footballprediction.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
@@ -7,19 +8,28 @@ import java.util.List;
 
 @Data
 @Builder
+@Schema(description = "Match prediction response with probabilities, features, and H2H insights")
 public class PredictResponse {
 
+   @Schema(description = "Home team name", example = "Arsenal")
    private String homeTeam;
+   @Schema(description = "Away team name", example = "Chelsea")
    private String awayTeam;
 
-   private String prediction;      // "HOME_WIN", "DRAW", "AWAY_WIN"
-   private String predictionCode;  // "H", "D", "A"
+   @Schema(description = "Predicted outcome", example = "HOME_WIN", allowableValues = {"HOME_WIN", "DRAW", "AWAY_WIN"})
+   private String prediction;
+   @Schema(description = "Short prediction code", example = "H", allowableValues = {"H", "D", "A"})
+   private String predictionCode;
 
+   @Schema(description = "Probability of home win (0-1)", example = "0.55")
    private double probHomeWin;
+   @Schema(description = "Probability of draw (0-1)", example = "0.25")
    private double probDraw;
+   @Schema(description = "Probability of away win (0-1)", example = "0.20")
    private double probAwayWin;
 
-   private String confidence;      // "HIGH", "MEDIUM", "LOW"
+   @Schema(description = "Prediction confidence level", example = "HIGH", allowableValues = {"HIGH", "MEDIUM", "LOW"})
+   private String confidence;
 
    private FeatureSummary features;
 

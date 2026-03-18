@@ -4,6 +4,8 @@ import com.app.footballprediction.dto.RefereeImpactDTO;
 import com.app.footballprediction.dto.RefereeStats;
 import com.app.footballprediction.dto.RefereeStatsDTO;
 import com.app.footballprediction.service.RefereeStatsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +22,7 @@ import java.util.Map;
 @RequestMapping("/api/referees")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Referees", description = "Referee statistics, tendencies, and match-impact predictions")
 public class RefereeController {
 
     private final RefereeStatsService refereeStatsService;

@@ -4,6 +4,8 @@ import com.app.footballprediction.service.CacheStatisticsService;
 import com.app.footballprediction.service.CacheWarmingService;
 import com.app.footballprediction.service.FootballDataApiService;
 import com.app.footballprediction.service.NewsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.CacheManager;
@@ -14,20 +16,12 @@ import java.util.Map;
 
 /**
  * REST controller for Caffeine cache management.
- *
- * Endpoints:
- * - POST /api/cache/clear                           — clear all caches
- * - POST /api/cache/clear/{cacheName}               — clear specific cache
- * - GET  /api/cache/status                           — detailed cache stats
- * - GET  /api/cache/warmup                           — warmup status
- * - GET  /api/cache/stats/{cacheName}               — single cache stats
- * - POST /api/cache/invalidate/{cacheName}?pattern=x — pattern-based invalidation
- * - POST /api/cache/warmup                           — trigger manual warmup
  */
 @RestController
 @RequestMapping("/api/cache")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Cache", description = "Caffeine cache monitoring, clearing, pattern invalidation, and warmup")
 public class CacheManagementController {
 
     private final CacheManager cacheManager;

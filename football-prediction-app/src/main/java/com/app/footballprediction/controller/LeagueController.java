@@ -7,6 +7,9 @@ import com.app.footballprediction.service.GoalsTrendsService;
 import com.app.footballprediction.service.RelegationBattleService;
 import com.app.footballprediction.service.Top4RaceService;
 import com.app.footballprediction.util.SeasonUtils;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/league")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "League", description = "Top-4 race, relegation battle, goals trends, and league metrics")
 public class LeagueController {
 
     private final Top4RaceService top4RaceService;
@@ -235,4 +239,3 @@ public class LeagueController {
         }
     }
 }
-

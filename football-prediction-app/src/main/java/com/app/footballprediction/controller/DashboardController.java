@@ -11,6 +11,9 @@ import com.app.footballprediction.service.CsvIngestionService;
 import com.app.footballprediction.service.DashboardService;
 import com.app.footballprediction.service.LeagueStandingService;
 import com.app.footballprediction.service.ModelAccuracyService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -22,15 +25,12 @@ import java.util.Map;
 
 /**
  * REST Controller for dashboard-specific endpoints.
- * All endpoints are optimized for &lt;300ms response times.
- *
- * <p>Includes endpoints previously hosted in PredictionController:
- * stats, accuracy, activity, available-leagues, available-seasons, refresh.</p>
  */
 @RestController
 @RequestMapping("/api/dashboard")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Dashboard", description = "Dashboard widgets – upcoming matches, standings, predictions, top teams, accuracy")
 public class DashboardController {
 
     private final DashboardService dashboardService;
@@ -44,6 +44,7 @@ public class DashboardController {
      * Get upcoming matches for dashboard.
      * GET /api/dashboard/upcoming-matches
      */
+    @Operation(summary = "Get upcoming matches")
     @GetMapping("/upcoming-matches")
     public ResponseEntity<UpcomingMatchesResponse> getUpcomingMatches() {
         log.debug("GET /api/dashboard/upcoming-matches");
@@ -59,6 +60,7 @@ public class DashboardController {
      * Get league standings for dashboard.
      * GET /api/dashboard/league-standings?leagueId=1&season=2025/26
      */
+    @Operation(summary = "Get league standings")
     @GetMapping("/league-standings")
     public ResponseEntity<LeagueStandingsResponse> getLeagueStandings(
             @RequestParam(required = false, defaultValue = "1") Long leagueId,
@@ -81,6 +83,7 @@ public class DashboardController {
      * Get today's predictions for dashboard.
      * GET /api/dashboard/todays-predictions
      */
+    @Operation(summary = "Get today's predictions")
     @GetMapping("/todays-predictions")
     public ResponseEntity<TodaysPredictionsResponse> getTodaysPredictions() {
         log.debug("GET /api/dashboard/todays-predictions");
@@ -96,6 +99,7 @@ public class DashboardController {
      * Get top teams for dashboard.
      * GET /api/dashboard/top-teams
      */
+    @Operation(summary = "Get top teams")
     @GetMapping("/top-teams")
     public ResponseEntity<TopTeamsResponse> getTopTeams() {
         log.debug("GET /api/dashboard/top-teams");
@@ -111,6 +115,7 @@ public class DashboardController {
      * Get model accuracy stats for dashboard.
      * GET /api/dashboard/model-accuracy
      */
+    @Operation(summary = "Get model accuracy statistics")
     @GetMapping("/model-accuracy")
     public ResponseEntity<ModelAccuracyResponse> getModelAccuracy() {
         log.debug("GET /api/dashboard/model-accuracy");

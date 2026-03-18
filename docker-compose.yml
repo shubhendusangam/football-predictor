@@ -4,6 +4,8 @@
 # This compose file runs both services:
 # 1. football-predictor (port 8080) - Main prediction API
 # 2. model-training-service (port 8081) - Model training and testing API
+# 3. prometheus (port 9090) - Metrics collection
+# 4. grafana (port 3000) - Metrics dashboards
 # ============================================
 
 version: '3.8'
@@ -67,11 +69,55 @@ services:
     networks:
       - football-network
 
+  # ── Observability Stack ─────────────────────────────────────
+
+  # Prometheus - Metrics Collection
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: football-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+    networks:
+      - football-network
+
+  # Grafana - Dashboards & Visualization
+  grafana:
+    image: grafana/grafana:10.4.1
+    container_name: football-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-football}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./monitoring/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - football-network
+
 volumes:
   football-data:
     name: football-predictor-data
   football-logs:
     name: football-predictor-logs
+  prometheus-data:
+    name: football-prometheus-data
+  grafana-data:
+    name: football-grafana-data
 
 networks:
   football-network:

@@ -11,6 +11,8 @@ import com.app.footballprediction.service.HistoricalPredictionGenerator;
 import com.app.footballprediction.service.MatchResultProcessor;
 import com.app.footballprediction.service.ModelAccuracyService;
 import com.app.footballprediction.service.ModelSelfTrainingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -22,20 +24,12 @@ import java.util.*;
 
 /**
  * REST controller for model performance, accuracy, error analysis, and retraining history.
- *
- * Endpoints:
- * - GET /api/model/accuracy          - Latest model accuracy metrics
- * - GET /api/model/performance        - Combined performance summary
- * - GET /api/model/error-analysis     - Detailed error analysis breakdown
- * - GET /api/model/retraining-history - Model retraining history
- * - GET /api/model/evaluations        - Recent prediction evaluations
- * - POST /api/model/retrain           - Manually trigger model retraining
- * - POST /api/model/recalculate       - Manually trigger recalculation pipeline
  */
 @RestController
 @RequestMapping("/api/model")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Model", description = "ML model training, evaluation, grid search, and readiness status")
 public class ModelPerformanceController {
 
     private final ModelAccuracyService modelAccuracyService;

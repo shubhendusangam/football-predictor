@@ -1,5 +1,6 @@
 package com.app.footballprediction.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -13,33 +14,39 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@Schema(description = "Team information with logo and league position")
 public class TeamDTO {
 
     /**
      * Team's full name (e.g., "Arsenal")
      */
+    @Schema(description = "Team full name", example = "Arsenal")
     private String name;
 
     /**
      * URL to the team's logo image.
      * Relative path (e.g., "/images/teams/arsenal.png") or absolute URL.
      */
+    @Schema(description = "URL to team logo image", example = "/images/teams/arsenal.png")
     private String logoUrl;
 
     /**
      * Short name or abbreviation (e.g., "ARS")
      */
+    @Schema(description = "Short name / abbreviation", example = "ARS")
     private String shortName;
 
     /**
      * Team's primary color (hex code)
      */
+    @Schema(description = "Primary colour hex code", example = "#EF0107")
     private String primaryColor;
 
     /**
      * Current league position (1-20 for Premier League).
      * Only populated for current season.
      */
+    @Schema(description = "Current league position (1-20)", example = "1")
     private Integer position;
 
     /**
@@ -50,12 +57,14 @@ public class TeamDTO {
      * - "safe": Team is safe from relegation
      * - null: Status unknown or historical season
      */
+    @Schema(description = "Team status: promoted, relegation, safe", example = "safe")
     private String status;
 
     /**
      * Zone classification for current season.
      * Values: "champions", "europa", "conference", "mid", "relegation"
      */
+    @Schema(description = "Zone: champions, europa, conference, mid, relegation", example = "champions")
     private String zone;
 
     /**
@@ -81,4 +90,3 @@ public class TeamDTO {
                 .build();
     }
 }
-

@@ -3,6 +3,8 @@ package com.app.footballprediction.controller;
 import com.app.footballprediction.dto.CongestionComparisonDTO;
 import com.app.footballprediction.dto.FixtureCongestionDTO;
 import com.app.footballprediction.service.FixtureCongestionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,7 @@ import java.util.Map;
 @RestController
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Analytics", description = "League statistics, pre-match insights, H2H analysis, and trending data")
 public class FixtureCongestionController {
 
     private final FixtureCongestionService congestionService;
@@ -110,4 +113,3 @@ public class FixtureCongestionController {
         }
     }
 }
-

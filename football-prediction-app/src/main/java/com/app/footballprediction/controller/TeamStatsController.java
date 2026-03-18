@@ -15,6 +15,9 @@ import com.app.footballprediction.service.TeamAnalyticsService;
 import com.app.footballprediction.service.TeamService;
 import com.app.footballprediction.service.TeamStatsService;
 import com.app.common.service.FeatureEngineeringService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -25,18 +28,12 @@ import java.util.Map;
 
 /**
  * Controller for team statistics endpoints.
- *
- * Provides comprehensive statistics for each team including:
- * - Overall stats (W/D/L, goals, points)
- * - Home vs Away performance
- * - Goal patterns (first half vs second half)
- * - Form and momentum (streaks, recent form)
- * - Head-to-head records against rivals
  */
 @RestController
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Teams", description = "Team listings, form, logos, stats, analytics, shot quality, fouls, and position history")
 public class TeamStatsController {
 
     private final TeamStatsService teamStatsService;
@@ -57,8 +54,9 @@ public class TeamStatsController {
      * @param season Optional season filter (e.g., "2025-26"). If not provided, returns all teams.
      * @return List of teams with logos
      */
+    @Operation(summary = "Get all available teams", description = "Returns teams with logo information, optionally filtered by season")
     @GetMapping
-    public ResponseEntity<?> getAllTeams(@RequestParam(required = false) String season) {
+    public ResponseEntity<?> getAllTeams(@Parameter(description = "Season filter, e.g. 2025-26") @RequestParam(required = false) String season) {
         try {
             List<TeamDTO> teams;
 
@@ -111,6 +109,7 @@ public class TeamStatsController {
      *
      * @return List of seasons sorted descending (newest first)
      */
+    @Operation(summary = "Get available seasons for team filter")
     @GetMapping("/seasons")
     public ResponseEntity<?> getAvailableSeasons() {
         try {
@@ -137,8 +136,9 @@ public class TeamStatsController {
      * @param team The team name (e.g., "Arsenal", "Man City")
      * @return TeamFormResponse with form insights
      */
+    @Operation(summary = "Get team form insights for the prediction view")
     @GetMapping("/form")
-    public ResponseEntity<?> getTeamFormInsights(@RequestParam String team) {
+    public ResponseEntity<?> getTeamFormInsights(@Parameter(description = "Team name") @RequestParam String team) {
         try {
             log.info("Fetching form insights for team: {}", team);
             TeamFormResponse formInsights = teamStatsService.getTeamFormInsights(team);

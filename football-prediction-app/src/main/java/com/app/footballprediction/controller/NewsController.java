@@ -2,6 +2,8 @@ package com.app.footballprediction.controller;
 
 import com.app.footballprediction.dto.external.NewsResponse;
 import com.app.footballprediction.service.NewsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import java.util.Map;
 @RequestMapping("/api/news")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "News", description = "Football news from free RSS feeds – Premier League, team-specific, and general")
 public class NewsController {
 
     private final NewsService newsService;
@@ -92,4 +95,3 @@ public class NewsController {
         }
     }
 }
-

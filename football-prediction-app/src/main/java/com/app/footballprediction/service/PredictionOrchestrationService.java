@@ -6,7 +6,8 @@ import com.app.common.util.PredictionUtils;
 import com.app.footballprediction.dto.H2HInsightsResponse;
 import com.app.footballprediction.dto.PredictResponse;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
-import lombok.RequiredArgsConstructor;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +16,9 @@ import java.util.Collections;
 /**
  * Orchestrates the full prediction pipeline:
  * feature building → base model → Elo adjustment → H2H enrichment → response assembly.
- *
  * Extracted from PredictionController to keep the controller thin.
  */
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class PredictionOrchestrationService {
 
@@ -29,6 +28,32 @@ public class PredictionOrchestrationService {
     private final H2HInsightsService h2hInsightsService;
     private final TrendingInsightsService trendingInsightsService;
 
+    private final Timer predictionLatencyTimer;
+    private final Counter predictionHomeCounter;
+    private final Counter predictionDrawCounter;
+    private final Counter predictionAwayCounter;
+
+    public PredictionOrchestrationService(
+            FeatureEngineeringService featureEngineeringService,
+            ModelTrainingService modelTrainingService,
+            EloPredictionService eloPredictionService,
+            H2HInsightsService h2hInsightsService,
+            TrendingInsightsService trendingInsightsService,
+            Timer predictionLatencyTimer,
+            Counter predictionHomeCounter,
+            Counter predictionDrawCounter,
+            Counter predictionAwayCounter) {
+        this.featureEngineeringService = featureEngineeringService;
+        this.modelTrainingService = modelTrainingService;
+        this.eloPredictionService = eloPredictionService;
+        this.h2hInsightsService = h2hInsightsService;
+        this.trendingInsightsService = trendingInsightsService;
+        this.predictionLatencyTimer = predictionLatencyTimer;
+        this.predictionHomeCounter = predictionHomeCounter;
+        this.predictionDrawCounter = predictionDrawCounter;
+        this.predictionAwayCounter = predictionAwayCounter;
+    }
+
     /**
      * Run the full prediction pipeline for a home/away pair.
      *
@@ -37,6 +62,24 @@ public class PredictionOrchestrationService {
      * @return fully assembled prediction response
      */
     public PredictResponse predict(String homeTeam, String awayTeam) {
+        return predictionLatencyTimer.record(() -> {
+            PredictResponse response = doPrediction(homeTeam, awayTeam);
+
+            // Increment outcome counter
+            switch (response.getPredictionCode()) {
+                case "H" -> predictionHomeCounter.increment();
+                case "D" -> predictionDrawCounter.increment();
+                case "A" -> predictionAwayCounter.increment();
+            }
+
+            return response;
+        });
+    }
+
+    /**
+     * Internal prediction pipeline — extracted so the timer wraps the entire flow.
+     */
+    private PredictResponse doPrediction(String homeTeam, String awayTeam) {
         // ── Build features from DB history ─────────────────────
         MatchFeatures features = featureEngineeringService
                 .buildFeaturesForPrediction(homeTeam, awayTeam);

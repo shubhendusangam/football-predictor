@@ -2,6 +2,8 @@ package com.app.footballprediction.controller;
 
 import com.app.footballprediction.dto.HalfAnalysisDTO;
 import com.app.footballprediction.service.HalfAnalysisService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -27,6 +29,7 @@ import java.util.Map;
 @RequestMapping("/api/teams")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Analytics", description = "League statistics, pre-match insights, H2H analysis, and trending data")
 public class HalfAnalysisController {
 
     private final HalfAnalysisService halfAnalysisService;
@@ -100,4 +103,3 @@ public class HalfAnalysisController {
         }
     }
 }
-

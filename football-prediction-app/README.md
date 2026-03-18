@@ -79,6 +79,9 @@ The `football-prediction-app` is the **main application module** of the Football
 - [Package Structure](#package-structure)
 - [Core Services](#core-services)
 - [API Endpoints](#api-endpoints)
+- [API Documentation (OpenAPI / Swagger)](#api-documentation-openapi--swagger)
+- [Error Handling (RFC 7807)](#error-handling-rfc-7807)
+- [Observability (Prometheus & Grafana)](#observability-prometheus--grafana)
 - [Caching Configuration](#caching-configuration)
 - [Business Logic](#business-logic)
 - [Performance Design](#performance-design)
@@ -258,12 +261,30 @@ The `football-prediction-app` is the **main application module** of the Football
 com.app.footballprediction/
 ├── FootballPredictionApplication.java    # Spring Boot entry point
 │
-├── controller/                           # REST API Layer
-│   ├── PredictionController.java         # Main API (predictions, model, cache, data, dashboard)
-│   ├── TeamStatsController.java          # Team statistics, analytics, shot quality, fouls
-│   ├── SeasonTeamStatsController.java    # Season team stats, Elo/form rankings, streaks
+├── controller/                           # REST API Layer (23 controllers)
+│   ├── PredictionController.java         # Predictions, H2H, trending insights
+│   ├── AdminController.java              # Admin dashboard, settings, system controls
+│   ├── AnalyticsController.java          # League stats, pre-match, H2H, trends
+│   ├── CacheManagementController.java    # Cache clear, status, warmup
+│   ├── CardsController.java              # Cards prediction, team discipline
+│   ├── CornerStatsController.java        # Corner statistics & predictions
+│   ├── DashboardController.java          # Dashboard widgets & aggregation
+│   ├── DataManagementController.java     # CSV reload, DB reset, data update
+│   ├── ExpectedGoalsController.java      # Expected goals (xG) stats & predictions
+│   ├── ExternalApiController.java        # football-data.org integration
+│   ├── FixtureCongestionController.java  # Fixture congestion & fatigue analysis
+│   ├── FormGuideController.java          # Team form guide
+│   ├── HalfAnalysisController.java       # First-half vs second-half analysis
+│   ├── KickoffTimeController.java        # Kickoff time performance analysis
+│   ├── LeagueController.java             # Top-4 race, relegation, goals trends
+│   ├── MatchHistoryController.java       # Match history & upcoming fixtures
+│   ├── ModelPerformanceController.java   # Model accuracy, error analysis
+│   ├── ModelTrainingController.java      # ML model training & status
+│   ├── NewsController.java               # Football news (RSS feeds)
+│   ├── RefereeController.java            # Referee statistics & rankings
+│   ├── SeasonTeamStatsController.java    # Season team stats, Elo/form rankings
 │   ├── SeasonsController.java            # Season management and stats
-│   └── RefereeController.java            # Referee statistics and rankings
+│   └── TeamStatsController.java          # Team listings, form, logos, analytics
 │
 ├── service/                              # Business Logic Layer
 │   ├── PreMatchInsightsService.java      # Pre-match analysis
@@ -345,13 +366,23 @@ com.app.footballprediction/
 ├── config/                               # Configuration
 │   ├── CacheConfig.java                  # Caffeine cache setup (19 caches)
 │   ├── FootballApiConfig.java            # Football-data.org API config
-│   ├── SecurityConfig.java              # Security configuration
-│   ├── RateLimitFilter.java             # API rate limiting
-│   ├── RequestLoggingFilter.java        # Request logging
-│   ├── GlobalExceptionHandler.java      # Global error handling
-│   ├── TeamLogoSeeder.java              # Team logo initialization
-│   ├── WebConfig.java                   # CORS, static resources
-│   └── WekaModelConfig.java             # ML model configuration
+│   ├── GlobalExceptionHandler.java       # RFC 7807 ProblemDetail error handling
+│   ├── MetricsConfig.java                # Micrometer/Prometheus custom metrics
+│   ├── OpenApiConfig.java                # Springdoc OpenAPI / Swagger UI config
+│   ├── SecurityConfig.java               # Security configuration
+│   ├── RateLimitFilter.java              # API rate limiting
+│   ├── RequestLoggingFilter.java         # Request logging
+│   ├── TeamLogoSeeder.java               # Team logo initialization
+│   ├── WebConfig.java                    # CORS, static resources
+│   └── WekaModelConfig.java              # ML model configuration
+│
+├── exception/                            # Custom Exceptions & Error Codes
+│   ├── ErrorCode.java                    # Machine-readable error codes enum
+│   ├── ResourceNotFoundException.java    # 404 exception with resource type
+│   ├── ValidationException.java          # 400 exception with field errors
+│   ├── TeamNotFoundException.java        # Unknown team name
+│   ├── ModelNotReadyException.java       # Model not trained yet
+│   └── DataSyncException.java            # External data sync failure
 │
 ├── modeltraining/                        # ML Integration
 │   ├── ModelTrainingService.java         # Model loading & prediction
@@ -749,6 +780,230 @@ public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
 
 ---
 
+## API Documentation (OpenAPI / Swagger)
+
+The application ships with **Springdoc OpenAPI 3** integration, providing interactive API documentation out of the box.
+
+### Access
+
+| Resource | URL |
+|----------|-----|
+| **Swagger UI** | [`http://localhost:8080/swagger-ui.html`](http://localhost:8080/swagger-ui.html) |
+| **OpenAPI JSON** | [`http://localhost:8080/v3/api-docs`](http://localhost:8080/v3/api-docs) |
+| **OpenAPI YAML** | [`http://localhost:8080/v3/api-docs.yaml`](http://localhost:8080/v3/api-docs.yaml) |
+
+All Swagger/OpenAPI endpoints are publicly accessible (no authentication required).
+
+### API Groups
+
+The Swagger UI organises endpoints into four logical groups selectable from the top drop-down:
+
+| Group | Display Name | Paths Included |
+|-------|-------------|----------------|
+| `predictions` | Predictions | `/api/predict`, `/api/predictions/**`, `/api/h2h`, `/api/insights/**`, `/api/external/**` |
+| `analytics` | Analytics | `/api/analytics/**`, `/api/league/**`, match-level predictions (corners, cards, xG, congestion), team analysis endpoints |
+| `teams` | Teams | `/api/teams`, `/api/referees/**`, `/api/seasons/**`, `/api/season/**`, `/api/news/**` |
+| `health` | Health & Admin | `/api/model/**`, `/api/dashboard/**`, `/api/admin/**`, `/api/cache/**`, `/api/data/**`, `/api/matches/**` |
+
+### Controller Tags
+
+Every controller is annotated with `@Tag` so endpoints are grouped logically in the UI:
+
+| Tag | Controllers |
+|-----|-------------|
+| **Predictions** | `PredictionController`, `ExternalApiController` |
+| **Analytics** | `AnalyticsController`, `CardsController`, `CornerStatsController`, `ExpectedGoalsController`, `FixtureCongestionController`, `HalfAnalysisController`, `KickoffTimeController` |
+| **Teams** | `TeamStatsController`, `FormGuideController`, `SeasonTeamStatsController`, `SeasonsController` |
+| **League** | `LeagueController` |
+| **Dashboard** | `DashboardController` |
+| **Model** | `ModelTrainingController`, `ModelPerformanceController` |
+| **Admin** | `AdminController` (secured with `@SecurityRequirement(name = "basicAuth")`) |
+| **Cache** | `CacheManagementController` |
+| **Data Management** | `DataManagementController` |
+| **Matches** | `MatchHistoryController` |
+| **News** | `NewsController` |
+| **Referees** | `RefereeController` |
+
+### DTO Schema Annotations
+
+Key request/response DTOs are annotated with `@Schema` for rich documentation in the Swagger UI:
+
+- **`PredictRequest`** — `homeTeam` and `awayTeam` with examples and validation constraints
+- **`PredictResponse`** — Prediction outcome, probabilities, confidence, and allowable values
+- **`TeamDTO`** — Team name, logo, position, zone, and status with examples
+
+### Configuration
+
+Springdoc properties in `application.properties`:
+
+```properties
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui.html
+springdoc.swagger-ui.tags-sorter=alpha
+springdoc.swagger-ui.operations-sorter=method
+springdoc.swagger-ui.display-request-duration=true
+springdoc.default-produces-media-type=application/json
+springdoc.show-actuator=false
+```
+
+---
+
+## Error Handling (RFC 7807)
+
+All error responses use **RFC 7807 Problem Detail** (`application/problem+json`) via Spring's `ProblemDetail` class. The `GlobalExceptionHandler` (`@RestControllerAdvice`) converts every exception into a consistent response body.
+
+### Response Structure
+
+```json
+{
+  "type": "/errors/invalid-team-name",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Team not found: FooFC",
+  "errorCode": "INVALID_TEAM_NAME",
+  "timestamp": "2026-03-14T10:30:00Z",
+  "hint": "Use GET /api/teams to see valid team names"
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `type` | URI identifying the error category (e.g. `/errors/validation-failed`) |
+| `title` | HTTP status reason phrase |
+| `status` | HTTP status code |
+| `detail` | Human-readable explanation |
+| `errorCode` | Machine-readable `ErrorCode` enum value |
+| `timestamp` | ISO-8601 timestamp |
+| Extra fields | `hint`, `fieldErrors`, `resourceType`, `identifier`, etc. as applicable |
+
+### ErrorCode Enum
+
+| Code | HTTP Status | Meaning |
+|------|-------------|---------|
+| `PREDICTION_NOT_FOUND` | 404 | The requested prediction does not exist |
+| `RESOURCE_NOT_FOUND` | 404 | Generic resource not found |
+| `INVALID_TEAM_NAME` | 400 | The supplied team name is not recognised |
+| `VALIDATION_FAILED` | 400 | One or more fields failed bean validation |
+| `INVALID_REQUEST` | 400 | Malformed or invalid request data |
+| `MODEL_NOT_TRAINED` | 503 | The ML model has not been trained yet |
+| `DATA_SYNC_FAILED` | 500 | External data synchronisation failed |
+| `INTERNAL_ERROR` | 500 | Unexpected internal error |
+
+### Custom Exceptions
+
+| Exception | Status | Error Code | Use Case |
+|-----------|--------|------------|----------|
+| `ResourceNotFoundException` | 404 | Configurable | Any missing resource with `resourceType` + `identifier` |
+| `ValidationException` | 400 | Configurable | Business validation with `fieldErrors` map |
+| `TeamNotFoundException` | 400 | `INVALID_TEAM_NAME` | Unknown team name supplied by user |
+| `ModelNotReadyException` | 503 | `MODEL_NOT_TRAINED` | Prediction requested before training |
+| `DataSyncException` | 500 | `DATA_SYNC_FAILED` | External API sync failure |
+
+### Handled Spring Exceptions
+
+| Exception | Status | Trigger |
+|-----------|--------|---------|
+| `MethodArgumentNotValidException` | 400 | `@Valid` bean validation failure |
+| `MissingServletRequestParameterException` | 400 | Missing required query parameter |
+| `MethodArgumentTypeMismatchException` | 400 | Wrong parameter type |
+| `HttpMessageNotReadableException` | 400 | Invalid JSON body |
+| `HttpRequestMethodNotSupportedException` | 405 | Wrong HTTP method |
+| `NoHandlerFoundException` | 404 | Unknown endpoint |
+| `IllegalArgumentException` | 400 | Business logic error |
+| `IllegalStateException` | 503 | Service not ready |
+| `NullPointerException` | 500 | Defensive catch-all |
+| `Exception` | 500 | Generic catch-all |
+
+---
+
+## Observability (Prometheus & Grafana)
+
+The application exposes Prometheus-compatible metrics via **Micrometer** and Spring Boot Actuator. A pre-built **Grafana** dashboard is included for immediate visibility.
+
+### Dependencies
+
+```xml
+<!-- Already included in pom.xml -->
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-actuator</artifactId>
+</dependency>
+<dependency>
+    <groupId>io.micrometer</groupId>
+    <artifactId>micrometer-registry-prometheus</artifactId>
+</dependency>
+```
+
+### Actuator Endpoints
+
+| Endpoint | Access | Description |
+|----------|--------|-------------|
+| `/actuator/prometheus` | Public | Prometheus scrape target (all metrics) |
+| `/actuator/health` | Public | Health indicators (DB, disk, model) |
+| `/actuator/metrics` | Public | Available metric names |
+| `/actuator/metrics/{name}` | Public | Single metric detail |
+
+All actuator paths above are permitted in `SecurityConfig` without authentication.
+
+### Custom Metrics (`MetricsConfig.java`)
+
+| Metric | Micrometer Type | Tags | Description |
+|--------|----------------|------|-------------|
+| `prediction.requests.total` | `Counter` | `outcome` = HOME / DRAW / AWAY | Prediction requests segmented by predicted outcome |
+| `prediction.latency` | `Timer` | — | End-to-end ML inference time (p50 / p95 / p99 histograms) |
+| `model.accuracy.current` | `Gauge` | — | Winner-prediction accuracy over the trailing 30 days |
+| `cache.hits` | `FunctionCounter` | `cache` | Caffeine cache hit count per cache name |
+| `cache.misses` | `FunctionCounter` | `cache` | Caffeine cache miss count per cache name |
+| `cache.size` | `Gauge` | `cache` | Estimated entry count per cache |
+
+These are registered in `MetricsConfig` and automatically instrumented inside `PredictionOrchestrationService`.
+
+### Auto-instrumented Metrics (Spring Boot)
+
+Spring Boot and Micrometer automatically provide:
+
+| Category | Key Metrics |
+|----------|------------|
+| **HTTP** | `http.server.requests` (count, sum, max per URI + status + method) |
+| **JVM Memory** | `jvm.memory.used`, `jvm.memory.committed`, `jvm.memory.max` |
+| **JVM GC** | `jvm.gc.pause`, `jvm.gc.memory.allocated` |
+| **JVM Threads** | `jvm.threads.live`, `jvm.threads.daemon`, `jvm.threads.peak` |
+| **HikariCP** | `hikaricp.connections.active`, `hikaricp.connections.idle` |
+| **Process** | `process.cpu.usage`, `process.uptime`, `system.cpu.usage` |
+
+### Grafana Dashboard
+
+The pre-built dashboard is auto-provisioned when using Docker Compose:
+
+| Panel | Query Highlights |
+|-------|-----------------|
+| ⚽ Prediction Request Rate | `rate(prediction_requests_total[…])` stacked by outcome |
+| ⏱️ Prediction Latency | `histogram_quantile(0.99, …prediction_latency_seconds_bucket…)` |
+| 🎯 Prediction Distribution | Donut of total prediction counts by outcome |
+| 📊 Model Accuracy | Gauge of `model_accuracy_current` |
+| 💾 Cache Hit Rate | `cache_hits / (cache_hits + cache_misses)` |
+| 🔥 Cache Hits vs Misses | Top-10 caches by hit/miss rate |
+| ☕ JVM Heap Memory | `jvm_memory_used_bytes{area="heap"}` |
+| 🌐 HTTP Request Rate | By status code (2xx / 4xx / 5xx) |
+| 🧵 JVM Threads | Live / Daemon / Peak |
+| 🗑️ GC Pause Time | `rate(jvm_gc_pause_seconds_sum[…])` |
+
+### Configuration Properties
+
+```properties
+# Actuator endpoints exposed
+management.endpoints.web.exposure.include=health,info,metrics,prometheus
+management.endpoint.prometheus.enabled=true
+management.metrics.export.prometheus.enabled=true
+management.metrics.tags.application=${spring.application.name}
+
+# Histogram buckets for prediction latency
+management.metrics.distribution.percentiles-histogram.http.server.requests=true
+management.metrics.distribution.percentiles.prediction.latency=0.5,0.95,0.99
+```
+
+---
+
 ## Caching Configuration
 
 ```java
@@ -908,6 +1163,8 @@ if (request.getHomeTeam() == null || request.getHomeTeam().isBlank()) {
 
 | Test Class | Coverage |
 |------------|----------|
+| `GlobalExceptionHandlerTest` | RFC 7807 error handling (13 handler tests via MockMvc) |
+| `SecurityConfigTest` | Auth, authorization, security headers, CORS |
 | `TrendingInsightsServiceTest` | Season-aware trending insights |
 | `PreMatchInsightsServiceTest` | Pre-match analysis |
 | `FoulsAnalysisServiceTest` | Fouls & discipline |
@@ -991,12 +1248,17 @@ scheduler.cron=0 0 6 * * MON,FRI
 
 | Metric | Value |
 |--------|-------|
-| Controllers | 5 (main) + 3 (polling/ingestion/SSE) |
+| Controllers | 23 (main) + 3 (polling/ingestion/SSE) |
 | Services | 37+ |
 | REST Endpoints | 70+ |
 | Cache Definitions | 19 |
 | DTOs | 30+ |
-| Config Classes | 9 |
+| Config Classes | 11 |
+| Custom Exceptions | 5 |
+| Error Codes | 8 |
+| OpenAPI Groups | 4 (predictions, analytics, teams, health) |
+| Custom Prometheus Metrics | 6 (counter, timer, gauge, cache stats) |
+| Grafana Dashboard Panels | 10 |
 
 ---
 

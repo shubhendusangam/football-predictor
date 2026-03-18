@@ -2,6 +2,8 @@ package com.app.footballprediction.controller;
 
 import com.app.footballprediction.dto.SeasonStatsResponse;
 import com.app.footballprediction.service.SeasonStatsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +25,7 @@ import java.util.Map;
 @RequestMapping("/api/seasons")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Teams", description = "Team listings, form, logos, stats, analytics, shot quality, fouls, and position history")
 public class SeasonsController {
 
     private final SeasonStatsService seasonStatsService;
@@ -126,4 +129,3 @@ public class SeasonsController {
         }
     }
 }
-

@@ -169,6 +169,11 @@ public class DashboardService {
 
     /**
      * Get today's predictions with status.
+     *
+     * <p>Looks for stored predictions from yesterday through the next 7 days.
+     * If no predictions exist yet (e.g. app just started, scheduler hasn't run),
+     * automatically generates predictions for all upcoming scheduled matches
+     * on-the-fly so the dashboard always has something to show.</p>
      */
     @Cacheable(value = CacheConfig.CACHE_PREDICTIONS, key = "'dashboard_todays'")
     public TodaysPredictionsResponse getTodaysPredictions() {
@@ -177,14 +182,20 @@ public class DashboardService {
 
         LocalDate today = LocalDate.now();
         LocalDate yesterday = today.minusDays(1);
+        LocalDate nextWeek = today.plusDays(7);
 
-        // Get predictions from today and yesterday
+        // Get predictions from yesterday through next 7 days
         List<Prediction> recentPredictions = predictionRepository.findAll().stream()
                 .filter(p -> p.getMatchDate() != null)
-                .filter(p -> !p.getMatchDate().isBefore(yesterday) && !p.getMatchDate().isAfter(today))
-                .sorted(Comparator.comparing(Prediction::getMatchDate).reversed())
-                .limit(10)
+                .filter(p -> !p.getMatchDate().isBefore(yesterday) && !p.getMatchDate().isAfter(nextWeek))
+                .sorted(Comparator.comparing(Prediction::getMatchDate))
                 .toList();
+
+        // If no stored predictions exist, attempt to auto-generate from upcoming matches
+        if (recentPredictions.isEmpty()) {
+            log.info("No stored predictions found — auto-generating from upcoming scheduled matches");
+            recentPredictions = autoGeneratePredictionsForUpcomingMatches();
+        }
 
         // Deduplicate by matchId (keep one per match)
         Map<Long, Prediction> uniqueByMatch = new LinkedHashMap<>();
@@ -194,6 +205,7 @@ public class DashboardService {
 
         List<TodaysPredictionsResponse.TodaysPredictionDto> predictionDtos = uniqueByMatch.values().stream()
                 .map(this::mapToTodaysPredictionDto)
+                .limit(10)
                 .toList();
 
         int wonCount = (int) predictionDtos.stream().filter(p -> "WON".equals(p.getStatus())).count();
@@ -210,6 +222,103 @@ public class DashboardService {
                 .lostCount(lostCount)
                 .lastUpdated(LocalDateTime.now().format(DateTimeFormatter.ISO_DATE_TIME))
                 .build();
+    }
+
+    /**
+     * Auto-generate predictions for upcoming scheduled matches using the ML model.
+     * Called as fallback when no stored predictions exist for the dashboard.
+     */
+    private List<Prediction> autoGeneratePredictionsForUpcomingMatches() {
+        if (!modelTrainingService.isModelLoaded()) {
+            log.warn("Model not loaded — cannot auto-generate predictions");
+            return List.of();
+        }
+
+        try {
+            FootballApiResponse response = footballDataApiService.getScheduledMatches("PL");
+            if (response == null || response.getMatches() == null || response.getMatches().isEmpty()) {
+                log.debug("No upcoming scheduled matches from API");
+                return List.of();
+            }
+
+            List<Prediction> generated = new ArrayList<>();
+
+            for (FootballApiResponse.ApiMatch apiMatch : response.getMatches()) {
+                try {
+                    if (apiMatch.getHomeTeam() == null || apiMatch.getAwayTeam() == null) continue;
+
+                    String homeTeam = com.app.common.util.TeamNameNormalizer.normalize(
+                            apiMatch.getHomeTeam().getName());
+                    String awayTeam = com.app.common.util.TeamNameNormalizer.normalize(
+                            apiMatch.getAwayTeam().getName());
+
+                    LocalDate matchDate = parseMatchDateFromUtc(apiMatch.getUtcDate());
+                    String season = com.app.common.util.SeasonHelper.deriveSeason(matchDate);
+
+                    com.app.common.model.MatchFeatures features =
+                            featureEngineeringService.buildFeaturesForPrediction(homeTeam, awayTeam);
+                    double[] probs = modelTrainingService.predict(features);
+                    String label = modelTrainingService.getPredictedLabel(probs);
+                    double confidence = Math.max(probs[0], Math.max(probs[1], probs[2]));
+
+                    // Store the prediction so it persists for future requests
+                    Prediction homePred = Prediction.builder()
+                            .matchId(apiMatch.getId())
+                            .teamName(homeTeam)
+                            .opponentName(awayTeam)
+                            .isHome(true)
+                            .season(season)
+                            .matchDate(matchDate)
+                            .predictedResult(convertLabel(label, true))
+                            .confidence(confidence)
+                            .probHomeWin(probs[0])
+                            .probDraw(probs[1])
+                            .probAwayWin(probs[2])
+                            .predictionDate(LocalDateTime.now())
+                            .build();
+
+                    // Use tracking service to avoid duplicates
+                    try {
+                        predictionRepository.save(homePred);
+                        generated.add(homePred);
+                    } catch (Exception ignored) {
+                        // Duplicate — already exists
+                    }
+
+                    log.debug("Auto-predicted: {} vs {} → {} ({}%)",
+                            homeTeam, awayTeam,
+                            com.app.common.util.PredictionUtils.labelToText(label),
+                            Math.round(confidence * 100));
+
+                } catch (Exception e) {
+                    log.debug("Skipped prediction for match {}: {}",
+                            apiMatch.getId(), e.getMessage());
+                }
+            }
+
+            log.info("Auto-generated {} predictions for upcoming matches", generated.size());
+            return generated;
+
+        } catch (Exception e) {
+            log.error("Failed to auto-generate predictions: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    private String convertLabel(String label, boolean isHome) {
+        if ("D".equals(label)) return "DRAW";
+        if ("H".equals(label)) return isHome ? "WIN" : "LOSS";
+        if ("A".equals(label)) return isHome ? "LOSS" : "WIN";
+        return "DRAW";
+    }
+
+    private LocalDate parseMatchDateFromUtc(String utcDate) {
+        if (utcDate == null || utcDate.isEmpty()) return LocalDate.now();
+        try {
+            return LocalDate.parse(utcDate.substring(0, 10));
+        } catch (Exception e) {
+            return LocalDate.now();
+        }
     }
 
     private TodaysPredictionsResponse.TodaysPredictionDto mapToTodaysPredictionDto(Prediction prediction) {

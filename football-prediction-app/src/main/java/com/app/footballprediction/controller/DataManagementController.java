@@ -3,6 +3,8 @@ package com.app.footballprediction.controller;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.scheduler.DataUpdateScheduler;
 import com.app.footballprediction.service.CsvIngestionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -12,22 +14,19 @@ import java.util.Map;
 
 /**
  * REST controller for data lifecycle operations (CSV reload, DB reset, update).
- *
- * Endpoints:
- * - POST /api/data/reload  — re-ingest CSVs
- * - POST /api/data/reset   — delete all + re-ingest
- * - POST /api/data/update  — fetch latest + retrain model
  */
 @RestController
 @RequestMapping("/api/data")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Data Management", description = "CSV data reload, database reset, and live data update triggers")
 public class DataManagementController {
 
     private final CsvIngestionService csvIngestionService;
     private final DataUpdateScheduler dataUpdateScheduler;
     private final MatchRepository matchRepository;
 
+    @Operation(summary = "Reload CSV data")
     @PostMapping("/reload")
     public ResponseEntity<Map<String, Object>> reloadData() {
         log.info("CSV reload requested via API...");
@@ -35,6 +34,7 @@ public class DataManagementController {
         return ResponseEntity.ok(Map.of("status", "CSV data reloaded successfully"));
     }
 
+    @Operation(summary = "Reset database and re-ingest all CSVs")
     @PostMapping("/reset")
     public ResponseEntity<Map<String, Object>> resetData() {
         log.info("Data reset requested via API - clearing all matches...");
@@ -52,6 +52,7 @@ public class DataManagementController {
         ));
     }
 
+    @Operation(summary = "Fetch latest data and retrain model")
     @PostMapping("/update")
     public ResponseEntity<Map<String, Object>> updateData() {
         log.info("Data update requested via API...");

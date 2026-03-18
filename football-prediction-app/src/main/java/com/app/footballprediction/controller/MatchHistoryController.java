@@ -4,6 +4,9 @@ import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.TeamRepository;
 import com.app.footballprediction.service.FootballDataApiService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -16,16 +19,12 @@ import java.util.Map;
 
 /**
  * REST controller for match history and upcoming fixture queries.
- *
- * Endpoints:
- * - GET /api/matches/history?team=X&limit=N
- * - GET /api/matches/{id}
- * - GET /api/matches/upcoming?limit=N&refresh=false
  */
 @RestController
 @RequestMapping("/api/matches")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Matches", description = "Match history, details by ID, and upcoming fixture queries")
 public class MatchHistoryController {
 
     private final MatchRepository matchRepository;

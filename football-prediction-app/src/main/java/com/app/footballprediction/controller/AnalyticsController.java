@@ -5,6 +5,9 @@ import com.app.footballprediction.dto.PreMatchInsightsResponse;
 import com.app.footballprediction.dto.H2HInsightsResponse;
 import com.app.footballprediction.dto.TrendingInsightsResponse;
 import com.app.footballprediction.service.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +23,7 @@ import java.util.Map;
 @RequestMapping("/api/analytics")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Analytics", description = "League statistics, pre-match insights, H2H analysis, and trending data")
 public class AnalyticsController {
 
     private final LeagueStatsService leagueStatsService;
@@ -36,6 +40,7 @@ public class AnalyticsController {
      *
      * @return LeagueStatsResponse with season overview, trends, records
      */
+    @Operation(summary = "Get comprehensive league statistics")
     @GetMapping("/league/stats")
     public ResponseEntity<?> getLeagueStats() {
         try {
@@ -58,6 +63,7 @@ public class AnalyticsController {
      *
      * @return LeagueStatsResponse for current season
      */
+    @Operation(summary = "Get current season statistics")
     @GetMapping("/league/current-season")
     public ResponseEntity<?> getCurrentSeasonStats() {
         try {
@@ -84,10 +90,11 @@ public class AnalyticsController {
      * @param awayTeam Away team name
      * @return PreMatchInsightsResponse with form, streaks, rest analysis
      */
+    @Operation(summary = "Get pre-match insights for a fixture")
     @GetMapping("/pre-match")
     public ResponseEntity<?> getPreMatchInsights(
-            @RequestParam String homeTeam,
-            @RequestParam String awayTeam) {
+            @Parameter(description = "Home team name") @RequestParam String homeTeam,
+            @Parameter(description = "Away team name") @RequestParam String awayTeam) {
         try {
             log.info("Fetching pre-match insights for {} vs {}", homeTeam, awayTeam);
             PreMatchInsightsResponse insights = preMatchInsightsService.getPreMatchInsights(homeTeam, awayTeam);
@@ -118,10 +125,11 @@ public class AnalyticsController {
      * @param awayTeam Away team name
      * @return H2HInsightsResponse with historical record, recent meetings
      */
+    @Operation(summary = "Get H2H insights between two teams")
     @GetMapping("/h2h")
     public ResponseEntity<?> getH2HInsights(
-            @RequestParam String homeTeam,
-            @RequestParam String awayTeam) {
+            @Parameter(description = "Home team name") @RequestParam String homeTeam,
+            @Parameter(description = "Away team name") @RequestParam String awayTeam) {
         try {
             log.info("Fetching H2H insights for {} vs {}", homeTeam, awayTeam);
             H2HInsightsResponse insights = h2hInsightsService.getH2HInsights(homeTeam, awayTeam);
@@ -148,6 +156,7 @@ public class AnalyticsController {
      * @param season Optional season filter (e.g., "2024-25")
      * @return TrendingInsightsResponse with all trending data for the specified season
      */
+    @Operation(summary = "Get all trending insights")
     @GetMapping("/trends")
     public ResponseEntity<?> getTrendingInsights(
             @RequestParam(required = false) String season) {
@@ -177,6 +186,7 @@ public class AnalyticsController {
      *
      * @return List of available season identifiers
      */
+    @Operation(summary = "Get available seasons for analytics")
     @GetMapping("/seasons")
     public ResponseEntity<?> getAvailableSeasons() {
         try {
@@ -207,10 +217,11 @@ public class AnalyticsController {
      * @param awayTeam Away team name
      * @return Combined analysis with all available data
      */
+    @Operation(summary = "Get complete match analysis combining all insights")
     @GetMapping("/match")
     public ResponseEntity<?> getCompleteMatchAnalysis(
-            @RequestParam String homeTeam,
-            @RequestParam String awayTeam) {
+            @Parameter(description = "Home team name") @RequestParam String homeTeam,
+            @Parameter(description = "Away team name") @RequestParam String awayTeam) {
         try {
             log.info("Fetching complete match analysis for {} vs {}", homeTeam, awayTeam);
 

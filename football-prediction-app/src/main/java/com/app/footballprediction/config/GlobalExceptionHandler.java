@@ -1,261 +1,314 @@
 package com.app.footballprediction.config;
 
+import com.app.footballprediction.exception.DataSyncException;
+import com.app.footballprediction.exception.ErrorCode;
+import com.app.footballprediction.exception.ModelNotReadyException;
+import com.app.footballprediction.exception.ResourceNotFoundException;
+import com.app.footballprediction.exception.TeamNotFoundException;
+import com.app.footballprediction.exception.ValidationException;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
-import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
-import com.app.footballprediction.exception.DataSyncException;
-import com.app.footballprediction.exception.ModelNotReadyException;
-import com.app.footballprediction.exception.TeamNotFoundException;
-
+import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Global exception handler for consistent error responses across all controllers.
- *
- * Provides:
- * - Standardized error response format
- * - Proper HTTP status codes
- * - Detailed error logging
- * - User-friendly error messages
+ * Production-grade global exception handler.
+ * <p>
+ * Every error response uses Spring 6 {@link ProblemDetail} (RFC 7807) and
+ * carries a machine-readable {@link ErrorCode} so that API consumers can
+ * programmatically identify the failure reason without parsing human text.
  */
-@ControllerAdvice
+@RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
 
+    // ── 404 – Resource Not Found ────────────────────────────────────────
+
     /**
-     * Handle validation errors from @Valid annotations.
+     * Handle generic resource-not-found exceptions (404).
      */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationErrors(MethodArgumentNotValidException ex) {
-        Map<String, String> fieldErrors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-            fieldErrors.put(error.getField(), error.getDefaultMessage())
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
+        log.warn("Resource not found: {} [{}]", ex.getResourceType(), ex.getIdentifier());
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.NOT_FOUND,
+                ex.getErrorCode(),
+                ex.getMessage()
         );
+        problem.setProperty("resourceType", ex.getResourceType());
+        problem.setProperty("identifier", ex.getIdentifier());
+        return problem;
+    }
 
-        log.warn("Validation failed: {}", fieldErrors);
+    // ── 400 – Validation ────────────────────────────────────────────────
 
-        return ResponseEntity.badRequest().body(buildErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            "Validation failed",
-            fieldErrors
-        ));
+    /**
+     * Handle custom {@link ValidationException} (400).
+     */
+    @ExceptionHandler(ValidationException.class)
+    public ProblemDetail handleValidationException(ValidationException ex) {
+        log.warn("Validation error: {}", ex.getMessage());
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.BAD_REQUEST,
+                ex.getErrorCode(),
+                ex.getMessage()
+        );
+        if (!ex.getFieldErrors().isEmpty()) {
+            problem.setProperty("fieldErrors", ex.getFieldErrors());
+        }
+        return problem;
     }
 
     /**
-     * Handle missing required request parameters.
+     * Handle validation errors from {@code @Valid} annotations (400).
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleMethodArgumentNotValid(MethodArgumentNotValidException ex) {
+        Map<String, String> fieldErrors = new HashMap<>();
+        ex.getBindingResult().getFieldErrors().forEach(error ->
+                fieldErrors.put(error.getField(), error.getDefaultMessage())
+        );
+
+        log.warn("Bean validation failed: {}", fieldErrors);
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.VALIDATION_FAILED,
+                "Validation failed"
+        );
+        problem.setProperty("fieldErrors", fieldErrors);
+        return problem;
+    }
+
+    /**
+     * Handle missing required request parameters (400).
      */
     @ExceptionHandler(MissingServletRequestParameterException.class)
-    public ResponseEntity<Map<String, Object>> handleMissingParams(MissingServletRequestParameterException ex) {
+    public ProblemDetail handleMissingParams(MissingServletRequestParameterException ex) {
         String message = String.format("Required parameter '%s' is missing", ex.getParameterName());
         log.warn("Missing parameter: {}", ex.getParameterName());
 
-        return ResponseEntity.badRequest().body(buildErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            message,
-            null
-        ));
+        return buildProblem(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST, message);
     }
 
     /**
-     * Handle type mismatches in request parameters.
+     * Handle type mismatches in request parameters (400).
      */
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
-    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String message = String.format("Parameter '%s' should be of type %s",
-            ex.getName(),
-            ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
+                ex.getName(),
+                ex.getRequiredType() != null ? ex.getRequiredType().getSimpleName() : "unknown");
         log.warn("Type mismatch: {} - expected {}", ex.getName(), ex.getRequiredType());
 
-        return ResponseEntity.badRequest().body(buildErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            message,
-            null
-        ));
+        return buildProblem(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST, message);
     }
 
     /**
-     * Handle invalid JSON in request body.
+     * Handle invalid JSON in request body (400).
      */
     @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ResponseEntity<Map<String, Object>> handleJsonParseError(HttpMessageNotReadableException ex) {
+    public ProblemDetail handleJsonParseError(HttpMessageNotReadableException ex) {
         log.warn("JSON parse error: {}", ex.getMessage());
 
-        return ResponseEntity.badRequest().body(buildErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            "Invalid JSON in request body",
-            Map.of("hint", "Check your JSON syntax")
-        ));
+        ProblemDetail problem = buildProblem(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_REQUEST,
+                "Invalid JSON in request body"
+        );
+        problem.setProperty("hint", "Check your JSON syntax");
+        return problem;
     }
 
     /**
-     * Handle unsupported HTTP methods.
+     * Handle illegal argument exceptions – business logic errors (400).
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ProblemDetail handleIllegalArgument(IllegalArgumentException ex) {
+        log.warn("Illegal argument: {}", ex.getMessage());
+        return buildProblem(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST, ex.getMessage());
+    }
+
+    // ── Domain-specific exception handlers ──────────────────────────────
+
+    /**
+     * Handle team not found – unknown team name supplied by user (400).
+     */
+    @ExceptionHandler(TeamNotFoundException.class)
+    public ProblemDetail handleTeamNotFound(TeamNotFoundException ex) {
+        log.warn("Team not found: {}", ex.getTeamName());
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.BAD_REQUEST,
+                ErrorCode.INVALID_TEAM_NAME,
+                ex.getMessage()
+        );
+        problem.setProperty("hint", "Use GET /api/teams to see valid team names");
+        return problem;
+    }
+
+    /**
+     * Handle model-not-ready – prediction requested before training (503).
+     */
+    @ExceptionHandler(ModelNotReadyException.class)
+    public ProblemDetail handleModelNotReady(ModelNotReadyException ex) {
+        log.warn("Model not ready: {}", ex.getMessage());
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                ErrorCode.MODEL_NOT_TRAINED,
+                ex.getMessage()
+        );
+        problem.setProperty("hint", "Call POST /api/model/train first");
+        return problem;
+    }
+
+    /**
+     * Handle data sync failures (500).
+     */
+    @ExceptionHandler(DataSyncException.class)
+    public ProblemDetail handleDataSyncFailure(DataSyncException ex) {
+        log.error("Data sync failed: {}", ex.getMessage(), ex);
+
+        ProblemDetail problem = buildProblem(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.DATA_SYNC_FAILED,
+                ex.getMessage()
+        );
+        problem.setProperty("hint", "Check external API connectivity and API key configuration");
+        return problem;
+    }
+
+    // ── HTTP / routing errors ───────────────────────────────────────────
+
+    /**
+     * Handle unsupported HTTP methods (405).
      */
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    public ResponseEntity<Map<String, Object>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+    public ProblemDetail handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
         String message = String.format("HTTP method '%s' is not supported for this endpoint", ex.getMethod());
         log.warn("Method not supported: {} - Supported: {}", ex.getMethod(), ex.getSupportedHttpMethods());
 
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(buildErrorResponse(
-            HttpStatus.METHOD_NOT_ALLOWED,
-            message,
-            Map.of("supportedMethods", ex.getSupportedHttpMethods() != null
-                ? ex.getSupportedHttpMethods().toString()
-                : "none")
-        ));
+        ProblemDetail problem = buildProblem(
+                HttpStatus.METHOD_NOT_ALLOWED,
+                ErrorCode.INVALID_REQUEST,
+                message
+        );
+        if (ex.getSupportedHttpMethods() != null) {
+            problem.setProperty("supportedMethods", ex.getSupportedHttpMethods().toString());
+        }
+        return problem;
     }
 
     /**
      * Handle invalid routes (404).
      */
     @ExceptionHandler(NoHandlerFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleNotFound(NoHandlerFoundException ex) {
+    public ProblemDetail handleNotFound(NoHandlerFoundException ex) {
         log.warn("Endpoint not found: {} {}", ex.getHttpMethod(), ex.getRequestURL());
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(buildErrorResponse(
-            HttpStatus.NOT_FOUND,
-            String.format("Endpoint '%s' not found", ex.getRequestURL()),
-            Map.of("hint", "Check the API documentation for available endpoints")
-        ));
+        ProblemDetail problem = buildProblem(
+                HttpStatus.NOT_FOUND,
+                ErrorCode.RESOURCE_NOT_FOUND,
+                String.format("Endpoint '%s' not found", ex.getRequestURL())
+        );
+        problem.setProperty("hint", "Check the API documentation for available endpoints");
+        return problem;
     }
 
     /**
-     * Handle missing static resources (favicon.ico, etc.) - return 404 silently.
+     * Handle missing static resources (favicon.ico, etc.) – return 404 silently.
      */
     @ExceptionHandler(NoResourceFoundException.class)
-    public ResponseEntity<Void> handleNoResourceFound(NoResourceFoundException ex) {
-        // Silently return 404 for missing static resources like favicon.ico
-        // Don't log error level to reduce noise
+    public ProblemDetail handleNoResourceFound(NoResourceFoundException ex) {
         log.debug("Static resource not found: {}", ex.getResourcePath());
-        return ResponseEntity.notFound().build();
+        return ProblemDetail.forStatusAndDetail(HttpStatusCode.valueOf(404), "Resource not found");
     }
 
-    // ── Domain-specific exception handlers ─────────────────────────────
+    // ── Illegal state / NPE / catch-all ─────────────────────────────────
 
     /**
-     * Handle team not found (unknown team name supplied by user).
-     */
-    @ExceptionHandler(TeamNotFoundException.class)
-    public ResponseEntity<Map<String, Object>> handleTeamNotFound(TeamNotFoundException ex) {
-        log.warn("Team not found: {}", ex.getTeamName());
-        return ResponseEntity.badRequest().body(buildErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            ex.getMessage(),
-            Map.of("hint", "Use GET /api/teams to see valid team names")
-        ));
-    }
-
-    /**
-     * Handle model-not-ready (prediction requested before training).
-     */
-    @ExceptionHandler(ModelNotReadyException.class)
-    public ResponseEntity<Map<String, Object>> handleModelNotReady(ModelNotReadyException ex) {
-        log.warn("Model not ready: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(buildErrorResponse(
-            HttpStatus.SERVICE_UNAVAILABLE,
-            ex.getMessage(),
-            Map.of("hint", "Call POST /api/model/train first")
-        ));
-    }
-
-    /**
-     * Handle data sync failures.
-     */
-    @ExceptionHandler(DataSyncException.class)
-    public ResponseEntity<Map<String, Object>> handleDataSyncFailure(DataSyncException ex) {
-        log.error("Data sync failed: {}", ex.getMessage(), ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            ex.getMessage(),
-            Map.of("hint", "Check external API connectivity and API key configuration")
-        ));
-    }
-
-    /**
-     * Handle illegal argument exceptions (business logic errors).
-     */
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Illegal argument: {}", ex.getMessage());
-
-        return ResponseEntity.badRequest().body(buildErrorResponse(
-            HttpStatus.BAD_REQUEST,
-            ex.getMessage(),
-            null
-        ));
-    }
-
-    /**
-     * Handle illegal state exceptions (model not loaded, etc.).
+     * Handle illegal state exceptions – model not loaded, etc. (503).
      */
     @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+    public ProblemDetail handleIllegalState(IllegalStateException ex) {
         log.warn("Illegal state: {}", ex.getMessage());
 
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(buildErrorResponse(
-            HttpStatus.SERVICE_UNAVAILABLE,
-            ex.getMessage(),
-            Map.of("hint", "The system may still be initializing. Please try again.")
-        ));
+        ProblemDetail problem = buildProblem(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                ErrorCode.INTERNAL_ERROR,
+                ex.getMessage()
+        );
+        problem.setProperty("hint", "The system may still be initializing. Please try again.");
+        return problem;
     }
 
     /**
-     * Handle null pointer exceptions (defensive fallback).
+     * Defensive fallback for null pointer exceptions (500).
      */
     @ExceptionHandler(NullPointerException.class)
-    public ResponseEntity<Map<String, Object>> handleNullPointer(NullPointerException ex) {
+    public ProblemDetail handleNullPointer(NullPointerException ex) {
         log.error("NullPointerException: {}", ex.getMessage(), ex);
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "An unexpected error occurred while processing your request",
-            Map.of("hint", "Please try again or contact support if the issue persists")
-        ));
+        ProblemDetail problem = buildProblem(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.INTERNAL_ERROR,
+                "An unexpected error occurred while processing your request"
+        );
+        problem.setProperty("hint", "Please try again or contact support if the issue persists");
+        return problem;
     }
 
     /**
-     * Catch-all handler for any unhandled exceptions.
+     * Catch-all handler for any unhandled exceptions (500).
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+    public ProblemDetail handleGenericException(Exception ex) {
         log.error("Unhandled exception: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildErrorResponse(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "An unexpected error occurred",
-            Map.of(
-                "type", ex.getClass().getSimpleName(),
-                "hint", "Please check the logs for more details"
-            )
-        ));
+        ProblemDetail problem = buildProblem(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.INTERNAL_ERROR,
+                "An unexpected error occurred"
+        );
+        problem.setProperty("exceptionType", ex.getClass().getSimpleName());
+        problem.setProperty("hint", "Please check the logs for more details");
+        return problem;
     }
+
+    // ── Helper ──────────────────────────────────────────────────────────
 
     /**
-     * Build a standardized error response.
+     * Build a {@link ProblemDetail} with consistent fields.
+     *
+     * @param status    HTTP status
+     * @param errorCode machine-readable {@link ErrorCode}
+     * @param detail    human-readable description
+     * @return fully populated ProblemDetail
      */
-    private Map<String, Object> buildErrorResponse(HttpStatus status, String message, Object details) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("timestamp", Instant.now().toString());
-        response.put("status", status.value());
-        response.put("error", status.getReasonPhrase());
-        response.put("message", message);
-
-        if (details != null) {
-            response.put("details", details);
-        }
-
-        return response;
+    private ProblemDetail buildProblem(HttpStatus status, ErrorCode errorCode, String detail) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(status, detail);
+        problem.setTitle(status.getReasonPhrase());
+        problem.setType(URI.create("/errors/" + errorCode.name().toLowerCase().replace('_', '-')));
+        problem.setProperty("errorCode", errorCode.name());
+        problem.setProperty("timestamp", Instant.now().toString());
+        return problem;
     }
 }
-

@@ -3,6 +3,8 @@ package com.app.footballprediction.controller;
 import com.app.footballprediction.dto.CardsPredictionDTO;
 import com.app.footballprediction.dto.TeamDisciplineDTO;
 import com.app.footballprediction.service.CardsPredictionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -12,20 +14,12 @@ import java.util.Map;
 
 /**
  * REST controller for cards prediction and team discipline endpoints.
- *
- * <p>Provides access to:</p>
- * <ul>
- *   <li>Match card predictions with referee influence</li>
- *   <li>Team discipline statistics</li>
- * </ul>
- *
- * @author Football Forecaster Team
- * @version 1.0.0
  */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Analytics", description = "League statistics, pre-match insights, H2H analysis, and trending data")
 public class CardsController {
 
     private final CardsPredictionService cardsPredictionService;

@@ -11,6 +11,8 @@ import com.app.common.util.PredictionUtils;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.service.FootballDataApiService;
 import com.app.footballprediction.service.PredictionTrackingService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +35,7 @@ import java.util.*;
 @RequestMapping("/api/external")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Predictions", description = "Match outcome predictions, H2H insights, and trending analytics")
 public class ExternalApiController {
 
     private final FootballDataApiService footballDataApiService;

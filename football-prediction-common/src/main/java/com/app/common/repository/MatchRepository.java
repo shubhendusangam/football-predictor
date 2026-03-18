@@ -438,11 +438,50 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     @Query("SELECT m FROM Match m WHERE m.fullTimeResult IS NOT NULL AND m.matchDate <= :beforeDate")
     List<Match> findAllFinishedMatchesBeforeDate(@Param("beforeDate") LocalDate beforeDate);
 
+     /**
+      * Lightweight projection returning only (matchDate, homeTeam, awayTeam) for all matches.
+      * Used by CsvIngestionService to pre-load existing match keys for O(1) duplicate checks
+      * instead of per-row existence queries.
+      */
+     @Query("SELECT m.matchDate, m.homeTeam, m.awayTeam FROM Match m")
+     List<Object[]> findAllMatchKeyProjections();
+
+    // ══════════════════════════════════════════════════════════════
+    // H2 MERGE Upsert (ON CONFLICT DO UPDATE equivalent)
+    // ══════════════════════════════════════════════════════════════
+
     /**
-     * Lightweight projection returning only (matchDate, homeTeam, awayTeam) for all matches.
-     * Used by CsvIngestionService to pre-load existing match keys for O(1) duplicate checks
-     * instead of per-row existence queries.
+     * Atomic upsert using H2 MERGE statement.
+     * If a match with the same (matchDate, homeTeam, awayTeam) already exists,
+     * it updates scores; otherwise inserts a new row.
+     *
+     * <p>This is the SQL-level equivalent of "INSERT ... ON CONFLICT DO UPDATE"
+     * and eliminates the race condition window of application-level find-then-save.</p>
      */
-    @Query("SELECT m.matchDate, m.homeTeam, m.awayTeam FROM Match m")
-    List<Object[]> findAllMatchKeyProjections();
+    @org.springframework.data.jpa.repository.Modifying
+    @Query(value = """
+        MERGE INTO matches (match_date, home_team, away_team, season, kickoff_time,
+                            full_time_home_goals, full_time_away_goals, full_time_result,
+                            half_time_home_goals, half_time_away_goals, half_time_result,
+                            stats_processed)
+        KEY (match_date, home_team, away_team)
+        VALUES (:matchDate, :homeTeam, :awayTeam, :season, :kickoffTime,
+                :ftHomeGoals, :ftAwayGoals, :ftResult,
+                :htHomeGoals, :htAwayGoals, :htResult,
+                COALESCE(:statsProcessed, false))
+        """, nativeQuery = true)
+    void mergeMatch(
+        @Param("matchDate")    LocalDate matchDate,
+        @Param("homeTeam")     String homeTeam,
+        @Param("awayTeam")     String awayTeam,
+        @Param("season")       String season,
+        @Param("kickoffTime")  String kickoffTime,
+        @Param("ftHomeGoals")  Integer ftHomeGoals,
+        @Param("ftAwayGoals")  Integer ftAwayGoals,
+        @Param("ftResult")     String ftResult,
+        @Param("htHomeGoals")  Integer htHomeGoals,
+        @Param("htAwayGoals")  Integer htAwayGoals,
+        @Param("htResult")     String htResult,
+        @Param("statsProcessed") Boolean statsProcessed
+    );
 }

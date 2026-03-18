@@ -3,16 +3,22 @@ package com.app.footballprediction.controller;
 import com.app.common.model.AdminAuditLog;
 import com.app.common.model.League;
 import com.app.common.model.Match;
+import com.app.common.model.SyncStatusEntry;
 import com.app.common.model.SystemSettings;
 import com.app.common.model.Team;
 import com.app.common.repository.LeagueStandingRepository;
 import com.app.common.repository.MatchRepository;
 import com.app.footballprediction.service.AdminService;
 import com.app.footballprediction.service.ApiDataSyncService;
+import com.app.footballprediction.service.DataSyncService;
 import com.app.footballprediction.service.MatchResultProcessor;
 import com.app.footballprediction.service.ModelAccuracyService;
 import com.app.footballprediction.service.PredictionTrackingService;
 import com.app.footballprediction.config.RateLimitFilter;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -33,11 +39,14 @@ import java.util.Map;
 @RequestMapping("/api/admin")
 @Slf4j
 @RequiredArgsConstructor
+@Tag(name = "Admin", description = "Administrative operations – authentication, settings, data management (requires Basic Auth)")
+@SecurityRequirement(name = "basicAuth")
 public class AdminController {
 
     private final AdminService adminService;
     private final PredictionTrackingService predictionTrackingService;
     private final ApiDataSyncService apiDataSyncService;
+    private final DataSyncService dataSyncService;
     private final MatchRepository matchRepository;
     private final LeagueStandingRepository standingRepository;
     private final MatchResultProcessor matchResultProcessor;
@@ -52,6 +61,7 @@ public class AdminController {
      *
      * GET /api/admin/verify
      */
+    @Operation(summary = "Verify admin credentials")
     @GetMapping("/verify")
     public ResponseEntity<?> verifyAdmin(Authentication authentication) {
         if (authentication != null && authentication.isAuthenticated()) {
@@ -74,6 +84,7 @@ public class AdminController {
      *
      * POST /api/admin/logout
      */
+    @Operation(summary = "Admin logout")
     @PostMapping("/logout")
     public ResponseEntity<?> logout(Authentication authentication) {
         if (authentication != null) {
@@ -94,6 +105,7 @@ public class AdminController {
      *
      * GET /api/admin/dashboard
      */
+    @Operation(summary = "Get admin dashboard data")
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(Authentication authentication) {
         try {
@@ -123,6 +135,7 @@ public class AdminController {
      *
      * POST /api/admin/toggle-engine
      */
+    @Operation(summary = "Toggle prediction engine on/off")
     @PostMapping("/toggle-engine")
     public ResponseEntity<?> toggleEngine(
             @RequestBody Map<String, Boolean> request,
@@ -150,6 +163,7 @@ public class AdminController {
      *
      * POST /api/admin/retrain
      */
+    @Operation(summary = "Trigger model retraining")
     @PostMapping("/retrain")
     public ResponseEntity<?> retrain(Authentication authentication) {
         try {
@@ -177,6 +191,7 @@ public class AdminController {
      *
      * GET /api/admin/settings
      */
+    @Operation(summary = "Get current system settings")
     @GetMapping("/settings")
     public ResponseEntity<?> getSettings() {
         try {
@@ -620,7 +635,7 @@ public class AdminController {
     }
 
     /**
-     * Get current sync status (latest match date, counts, etc.).
+     * Get current sync status (latest match date, counts, persisted sync history).
      *
      * GET /api/admin/sync/status
      */
@@ -644,6 +659,26 @@ public class AdminController {
             status.put("standingsCount", standingRepository.count());
             status.put("matchesCount", matchRepository.count());
 
+            // Persisted sync status from SyncStatusEntry audit trail
+            SyncStatusEntry latestSync = dataSyncService.getLatestSyncStatus();
+            if (latestSync != null) {
+                status.put("lastSyncTime", latestSync.getStartedAt().toString());
+                status.put("lastSyncType", latestSync.getSyncType().name());
+                status.put("lastSyncSuccess", latestSync.getSuccess());
+                status.put("lastSyncDurationMs", latestSync.getDurationMs());
+                status.put("lastSyncRecordsFetched", latestSync.getRecordsFetched());
+                status.put("lastSyncRecordsInserted", latestSync.getRecordsInserted());
+                status.put("lastSyncRecordsUpdated", latestSync.getRecordsUpdated());
+                status.put("lastSyncTriggeredBy", latestSync.getTriggeredBy());
+                if (!latestSync.getSuccess() && latestSync.getErrorMessage() != null) {
+                    status.put("lastSyncError", latestSync.getErrorMessage());
+                }
+            }
+
+            // Recent failures count (last 24h)
+            List<SyncStatusEntry> recentFailures = dataSyncService.getRecentFailures();
+            status.put("recentFailures24h", recentFailures.size());
+
             return ResponseEntity.ok(status);
 
         } catch (Exception e) {
@@ -651,6 +686,76 @@ public class AdminController {
             status.put("error", e.getMessage());
             return ResponseEntity.internalServerError().body(status);
         }
+    }
+
+    /**
+     * Trigger a full sync (standings + results + fixtures) on demand.
+     * Returns the persisted SyncStatusEntry as confirmation.
+     *
+     * POST /api/admin/sync/trigger?competition=PL&type=FULL
+     */
+    @PostMapping("/sync/trigger")
+    public ResponseEntity<Map<String, Object>> triggerSync(
+            @RequestParam(defaultValue = "PL") String competition,
+            @RequestParam(defaultValue = "FULL") String type,
+            Authentication authentication) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            String triggeredBy = authentication != null ? authentication.getName() : "anonymous";
+            log.info("Sync trigger requested by: {} (type={}, competition={})", triggeredBy, type, competition);
+
+            SyncStatusEntry.SyncType syncType;
+            try {
+                syncType = SyncStatusEntry.SyncType.valueOf(type.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                response.put("status", "error");
+                response.put("message", "Invalid sync type: " + type + ". Valid types: FIXTURES, RESULTS, STANDINGS, FULL");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            SyncStatusEntry entry = dataSyncService.triggerSync(syncType, competition, triggeredBy);
+
+            if (authentication != null) {
+                adminService.logAuditAction(authentication.getName(),
+                    AdminAuditLog.ActionType.UPDATE_SETTINGS,
+                    "Sync triggered: type=" + syncType + ", success=" + entry.getSuccess(),
+                    null, null, null, null, entry.getSuccess(), null);
+            }
+
+            response.put("status", entry.getSuccess() ? "success" : "error");
+            response.put("syncId", entry.getId());
+            response.put("syncType", entry.getSyncType().name());
+            response.put("competition", entry.getCompetition());
+            response.put("durationMs", entry.getDurationMs());
+            response.put("recordsFetched", entry.getRecordsFetched());
+            response.put("recordsInserted", entry.getRecordsInserted());
+            response.put("recordsUpdated", entry.getRecordsUpdated());
+            response.put("success", entry.getSuccess());
+            response.put("message", entry.getSuccess()
+                    ? "✅ " + syncType + " sync completed successfully"
+                    : "❌ " + syncType + " sync failed: " + entry.getErrorMessage());
+
+            return entry.getSuccess()
+                    ? ResponseEntity.ok(response)
+                    : ResponseEntity.internalServerError().body(response);
+
+        } catch (Exception e) {
+            log.error("Error triggering sync", e);
+            response.put("status", "error");
+            response.put("message", "❌ Failed to trigger sync: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Get recent sync history (last 20 operations).
+     *
+     * GET /api/admin/sync/history
+     */
+    @GetMapping("/sync/history")
+    public ResponseEntity<List<SyncStatusEntry>> getSyncHistory() {
+        return ResponseEntity.ok(dataSyncService.getRecentHistory());
     }
 
     /**

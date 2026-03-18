@@ -11,6 +11,8 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 
@@ -45,9 +47,7 @@ public class FootballDataApiService {
                         .queryParam("status", "FINISHED")
                         .build(competitionCode))
                 .retrieve()
-                .bodyToMono(FootballApiResponse.class)
-                .timeout(Duration.ofSeconds(30))
-                .block());
+                .bodyToMono(FootballApiResponse.class));
     }
 
     /**
@@ -83,9 +83,7 @@ public class FootballDataApiService {
                         .queryParam("status", "SCHEDULED,TIMED")
                         .build(competitionCode))
                 .retrieve()
-                .bodyToMono(FootballApiResponse.class)
-                .timeout(Duration.ofSeconds(30))
-                .block());
+                .bodyToMono(FootballApiResponse.class));
     }
 
     /**
@@ -99,9 +97,7 @@ public class FootballDataApiService {
         return fetchWithRetry(() -> footballApiClient.get()
                 .uri("/competitions/{code}/standings", competitionCode)
                 .retrieve()
-                .bodyToMono(StandingsResponse.class)
-                .timeout(Duration.ofSeconds(30))
-                .block());
+                .bodyToMono(StandingsResponse.class));
     }
 
     /**
@@ -117,39 +113,101 @@ public class FootballDataApiService {
                         .queryParam("matchday", matchday)
                         .build(competitionCode))
                 .retrieve()
-                .bodyToMono(FootballApiResponse.class)
-                .timeout(Duration.ofSeconds(30))
-                .block());
+                .bodyToMono(FootballApiResponse.class));
     }
 
     /**
      * Helper method to fetch with retry logic and proper error handling.
+     * Uses Reactor's retryWhen with exponential backoff for non-blocking retries.
      */
-    private <T> T fetchWithRetry(java.util.function.Supplier<T> fetcher) {
-        int maxRetries = 2;
+    private <T> T fetchWithRetry(java.util.function.Supplier<Mono<T>> monoSupplier) {
+        return monoSupplier.get()
+                .timeout(Duration.ofSeconds(30))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                        .maxBackoff(Duration.ofSeconds(30))
+                        .jitter(0.5)
+                        .filter(throwable -> throwable instanceof WebClientResponseException.TooManyRequests
+                                || throwable instanceof WebClientResponseException.ServiceUnavailable
+                                || throwable instanceof java.util.concurrent.TimeoutException)
+                        .doBeforeRetry(signal -> log.warn(
+                                "Retry #{} after error: {}",
+                                signal.totalRetries() + 1,
+                                signal.failure().getMessage()))
+                        .onRetryExhaustedThrow((spec, signal) -> {
+                            log.error("All {} retries exhausted. Last error: {}",
+                                    signal.totalRetries(), signal.failure().getMessage());
+                            return signal.failure();
+                        }))
+                .doOnError(e -> log.error("Error fetching data: {}", e.getMessage()))
+                .block();
+    }
 
-        for (int retryCount = 0; retryCount <= maxRetries; retryCount++) {
-            try {
-                return fetcher.get();
-            } catch (WebClientResponseException.TooManyRequests e) {
-                if (retryCount >= maxRetries) {
-                    log.error("Rate limit exceeded after {} retries", maxRetries);
-                    throw e;
-                }
-                log.warn("Rate limit hit, waiting before retry {} of {}", retryCount + 1, maxRetries);
-                try {
-                    Thread.sleep(6000L * (retryCount + 1)); // Exponential backoff
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    throw new RuntimeException("Interrupted during retry wait", ie);
-                }
-            } catch (Exception e) {
-                log.error("Error fetching data: {}", e.getMessage());
-                throw e;
-            }
-        }
+    // ══════════════════════════════════════════════════════════════
+    // Reactive (Mono) fetch methods – used by DataSyncService
+    // ══════════════════════════════════════════════════════════════
 
-        throw new RuntimeException("Failed to fetch after retries");
+    /**
+     * Reactive fetch of finished matches with exponential-backoff retry.
+     * Returns a {@link Mono} for non-blocking pipeline composition.
+     */
+    public Mono<FootballApiResponse> getFinishedMatchesReactive(String competitionCode) {
+        return footballApiClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/competitions/{code}/matches")
+                        .queryParam("status", "FINISHED")
+                        .build(competitionCode))
+                .retrieve()
+                .bodyToMono(FootballApiResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .retryWhen(reactorRetrySpec())
+                .doOnSubscribe(s -> log.debug("Reactive fetch: finished matches for {}", competitionCode));
+    }
+
+    /**
+     * Reactive fetch of scheduled/timed matches with exponential-backoff retry.
+     */
+    public Mono<FootballApiResponse> getScheduledMatchesReactive(String competitionCode) {
+        return footballApiClient.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/competitions/{code}/matches")
+                        .queryParam("status", "SCHEDULED,TIMED")
+                        .build(competitionCode))
+                .retrieve()
+                .bodyToMono(FootballApiResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .retryWhen(reactorRetrySpec())
+                .doOnSubscribe(s -> log.debug("Reactive fetch: scheduled matches for {}", competitionCode));
+    }
+
+    /**
+     * Reactive fetch of standings with exponential-backoff retry.
+     */
+    public Mono<StandingsResponse> getStandingsReactive(String competitionCode) {
+        return footballApiClient.get()
+                .uri("/competitions/{code}/standings", competitionCode)
+                .retrieve()
+                .bodyToMono(StandingsResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .retryWhen(reactorRetrySpec())
+                .doOnSubscribe(s -> log.debug("Reactive fetch: standings for {}", competitionCode));
+    }
+
+    /**
+     * Shared Reactor Retry spec: 3 retries, 2s initial backoff, 30s max, 50% jitter.
+     * Retries on 429 Too Many Requests, 503 Service Unavailable, and timeouts.
+     */
+    private Retry reactorRetrySpec() {
+        return Retry.backoff(3, Duration.ofSeconds(2))
+                .maxBackoff(Duration.ofSeconds(30))
+                .jitter(0.5)
+                .filter(throwable -> throwable instanceof WebClientResponseException.TooManyRequests
+                        || throwable instanceof WebClientResponseException.ServiceUnavailable
+                        || throwable instanceof java.util.concurrent.TimeoutException)
+                .doBeforeRetry(signal -> log.warn(
+                        "Retry #{} after error: {}",
+                        signal.totalRetries() + 1,
+                        signal.failure().getMessage()))
+                .onRetryExhaustedThrow((spec, signal) -> signal.failure());
     }
 
     /**

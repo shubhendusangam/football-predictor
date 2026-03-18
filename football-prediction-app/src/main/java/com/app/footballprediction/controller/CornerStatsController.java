@@ -3,6 +3,8 @@ package com.app.footballprediction.controller;
 import com.app.footballprediction.dto.CornerPredictionDTO;
 import com.app.footballprediction.dto.CornerStatsDTO;
 import com.app.footballprediction.service.CornerStatsService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -12,33 +14,12 @@ import java.util.Map;
 
 /**
  * REST Controller for corner kick statistics and predictions.
- *
- * <p>Provides endpoints for:</p>
- * <ul>
- *   <li>Team corner statistics (home/away split)</li>
- *   <li>Match corner predictions with over/under probabilities</li>
- * </ul>
- *
- * <p><strong>API Endpoints:</strong></p>
- * <ul>
- *   <li>GET /api/teams/{teamName}/corner-stats - Get corner statistics for a team</li>
- *   <li>GET /api/matches/predict-corners - Predict corners for a match</li>
- * </ul>
- *
- * <p><strong>Error Handling:</strong></p>
- * <p>Uses global exception handler for consistent error responses.
- * Returns 400 for invalid inputs, 404 for unknown teams, 500 for server errors.</p>
- *
- * @author Football Forecaster Team
- * @version 1.0.0
- * @see CornerStatsService
- * @see CornerStatsDTO
- * @see CornerPredictionDTO
  */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Analytics", description = "League statistics, pre-match insights, H2H analysis, and trending data")
 public class CornerStatsController {
 
     private final CornerStatsService cornerStatsService;

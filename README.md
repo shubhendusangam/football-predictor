@@ -19,6 +19,7 @@ A **Season-aware AI-powered Football Match Prediction & Insights Platform** buil
 - [Module Documentation](#-module-documentation)
 - [Quick Start](#-quick-start)
 - [API Overview](#-api-overview)
+- [Observability (Prometheus & Grafana)](#-observability-prometheus--grafana)
 - [Configuration](#-configuration)
 - [Future Roadmap](#-future-roadmap)
 
@@ -333,6 +334,13 @@ Every prediction includes a breakdown of contributing factors:
 │  │  • Static Resources       • Canvas Sparklines                        │   │
 │  └──────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐   │
+│  │                    Observability (Monitoring)                        │   │
+│  │  • Micrometer + Prometheus Registry   • /actuator/prometheus        │   │
+│  │  • Prometheus (scrape every 10 s)     • Grafana dashboards          │   │
+│  │  • Custom metrics: latency, counters, accuracy gauge, cache stats   │   │
+│  └──────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -484,13 +492,22 @@ docker-compose up -d
 |---------|-----|
 | **Web UI** | http://localhost:8080 |
 | **API** | http://localhost:8080/api |
+| **Swagger UI** | http://localhost:8080/swagger-ui.html |
+| **OpenAPI JSON** | http://localhost:8080/v3/api-docs |
+| **Prometheus Metrics** | http://localhost:8080/actuator/prometheus |
+| **Health Check** | http://localhost:8080/actuator/health |
 | **SSE Events** | http://localhost:8080/api/events/match-completion |
 | **Training Service** | http://localhost:8081/api/training |
 | **H2 Console** | http://localhost:8080/h2-console |
+| **Prometheus UI** | http://localhost:9090 |
+| **Grafana Dashboards** | http://localhost:3000 (admin / football) |
 
 ---
 
 ## 📡 API Overview
+
+> **Interactive API docs**: Open [Swagger UI](http://localhost:8080/swagger-ui.html) for a live, try-it-out explorer.
+> APIs are grouped into **Predictions**, **Analytics**, **Teams**, and **Health & Admin**.
 
 ### Core Prediction Endpoints
 
@@ -590,6 +607,50 @@ docker-compose up -d
 | `/api/retrain/trigger` | POST | Manual retrain trigger |
 | `/api/retrain/status` | GET | Retrain status |
 
+### Error Handling (RFC 7807)
+
+All error responses use the **RFC 7807 Problem Detail** format (`application/problem+json`):
+
+```json
+{
+  "type": "/errors/invalid-team-name",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Team not found: FooFC",
+  "errorCode": "INVALID_TEAM_NAME",
+  "timestamp": "2026-03-14T10:30:00Z",
+  "hint": "Use GET /api/teams to see valid team names"
+}
+```
+
+| Error Code | HTTP Status | Meaning |
+|------------|-------------|---------|
+| `PREDICTION_NOT_FOUND` | 404 | Requested prediction does not exist |
+| `RESOURCE_NOT_FOUND` | 404 | Generic resource not found |
+| `INVALID_TEAM_NAME` | 400 | Unrecognised team name |
+| `VALIDATION_FAILED` | 400 | Bean validation failure |
+| `INVALID_REQUEST` | 400 | Malformed request |
+| `MODEL_NOT_TRAINED` | 503 | ML model not loaded yet |
+| `DATA_SYNC_FAILED` | 500 | External data sync failure |
+| `INTERNAL_ERROR` | 500 | Unexpected server error |
+
+### OpenAPI / Swagger UI
+
+| Resource | URL |
+|----------|-----|
+| **Swagger UI** | [`/swagger-ui.html`](http://localhost:8080/swagger-ui.html) |
+| **OpenAPI JSON** | [`/v3/api-docs`](http://localhost:8080/v3/api-docs) |
+| **OpenAPI YAML** | [`/v3/api-docs.yaml`](http://localhost:8080/v3/api-docs.yaml) |
+
+API groups available in the Swagger UI drop-down:
+
+| Group | Contents |
+|-------|----------|
+| **predictions** | Match predictions, H2H insights, external API predictions |
+| **analytics** | League stats, pre-match insights, xG, corners, cards, congestion |
+| **teams** | Team listings, seasons, referees, news |
+| **health** | Model status, dashboard, admin, cache, data management |
+
 ### Example Request
 
 ```bash
@@ -618,7 +679,96 @@ curl -X POST http://localhost:8080/api/predict \
 }
 ```
 
-> **Full API documentation**: See [football-prediction-app/README.md](./football-prediction-app/README.md#api-endpoints)
+> **Full API documentation**: See [Swagger UI](http://localhost:8080/swagger-ui.html) or [football-prediction-app/README.md](./football-prediction-app/README.md#api-endpoints)
+
+---
+
+## 📈 Observability (Prometheus & Grafana)
+
+The platform ships with a full observability stack powered by **Micrometer**, **Prometheus**, and **Grafana**.
+
+### Architecture
+
+```
+┌──────────────────────┐       scrape /actuator/prometheus        ┌─────────────┐
+│  Football Predictor  │ ◄──────────────────────────────────────── │  Prometheus  │
+│  (Micrometer +       │         every 10 s                       │  :9090       │
+│   Prometheus Registry)│                                          └──────┬──────┘
+└──────────────────────┘                                                 │ query
+                                                                         ▼
+                                                                  ┌─────────────┐
+                                                                  │   Grafana    │
+                                                                  │   :3000      │
+                                                                  └─────────────┘
+```
+
+### Custom Metrics
+
+| Metric | Type | Tags | Description |
+|--------|------|------|-------------|
+| `prediction.requests.total` | Counter | `outcome` (HOME / DRAW / AWAY) | Total prediction requests by outcome |
+| `prediction.latency` | Timer | — | ML inference latency (p50, p95, p99) |
+| `model.accuracy.current` | Gauge | — | Winner accuracy over the last 30 days |
+| `cache.hits` | FunctionCounter | `cache` | Caffeine cache hit count per cache |
+| `cache.misses` | FunctionCounter | `cache` | Caffeine cache miss count per cache |
+| `cache.size` | Gauge | `cache` | Estimated entries per cache |
+
+Spring Boot auto-instruments HTTP requests (`http.server.requests`), JVM memory, GC, threads, and HikariCP.
+
+### Actuator Endpoints
+
+| Endpoint | Description |
+|----------|-------------|
+| `/actuator/prometheus` | Prometheus-formatted metrics scrape target |
+| `/actuator/health` | Application health (DB, disk, model) |
+| `/actuator/metrics` | List of all available metric names |
+| `/actuator/metrics/{name}` | Detail for a single metric |
+
+### Grafana Dashboard Panels
+
+The pre-built dashboard (`monitoring/grafana/dashboards/football-prediction.json`) includes:
+
+| Panel | Description |
+|-------|-------------|
+| ⚽ Prediction Request Rate | Requests/sec stacked by HOME / DRAW / AWAY |
+| ⏱️ Prediction Latency | p50, p95, p99 latency time series |
+| 🎯 Prediction Distribution | Donut chart of outcome proportions |
+| 📊 Model Accuracy | Gauge showing last-30-day winner accuracy |
+| 💾 Cache Hit Rate | Overall Caffeine cache hit ratio |
+| 🔥 Cache Hits vs Misses | Per-cache hit/miss bar chart |
+| ☕ JVM Heap Memory | Used / committed / max heap |
+| 🌐 HTTP Request Rate | By status code (2xx / 4xx / 5xx) |
+| 🧵 JVM Threads | Live / daemon / peak thread counts |
+| 🗑️ GC Pause Time | Garbage collection pause duration |
+
+### Quick Start (Observability)
+
+```bash
+# Start everything including Prometheus + Grafana
+docker-compose up -d
+
+# Open Grafana
+open http://localhost:3000   # admin / football
+
+# Open Prometheus UI
+open http://localhost:9090
+```
+
+### File Structure
+
+```
+monitoring/
+├── prometheus/
+│   └── prometheus.yml              # Scrape configuration
+└── grafana/
+    ├── provisioning/
+    │   ├── datasources/
+    │   │   └── prometheus.yml      # Auto-configure Prometheus datasource
+    │   └── dashboards/
+    │       └── dashboards.yml      # Dashboard auto-provisioning
+    └── dashboards/
+        └── football-prediction.json # Pre-built Grafana dashboard
+```
 
 ---
 
@@ -708,12 +858,15 @@ CREATE INDEX idx_prediction_season ON predictions(season);
 | **ML Features** | 25 |
 | **Cache Definitions** | 19 |
 | **Services** | 37+ |
-| **Controllers** | 5 (main) + 3 (polling/ingestion/SSE) |
+| **Controllers** | 23 (main) + 3 (polling/ingestion/SSE) |
 | **JPA Entities** | 12 |
 | **Repositories** | 11 |
 | **Historical Seasons** | 33 |
 | **Historical Matches** | ~12,500 |
 | **Frontend Components** | 5 team + 2 match |
+| **OpenAPI Groups** | 4 (predictions, analytics, teams, health) |
+| **Custom Prometheus Metrics** | 6 (counter, timer, gauge, cache stats) |
+| **Grafana Dashboard Panels** | 10 |
 
 ---
 

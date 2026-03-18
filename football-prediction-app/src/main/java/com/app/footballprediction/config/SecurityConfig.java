@@ -207,6 +207,10 @@ public class SecurityConfig {
                         "/css/**", "/js/**", "/assets/**", "/images/**",
                         "/manifest.json", "/README.md", "/favicon.ico").permitAll()
 
+                // Swagger UI & OpenAPI docs
+                .requestMatchers("/swagger-ui.html", "/swagger-ui/**",
+                        "/v3/api-docs/**", "/v3/api-docs.yaml").permitAll()
+
                 // Public API endpoints
                 .requestMatchers("/api/predict", "/api/teams", "/api/teams/**", "/api/model/status").permitAll()
                 .requestMatchers("/api/teams/logo-status").permitAll()
@@ -225,8 +229,9 @@ public class SecurityConfig {
                 // Cache monitoring — public read-only
                 .requestMatchers("/api/cache/status", "/api/cache/stats", "/api/cache/stats/**").permitAll()
 
-                // Actuator health — public
-                .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                // Actuator health & metrics — public
+                .requestMatchers("/actuator/health", "/actuator/info",
+                        "/actuator/prometheus", "/actuator/metrics", "/actuator/metrics/**").permitAll()
 
                 // Admin verification
                 .requestMatchers("/api/admin/verify").authenticated()

@@ -3,6 +3,8 @@ package com.app.footballprediction.controller;
 import com.app.common.service.FeatureEngineeringService;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.service.CsvIngestionService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -13,28 +15,19 @@ import java.util.Map;
 
 /**
  * REST controller for ML model training and status.
- *
- * Endpoints:
- * - POST /api/model/train           — standard training
- * - POST /api/model/train/advanced   — full pipeline
- * - POST /api/model/train/cv         — cross-validation
- * - POST /api/model/train/boosting   — gradient boosting
- * - POST /api/model/train/ensemble   — ensemble
- * - POST /api/model/train/stacked    — stacked ensemble
- * - POST /api/model/grid-search      — hyperparameter search
- * - GET  /api/model/compare          — compare models
- * - GET  /api/model/status           — readiness check
  */
 @RestController
 @RequestMapping("/api/model")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Model", description = "ML model training, evaluation, grid search, and readiness status")
 public class ModelTrainingController {
 
     private final ModelTrainingService modelTrainingService;
     private final FeatureEngineeringService featureEngineeringService;
     private final CsvIngestionService csvIngestionService;
 
+    @Operation(summary = "Train model (standard)")
     @PostMapping("/train")
     public ResponseEntity<Map<String, Object>> trainModel() throws Exception {
         log.info("Manual retrain requested via API...");
@@ -100,6 +93,7 @@ public class ModelTrainingController {
         return ResponseEntity.ok(Map.of("status", "success", "report", report));
     }
 
+    @Operation(summary = "Get model readiness status")
     @GetMapping("/status")
     public ResponseEntity<Map<String, Object>> modelStatus() {
         boolean loaded = modelTrainingService.isModelLoaded();
