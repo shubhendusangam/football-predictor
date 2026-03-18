@@ -199,16 +199,26 @@ public class PredictionController {
     @Operation(summary = "Get all predictions", description = "Returns upcoming match list from external data source")
     @GetMapping("/predictions")
     public ResponseEntity<Map<String, Object>> getAllPredictions() {
-        var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
-        return ResponseEntity.ok(Map.of(
-                "predictions", upcomingMatches.getMatches() != null ?
-                        upcomingMatches.getMatches().stream().limit(10).toList() :
-                        List.of(),
-                "count", upcomingMatches.getMatches() != null ?
-                        Math.min(upcomingMatches.getMatches().size(), 10) : 0,
-                "source", "upcoming_matches",
-                "hint", "Use POST /api/predict to make custom predictions"
-        ));
+        try {
+            var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
+            return ResponseEntity.ok(Map.of(
+                    "predictions", upcomingMatches.getMatches() != null ?
+                            upcomingMatches.getMatches().stream().limit(10).toList() :
+                            List.of(),
+                    "count", upcomingMatches.getMatches() != null ?
+                            Math.min(upcomingMatches.getMatches().size(), 10) : 0,
+                    "source", "upcoming_matches",
+                    "hint", "Use POST /api/predict to make custom predictions"
+            ));
+        } catch (Exception e) {
+            log.warn("Failed to fetch scheduled matches from external API: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "predictions", List.of(),
+                    "count", 0,
+                    "source", "upcoming_matches",
+                    "hint", "External API unavailable – use POST /api/predict to make custom predictions"
+            ));
+        }
     }
 
     /**
@@ -218,21 +228,31 @@ public class PredictionController {
     @Operation(summary = "Get today's predictions from upcoming matches")
     @GetMapping("/predictions/today")
     public ResponseEntity<Map<String, Object>> getTodaysPredictions() {
-        var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
         String today = LocalDate.now().toString();
+        try {
+            var upcomingMatches = footballDataApiService.getScheduledMatches("PL");
 
-        var todaysMatches = upcomingMatches.getMatches() != null ?
-                upcomingMatches.getMatches().stream()
-                        .filter(m -> m.getUtcDate() != null && m.getUtcDate().startsWith(today))
-                        .toList() :
-                List.of();
+            var todaysMatches = upcomingMatches.getMatches() != null ?
+                    upcomingMatches.getMatches().stream()
+                            .filter(m -> m.getUtcDate() != null && m.getUtcDate().startsWith(today))
+                            .toList() :
+                    List.of();
 
-        return ResponseEntity.ok(Map.of(
-                "date", today,
-                "predictions", todaysMatches,
-                "count", todaysMatches.size(),
-                "hint", "Use GET /api/external/predict for ML predictions"
-        ));
+            return ResponseEntity.ok(Map.of(
+                    "date", today,
+                    "predictions", todaysMatches,
+                    "count", todaysMatches.size(),
+                    "hint", "Use GET /api/external/predict for ML predictions"
+            ));
+        } catch (Exception e) {
+            log.warn("Failed to fetch today's matches from external API: {}", e.getMessage());
+            return ResponseEntity.ok(Map.of(
+                    "date", today,
+                    "predictions", List.of(),
+                    "count", 0,
+                    "hint", "External API unavailable – use GET /api/external/predict for ML predictions"
+            ));
+        }
     }
 
     /**

@@ -97,9 +97,14 @@ public class MatchHistoryController {
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(defaultValue = "false") boolean refresh) {
 
-        var upcomingMatches = refresh
-                ? footballDataApiService.getScheduledMatchesFresh("PL")
-                : footballDataApiService.getScheduledMatches("PL");
+        var upcomingMatches = (com.app.footballprediction.dto.external.FootballApiResponse) null;
+        try {
+            upcomingMatches = refresh
+                    ? footballDataApiService.getScheduledMatchesFresh("PL")
+                    : footballDataApiService.getScheduledMatches("PL");
+        } catch (Exception e) {
+            log.warn("Failed to fetch upcoming matches from external API: {}", e.getMessage());
+        }
 
         if (upcomingMatches == null || upcomingMatches.getMatches() == null) {
             return ResponseEntity.ok(Map.of(
