@@ -4,6 +4,7 @@ import com.app.common.service.FeatureEngineeringService;
 import com.app.common.model.Match;
 import com.app.common.model.MatchFeatures;
 import com.app.common.repository.MatchRepository;
+import com.app.common.weka.WekaSchemaBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -80,6 +81,26 @@ class ModelTrainingServiceTest {
                     createDummyInstances());
 
             assertThat(modelTrainingService.isModelLoaded()).isTrue();
+        }
+
+        @Test
+        @DisplayName("returns false when header has wrong number of attributes (schema mismatch)")
+        void returnsFalseWhenSchemaMismatch() {
+            ReflectionTestUtils.setField(modelTrainingService, "trainedModel",
+                    new RandomForest());
+
+            // Create a header with wrong number of attributes (simulates old model)
+            ArrayList<Attribute> oldAttrs = new ArrayList<>();
+            oldAttrs.add(new Attribute("a"));
+            oldAttrs.add(new Attribute("b"));
+            ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
+            oldAttrs.add(new Attribute("result", labels));
+            Instances oldHeader = new Instances("OldSchema", oldAttrs, 0);
+            oldHeader.setClassIndex(2);
+
+            ReflectionTestUtils.setField(modelTrainingService, "trainingHeader", oldHeader);
+
+            assertThat(modelTrainingService.isModelLoaded()).isFalse();
         }
     }
 
@@ -194,15 +215,9 @@ class ModelTrainingServiceTest {
     }
 
     private Instances createDummyInstances() {
-        ArrayList<Attribute> attrs = new ArrayList<>();
-        attrs.add(new Attribute("homeFormPoints"));
-        attrs.add(new Attribute("awayFormPoints"));
-
-        ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
-        attrs.add(new Attribute("result", labels));
-
+        ArrayList<Attribute> attrs = WekaSchemaBuilder.buildAttributes();
         Instances instances = new Instances("Test", attrs, 0);
-        instances.setClassIndex(2);
+        instances.setClassIndex(WekaSchemaBuilder.IDX_LABEL);
         return instances;
     }
 }

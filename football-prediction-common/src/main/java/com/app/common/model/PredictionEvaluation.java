@@ -94,6 +94,16 @@ public class PredictionEvaluation {
     /** Model confidence at the time of prediction */
     private Double predictionConfidence;
 
+    /** Poisson predicted score (e.g., "2-1") */
+    private String poissonPredictedScore;
+
+    /** Whether the Poisson exact score prediction was correct */
+    @Builder.Default
+    private Boolean poissonScoreExact = false;
+
+    /** Poisson goal error: abs(lambdaHome - actualHome) + abs(lambdaAway - actualAway) */
+    private Double poissonGoalError;
+
     /** Timestamp when the evaluation was performed */
     @Column(nullable = false)
     private LocalDateTime evaluationTime;

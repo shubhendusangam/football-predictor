@@ -40,7 +40,28 @@
         awayWinSegment: document.getElementById('awayWinSegment'),
         homeWinValue: document.getElementById('homeWinValue'),
         drawValue: document.getElementById('drawValue'),
-        awayWinValue: document.getElementById('awayWinValue')
+        awayWinValue: document.getElementById('awayWinValue'),
+
+        // Score Prediction Elements
+        scorePredictionSection: document.getElementById('scorePredictionSection'),
+        predictedScoreValue: document.getElementById('predictedScoreValue'),
+        predictedScoreProb: document.getElementById('predictedScoreProb'),
+        scoreHomeTeamName: document.getElementById('scoreHomeTeamName'),
+        scoreAwayTeamName: document.getElementById('scoreAwayTeamName'),
+        topScoresList: document.getElementById('topScoresList'),
+        over15Bar: document.getElementById('over15Bar'),
+        over25Bar: document.getElementById('over25Bar'),
+        over35Bar: document.getElementById('over35Bar'),
+        over15Value: document.getElementById('over15Value'),
+        over25Value: document.getElementById('over25Value'),
+        over35Value: document.getElementById('over35Value'),
+        bttsValue: document.getElementById('bttsValue'),
+        bttsBar: document.getElementById('bttsBar'),
+        csHomeValue: document.getElementById('csHomeValue'),
+        csHomeBar: document.getElementById('csHomeBar'),
+        csAwayValue: document.getElementById('csAwayValue'),
+        csAwayBar: document.getElementById('csAwayBar'),
+        scoreMatrixTable: document.getElementById('scoreMatrixTable')
     };
 
     // State
@@ -245,11 +266,12 @@
         }
         updateConfidenceBadge(confidenceStr);
 
-        // Update expected goals from features
-        // Use homeGoalsScoredAvg and awayGoalsScoredAvg as expected goals proxy
+        // Update expected goals from features (or from Poisson model if available)
+        // Prefer Poisson λ values which are more accurate
         const features = data.features || {};
-        const expectedHome = parseFloat(features.homeGoalsScoredAvg) || 0;
-        const expectedAway = parseFloat(features.awayGoalsScoredAvg) || 0;
+        const scorePred = data.scorePrediction || {};
+        const expectedHome = parseFloat(scorePred.homeExpectedGoals) || parseFloat(features.homeGoalsScoredAvg) || 0;
+        const expectedAway = parseFloat(scorePred.awayExpectedGoals) || parseFloat(features.awayGoalsScoredAvg) || 0;
         if (elements.homeGoals) elements.homeGoals.textContent = expectedHome.toFixed(2);
         if (elements.awayGoals) elements.awayGoals.textContent = expectedAway.toFixed(2);
 
@@ -294,6 +316,12 @@
 
         // Update Explainability Section
         updateExplainSection(data, homeTeam, awayTeam);
+
+        // Update Score Prediction Section (Poisson model)
+        displayScorePrediction(data, homeTeam, awayTeam);
+
+        // Update Player Availability Section (Phase 10)
+        displayPlayerAvailability(data, homeTeam, awayTeam);
 
         // Show results
         if (elements.predictionResults) {
@@ -380,6 +408,172 @@
         }
     }
 
+    // =====================================================
+    // Score Prediction Display (Poisson Model)
+    // =====================================================
+
+    /**
+     * Display score prediction data from the scorePrediction field.
+     * The main /api/predict response now includes a scorePrediction object
+     * from the Poisson Dixon-Coles model.
+     */
+    function displayScorePrediction(data, homeTeam, awayTeam) {
+        const section = elements.scorePredictionSection;
+        if (!section) return;
+
+        const sp = data.scorePrediction;
+        if (!sp || !sp.scorePrediction) {
+            section.classList.add('hidden');
+            return;
+        }
+
+        const pred = sp.scorePrediction;
+
+        // Team names
+        if (elements.scoreHomeTeamName) elements.scoreHomeTeamName.textContent = homeTeam;
+        if (elements.scoreAwayTeamName) elements.scoreAwayTeamName.textContent = awayTeam;
+
+        // Predicted score
+        if (elements.predictedScoreValue && pred.mostLikelyScore) {
+            const parts = pred.mostLikelyScore.split('-');
+            elements.predictedScoreValue.textContent = parts[0] + ' - ' + parts[1];
+        }
+        if (elements.predictedScoreProb) {
+            const pct = Math.round((pred.probability || 0) * 100);
+            elements.predictedScoreProb.textContent = pct + '% probability';
+        }
+
+        // Top 3 Scores
+        if (elements.topScoresList && pred.top3Scores) {
+            elements.topScoresList.innerHTML = '';
+            pred.top3Scores.forEach(function(scoreObj, idx) {
+                var score = Object.keys(scoreObj)[0];
+                var prob = scoreObj[score];
+                var pct = Math.round(prob * 100);
+                var parts = score.split('-');
+                var displayScore = parts[0] + ' - ' + parts[1];
+
+                var chip = document.createElement('div');
+                chip.className = 'top-score-chip';
+                chip.innerHTML =
+                    '<span class="chip-rank">' + (idx + 1) + '</span>' +
+                    '<span class="chip-score">' + displayScore + '</span>' +
+                    '<span class="chip-prob">' + pct + '%</span>';
+                elements.topScoresList.appendChild(chip);
+            });
+        }
+
+        // Goals Market Bars
+        animateMarketBar(elements.over15Bar, elements.over15Value, pred.over15Prob);
+        animateMarketBar(elements.over25Bar, elements.over25Value, pred.over25Prob);
+        animateMarketBar(elements.over35Bar, elements.over35Value, pred.over35Prob);
+
+        // BTTS & Clean Sheet
+        animateStatBar(elements.bttsBar, elements.bttsValue, pred.bttsProb);
+        animateStatBar(elements.csHomeBar, elements.csHomeValue, pred.cleanSheetHome);
+        animateStatBar(elements.csAwayBar, elements.csAwayValue, pred.cleanSheetAway);
+
+        // Score Matrix Heatmap
+        renderScoreMatrix(sp.scoreMatrix, sp.homeExpectedGoals, sp.awayExpectedGoals);
+
+        // Show the section with animation
+        section.classList.remove('hidden');
+    }
+
+    /**
+     * Animate a market probability bar.
+     */
+    function animateMarketBar(barEl, valueEl, prob) {
+        if (!barEl || prob == null) return;
+        var pct = Math.round(prob * 100);
+        if (valueEl) valueEl.textContent = pct + '%';
+        requestAnimationFrame(function() {
+            setTimeout(function() {
+                barEl.style.width = pct + '%';
+            }, 150);
+        });
+    }
+
+    /**
+     * Animate a stat mini-bar.
+     */
+    function animateStatBar(barEl, valueEl, prob) {
+        if (!barEl || prob == null) return;
+        var pct = Math.round(prob * 100);
+        if (valueEl) valueEl.textContent = pct + '%';
+        requestAnimationFrame(function() {
+            setTimeout(function() {
+                barEl.style.width = pct + '%';
+            }, 200);
+        });
+    }
+
+    /**
+     * Render the score probability matrix as a heatmap table.
+     * @param {Object} scoreMatrix - Map of "i-j" → probability
+     * @param {number} homeXG - Home expected goals (lambda)
+     * @param {number} awayXG - Away expected goals (lambda)
+     */
+    function renderScoreMatrix(scoreMatrix, homeXG, awayXG) {
+        var table = elements.scoreMatrixTable;
+        if (!table || !scoreMatrix) return;
+
+        // Determine maxGoals from the matrix keys
+        var maxGoals = 0;
+        Object.keys(scoreMatrix).forEach(function(key) {
+            var parts = key.split('-');
+            maxGoals = Math.max(maxGoals, parseInt(parts[0]), parseInt(parts[1]));
+        });
+
+        // Find max probability for heatmap scaling
+        var maxProb = 0;
+        Object.values(scoreMatrix).forEach(function(p) {
+            if (p > maxProb) maxProb = p;
+        });
+
+        // Build table HTML
+        var html = '<thead><tr>';
+        html += '<th class="matrix-corner">Home ↓ Away →</th>';
+        for (var j = 0; j <= maxGoals; j++) {
+            html += '<th class="matrix-col-header">' + j + '</th>';
+        }
+        html += '</tr></thead><tbody>';
+
+        for (var i = 0; i <= maxGoals; i++) {
+            html += '<tr>';
+            html += '<th class="matrix-row-header">' + i + '</th>';
+            for (var jj = 0; jj <= maxGoals; jj++) {
+                var key = i + '-' + jj;
+                var prob = scoreMatrix[key] || 0;
+                var pct = (prob * 100).toFixed(1);
+                var intensity = getHeatmapIntensity(prob, maxProb);
+
+                html += '<td class="matrix-cell-' + intensity + '" title="' + key + ': ' + pct + '%">';
+                html += pct + '%';
+                html += '</td>';
+            }
+            html += '</tr>';
+        }
+
+        html += '</tbody>';
+        table.innerHTML = html;
+    }
+
+    /**
+     * Map a probability to a heatmap intensity level (0-6).
+     */
+    function getHeatmapIntensity(prob, maxProb) {
+        if (!maxProb || maxProb <= 0 || prob <= 0) return 0;
+        var ratio = prob / maxProb;
+        if (ratio < 0.10) return 0;
+        if (ratio < 0.20) return 1;
+        if (ratio < 0.35) return 2;
+        if (ratio < 0.50) return 3;
+        if (ratio < 0.70) return 4;
+        if (ratio < 0.90) return 5;
+        return 6;
+    }
+
     /**
      * Update explainability section with prediction factors
      */
@@ -442,6 +636,19 @@
             `;
         }
 
+        // Availability Impact (Phase 10)
+        if (explanation.availabilityImpact) {
+            const isPositive = explanation.availabilityImpact.startsWith('+');
+            const icon = isPositive ? '🏥' : '🤕';
+            html += `
+                <div class="explain-factor ${isPositive ? 'positive' : 'negative'}">
+                    <span class="factor-icon">${icon}</span>
+                    <span class="factor-label">Squad Fitness:</span>
+                    <span class="factor-value">${explanation.availabilityImpact}</span>
+                </div>
+            `;
+        }
+
         html += '</div>';
 
         // Summary
@@ -455,6 +662,107 @@
         }
 
         explainContent.innerHTML = html;
+    }
+
+    /**
+     * Display player availability information in the prediction view.
+     * Shows a compact panel with absent players and squad strength for each team.
+     */
+    function displayPlayerAvailability(data, homeTeam, awayTeam) {
+        const section = document.getElementById('playerAvailabilitySection');
+        if (!section) return;
+
+        const homeAvail = data.homeAvailability;
+        const awayAvail = data.awayAvailability;
+
+        if (!homeAvail && !awayAvail) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = 'block';
+
+        function renderTeamAvailability(avail, teamName) {
+            if (!avail) return `<div style="color: var(--text-muted); text-align: center; padding: 1rem;">No data for ${teamName}</div>`;
+
+            const strengthPct = Math.round(avail.squadStrength * 100);
+            const ratingColors = {
+                'FULL_STRENGTH': '#27ae60',
+                'MINOR_CONCERNS': '#f39c12',
+                'WEAKENED': '#e67e22',
+                'SEVERELY_WEAKENED': '#e74c3c'
+            };
+            const color = ratingColors[avail.availabilityRating] || '#95a5a6';
+            const ratingLabels = {
+                'FULL_STRENGTH': 'Full Strength',
+                'MINOR_CONCERNS': 'Minor Concerns',
+                'WEAKENED': 'Weakened',
+                'SEVERELY_WEAKENED': 'Severely Weakened'
+            };
+            const label = ratingLabels[avail.availabilityRating] || avail.availabilityRating;
+            const absentPlayers = avail.absentPlayers || [];
+
+            let html = `
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <strong>${teamName}</strong>
+                        <span style="background: ${color}20; color: ${color}; padding: 0.2rem 0.6rem; border-radius: 10px; font-size: 0.75rem; font-weight: 600;">${label}</span>
+                    </div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.2rem;">
+                            <span style="color: var(--text-muted);">Squad Strength</span>
+                            <span style="font-weight: 600;">${strengthPct}%</span>
+                        </div>
+                        <div style="height: 5px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                            <div style="height: 100%; width: ${strengthPct}%; background: ${color}; border-radius: 3px;"></div>
+                        </div>
+                    </div>
+            `;
+
+            if (absentPlayers.length > 0) {
+                html += `<div style="font-size: 0.8rem;">`;
+                for (const p of absentPlayers.slice(0, 5)) {
+                    const statusColors = { 'INJURED': '#e74c3c', 'SUSPENDED': '#e67e22', 'DOUBTFUL': '#f39c12' };
+                    const sColor = statusColors[p.status] || '#95a5a6';
+                    html += `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0;">
+                            <span>${p.keyStar ? '⭐ ' : ''}${p.playerName} <span style="color: var(--text-muted);">${p.position || ''}</span></span>
+                            <span style="color: ${sColor}; font-size: 0.7rem; font-weight: 500;">${p.status}</span>
+                        </div>
+                    `;
+                }
+                if (absentPlayers.length > 5) {
+                    html += `<div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.25rem;">+${absentPlayers.length - 5} more</div>`;
+                }
+                html += '</div>';
+            } else {
+                html += `<div style="color: #27ae60; font-size: 0.8rem; text-align: center; padding: 0.5rem 0;">✅ Full squad available</div>`;
+            }
+
+            html += '</div>';
+            return html;
+        }
+
+        let noteHtml = '';
+        if (data.availabilityNote) {
+            noteHtml = `<div style="margin-top: 0.75rem; padding: 0.5rem; background: var(--bg-tertiary); border-radius: 8px; font-size: 0.8rem; color: var(--text-muted);">
+                🏥 ${data.availabilityNote}
+            </div>`;
+        }
+
+        section.innerHTML = `
+            <div class="card" style="padding: 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem;">
+                    <span style="font-size: 1.2rem;">🏥</span>
+                    <h3 style="margin: 0; font-size: 1rem;">Player Availability</h3>
+                </div>
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                    ${renderTeamAvailability(homeAvail, homeTeam)}
+                    ${renderTeamAvailability(awayAvail, awayTeam)}
+                </div>
+                ${noteHtml}
+            </div>
+        `;
     }
 
     /**
@@ -535,6 +843,9 @@
         if (fcSection) fcSection.classList.add('hidden');
         const fcContainer = document.getElementById('formComparisonContainer');
         if (fcContainer) fcContainer.innerHTML = '';
+
+        // Clear score prediction section
+        if (elements.scorePredictionSection) elements.scorePredictionSection.classList.add('hidden');
 
         // Reset date to today
         if (elements.matchDateInput) {

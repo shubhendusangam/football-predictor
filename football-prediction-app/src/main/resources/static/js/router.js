@@ -103,6 +103,12 @@ class Router {
             description: 'League-wide goal-scoring patterns across seasons',
             render: () => this.renderGoalsTrends()
         });
+
+        this.routes.set('#player-availability', {
+            title: 'Player Availability',
+            description: 'Squad fitness, injuries, and suspensions impact on predictions',
+            render: () => this.renderPlayerAvailability()
+        });
     }
 
     /**
@@ -451,6 +457,12 @@ class Router {
                 ` : ''}
             </div>
 
+            <!-- Score Prediction Section (Poisson Dixon-Coles Model) -->
+            <div id="scorePredictionSection" style="margin-top: 2rem; display: none;"></div>
+
+            <!-- Player Availability Section (Phase 10) -->
+            <div id="playerAvailabilitySection" style="margin-top: 2rem; display: none;"></div>
+
             <!-- Pre-Match Insights Section -->
             <div class="form-comparison-section" style="margin-top: 2rem;">
                 <div id="formComparisonContainer"></div>
@@ -558,6 +570,12 @@ class Router {
             </div>
         `;
 
+        // Render Score Prediction (Poisson model) — data is already in the prediction response
+        this.renderScorePrediction(prediction, homeTeam, awayTeam);
+
+        // Render Player Availability (Phase 10) — data is already in the prediction response
+        this.renderPlayerAvailabilityInPrediction(prediction, homeTeam, awayTeam);
+
         // Load Pre-Match Insights asynchronously (homeTeam/awayTeam are already normalized from caller)
         this.loadPreMatchInsights(homeTeam, awayTeam);
 
@@ -580,6 +598,224 @@ class Router {
 
         // Load Fixture Congestion Comparison asynchronously
         this.loadCongestionComparison(homeTeam, awayTeam);
+    }
+
+    /**
+     * Render score prediction from the Poisson (Dixon-Coles) model.
+     * The data is already embedded in the /api/predict response under scorePrediction.
+     */
+    renderScorePrediction(prediction, homeTeam, awayTeam) {
+        const section = document.getElementById('scorePredictionSection');
+        if (!section) return;
+
+        const sp = prediction.scorePrediction;
+        if (!sp || !sp.scorePrediction) {
+            section.style.display = 'none';
+            return;
+        }
+
+        const pred = sp.scorePrediction;
+        const mostLikely = pred.mostLikelyScore || '0-0';
+        const parts = mostLikely.split('-');
+        const probPct = Math.round((pred.probability || 0) * 100);
+
+        // Top 3 scores
+        const top3Html = (pred.top3Scores || []).map((scoreObj, idx) => {
+            const score = Object.keys(scoreObj)[0];
+            const prob = scoreObj[score];
+            const pct = Math.round(prob * 100);
+            const scoreParts = score.split('-');
+            return `
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                    <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); min-width: 1.25rem;">#${idx + 1}</span>
+                    <span style="font-size: 1.1rem; font-weight: 700; color: var(--text-primary);">${scoreParts[0]} - ${scoreParts[1]}</span>
+                    <span style="margin-left: auto; font-size: 0.875rem; font-weight: 600; color: var(--accent-green);">${pct}%</span>
+                </div>`;
+        }).join('');
+
+        // Market bars helper
+        const marketBar = (label, value) => {
+            if (value == null) return '';
+            const pct = Math.round(value * 100);
+            const color = pct >= 60 ? 'var(--accent-green)' : pct >= 40 ? 'var(--accent-yellow)' : 'var(--accent-red, #ef4444)';
+            return `
+                <div style="margin-bottom: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
+                        <span style="color: var(--text-muted);">${label}</span>
+                        <span style="font-weight: 600; color: ${color};">${pct}%</span>
+                    </div>
+                    <div style="height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden;">
+                        <div style="height: 100%; width: ${pct}%; background: ${color}; border-radius: 4px; transition: width 0.6s ease;"></div>
+                    </div>
+                </div>`;
+        };
+
+        section.innerHTML = `
+            <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 2rem; border: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem;">
+                    <span style="font-size: 1.5rem;">🎯</span>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">Score Prediction</h3>
+                    <span style="font-size: 0.7rem; padding: 0.2rem 0.6rem; background: var(--accent-purple, #a855f7)22; color: var(--accent-purple, #a855f7); border-radius: 1rem; font-weight: 600;">Dixon-Coles</span>
+                </div>
+
+                <!-- Predicted Score -->
+                <div style="text-align: center; padding: 1.5rem; background: var(--bg-secondary); border-radius: 0.75rem; margin-bottom: 1.5rem;">
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Most Likely Score</div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 1.5rem;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">${this.escapeHtml(homeTeam)}</div>
+                        </div>
+                        <div style="font-size: 3rem; font-weight: 800; color: var(--text-primary); letter-spacing: 0.1em;">${parts[0]} - ${parts[1]}</div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 0.85rem; font-weight: 500; color: var(--text-muted); margin-bottom: 0.25rem;">${this.escapeHtml(awayTeam)}</div>
+                        </div>
+                    </div>
+                    <div style="font-size: 0.875rem; color: var(--accent-green); font-weight: 600; margin-top: 0.5rem;">${probPct}% probability</div>
+                </div>
+
+                <!-- Top 3 + Markets grid -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
+                    <!-- Top 3 Most Likely Scores -->
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.75rem;">Top 3 Most Likely Scores</div>
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem;">${top3Html}</div>
+                    </div>
+
+                    <!-- Goals Markets -->
+                    <div>
+                        <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.75rem;">Goals Market</div>
+                        ${marketBar('Over 1.5 Goals', pred.over15Prob)}
+                        ${marketBar('Over 2.5 Goals', pred.over25Prob)}
+                        ${marketBar('Over 3.5 Goals', pred.over35Prob)}
+                    </div>
+                </div>
+
+                <!-- BTTS & Clean Sheet -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem;">
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Both Teams Score</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: ${Math.round((pred.bttsProb || 0) * 100) >= 50 ? 'var(--accent-green)' : 'var(--text-primary)'};">${Math.round((pred.bttsProb || 0) * 100)}%</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Clean Sheet ${this.escapeHtml(homeTeam)}</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${Math.round((pred.cleanSheetHome || 0) * 100)}%</div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Clean Sheet ${this.escapeHtml(awayTeam)}</div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-primary);">${Math.round((pred.cleanSheetAway || 0) * 100)}%</div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        section.style.display = 'block';
+    }
+
+    /**
+     * Render player availability impact from the /api/predict response.
+     * Data is already embedded under homeAvailability / awayAvailability.
+     */
+    renderPlayerAvailabilityInPrediction(prediction, homeTeam, awayTeam) {
+        const section = document.getElementById('playerAvailabilitySection');
+        if (!section) return;
+
+        const home = prediction.homeAvailability;
+        const away = prediction.awayAvailability;
+
+        // Nothing to show if no availability data
+        if (!home && !away) {
+            section.style.display = 'none';
+            return;
+        }
+
+        const renderTeamCard = (team, data) => {
+            if (!data) return '';
+
+            const strengthPct = Math.round((data.squadStrength || 1.0) * 100);
+            const ratingColor = this.getAvailabilityColor(data.availabilityRating);
+            const ratingLabel = this.formatRating(data.availabilityRating);
+            const absentList = data.absentPlayers || [];
+
+            let absentHtml = '';
+            if (absentList.length > 0) {
+                absentHtml = `
+                    <div style="margin-top: 0.75rem; border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Absent/Doubtful (${absentList.length})</div>
+                        ${absentList.map(p => `
+                            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.25rem 0; font-size: 0.8rem;">
+                                <div>
+                                    <span style="font-weight: 500;">${this.escapeHtml(p.playerName)}</span>
+                                    <span style="color: var(--text-muted); margin-left: 0.5rem;">${p.position || ''}</span>
+                                    ${p.keyStar ? '<span title="Key Star" style="margin-left: 0.25rem;">⭐</span>' : ''}
+                                </div>
+                                <span style="background: ${this.getStatusColor(p.status)}20; color: ${this.getStatusColor(p.status)}; padding: 0.15rem 0.5rem; border-radius: 8px; font-size: 0.7rem;">
+                                    ${p.status}
+                                </span>
+                            </div>
+                            ${p.reason ? `<div style="font-size: 0.7rem; color: var(--text-muted); padding-left: 0.5rem; margin-bottom: 0.2rem;">${this.escapeHtml(p.reason)}${p.expectedReturn ? ' — return: ' + p.expectedReturn : ''}</div>` : ''}
+                        `).join('')}
+                    </div>`;
+            } else {
+                absentHtml = `<div style="text-align: center; padding: 0.5rem; color: var(--text-muted); font-size: 0.85rem;">✅ Full squad available</div>`;
+            }
+
+            return `
+                <div style="flex: 1; min-width: 250px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h4 style="margin: 0; font-size: 1rem;">${this.escapeHtml(team)}</h4>
+                        <span style="background: ${ratingColor}20; color: ${ratingColor}; padding: 0.2rem 0.6rem; border-radius: 12px; font-size: 0.7rem; font-weight: 600;">
+                            ${ratingLabel}
+                        </span>
+                    </div>
+                    <div style="margin-bottom: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.25rem;">
+                            <span style="color: var(--text-muted);">Squad Strength</span>
+                            <span style="font-weight: 600;">${strengthPct}%</span>
+                        </div>
+                        <div style="height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden;">
+                            <div style="height: 100%; width: ${strengthPct}%; background: ${ratingColor}; border-radius: 3px; transition: width 0.5s ease;"></div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 1rem; font-size: 0.8rem;">
+                        <div>
+                            <span style="color: var(--text-muted);">Attack</span>
+                            <span style="display: block; font-weight: 600; color: ${(data.attackImpact || 0) > 0.3 ? '#e74c3c' : 'var(--text-primary)'};">
+                                ${data.attackImpact > 0 ? '-' + Math.round(data.attackImpact * 100) + '%' : 'None'}
+                            </span>
+                        </div>
+                        <div>
+                            <span style="color: var(--text-muted);">Defence</span>
+                            <span style="display: block; font-weight: 600; color: ${(data.defenceImpact || 0) > 0.3 ? '#e74c3c' : 'var(--text-primary)'};">
+                                ${data.defenceImpact > 0 ? '-' + Math.round(data.defenceImpact * 100) + '%' : 'None'}
+                            </span>
+                        </div>
+                    </div>
+                    ${absentHtml}
+                </div>`;
+        };
+
+        const noteHtml = prediction.availabilityNote
+            ? `<div style="margin-top: 1rem; padding: 0.75rem; background: var(--bg-secondary); border-radius: 0.5rem; font-size: 0.85rem; color: var(--text-muted);">
+                   📋 ${this.escapeHtml(prediction.availabilityNote)}
+               </div>`
+            : '';
+
+        section.innerHTML = `
+            <div style="background: var(--bg-tertiary); border-radius: 0.75rem; padding: 1.5rem; border: 1px solid var(--border-color);">
+                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <span style="font-size: 1.5rem;">🏥</span>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; color: var(--text-primary); margin: 0;">Squad Availability</h3>
+                    <span style="font-size: 0.7rem; padding: 0.2rem 0.6rem; background: #e74c3c22; color: #e74c3c; border-radius: 1rem; font-weight: 600;">Phase 10</span>
+                </div>
+                <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+                    ${renderTeamCard(homeTeam, home)}
+                    ${renderTeamCard(awayTeam, away)}
+                </div>
+                ${noteHtml}
+            </div>
+        `;
+
+        section.style.display = 'block';
     }
 
     /**
@@ -5746,6 +5982,206 @@ class Router {
                     <p style="color: var(--text-muted);">The goals trends analysis module is not available.</p>
                 </div>
             `;
+        }
+    }
+
+    /**
+     * Render Player Availability view
+     */
+    renderPlayerAvailability() {
+        this.mainContent.innerHTML = `
+            <div class="content-header">
+                <h2 class="page-title">🏥 Player Availability</h2>
+                <p class="page-description">Squad fitness, injuries, suspensions & prediction impact</p>
+            </div>
+            <div id="playerAvailabilityContent">
+                <div style="text-align: center; padding: 2rem;">
+                    <div class="loading-spinner"></div>
+                    <p style="color: var(--text-muted); margin-top: 1rem;">Loading availability data...</p>
+                </div>
+            </div>
+        `;
+
+        this.loadPlayerAvailabilityData();
+    }
+
+    /**
+     * Load and render player availability data
+     */
+    async loadPlayerAvailabilityData() {
+        const container = document.getElementById('playerAvailabilityContent');
+        if (!container) return;
+
+        try {
+            const data = await apiClient.getAllTeamAvailability();
+            const teams = data.teams || [];
+
+            if (teams.length === 0) {
+                container.innerHTML = `
+                    <div class="card" style="max-width: 600px; margin: 2rem auto;">
+                        <div class="card-body text-center" style="padding: 3rem;">
+                            <div style="font-size: 3rem; margin-bottom: 1rem;">🏥</div>
+                            <h3>No Availability Data Yet</h3>
+                            <p style="color: var(--text-muted);">Player availability data will be populated after the daily sync runs.
+                            You can trigger a manual sync from the Admin panel.</p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort teams: most weakened first
+            const ratingOrder = { 'SEVERELY_WEAKENED': 0, 'WEAKENED': 1, 'MINOR_CONCERNS': 2, 'FULL_STRENGTH': 3 };
+            teams.sort((a, b) => (ratingOrder[a.availabilityRating] || 3) - (ratingOrder[b.availabilityRating] || 3));
+
+            // Summary cards
+            const fullStrength = teams.filter(t => t.availabilityRating === 'FULL_STRENGTH').length;
+            const weakened = teams.filter(t => t.availabilityRating === 'WEAKENED' || t.availabilityRating === 'SEVERELY_WEAKENED').length;
+            const totalAbsent = teams.reduce((sum, t) => sum + (t.absentPlayers ? t.absentPlayers.length : 0), 0);
+
+            let html = `
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--accent-green);">${fullStrength}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Full Strength</div>
+                    </div>
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--accent-amber);">${teams.length - fullStrength - weakened}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Minor Concerns</div>
+                    </div>
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--accent-red, #e74c3c);">${weakened}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Weakened / Severely</div>
+                    </div>
+                    <div class="card" style="padding: 1.5rem; text-align: center;">
+                        <div style="font-size: 2rem; font-weight: bold; color: var(--text-primary);">${totalAbsent}</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Total Absent Players</div>
+                    </div>
+                </div>
+            `;
+
+            // Team cards
+            html += '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1rem;">';
+
+            for (const team of teams) {
+                const ratingColor = this.getAvailabilityColor(team.availabilityRating);
+                const ratingLabel = this.formatRating(team.availabilityRating);
+                const strengthPct = Math.round(team.squadStrength * 100);
+                const absentList = team.absentPlayers || [];
+
+                html += `
+                    <div class="card" style="padding: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <h3 style="margin: 0; font-size: 1.1rem;">${team.teamName}</h3>
+                            <span style="background: ${ratingColor}20; color: ${ratingColor}; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600;">
+                                ${ratingLabel}
+                            </span>
+                        </div>
+                        <div style="margin-bottom: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.25rem;">
+                                <span style="color: var(--text-muted);">Squad Strength</span>
+                                <span style="font-weight: 600;">${strengthPct}%</span>
+                            </div>
+                            <div style="height: 6px; background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;">
+                                <div style="height: 100%; width: ${strengthPct}%; background: ${ratingColor}; border-radius: 3px; transition: width 0.5s ease;"></div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 0.75rem; font-size: 0.8rem;">
+                            <div>
+                                <span style="color: var(--text-muted);">Attack Impact</span>
+                                <span style="display: block; font-weight: 600; color: ${team.attackImpact > 0.3 ? '#e74c3c' : 'var(--text-primary)'};">
+                                    ${team.attackImpact > 0 ? '-' + Math.round(team.attackImpact * 100) + '%' : 'None'}
+                                </span>
+                            </div>
+                            <div>
+                                <span style="color: var(--text-muted);">Defence Impact</span>
+                                <span style="display: block; font-weight: 600; color: ${team.defenceImpact > 0.3 ? '#e74c3c' : 'var(--text-primary)'};">
+                                    ${team.defenceImpact > 0 ? '-' + Math.round(team.defenceImpact * 100) + '%' : 'None'}
+                                </span>
+                            </div>
+                        </div>
+                        ${absentList.length > 0 ? `
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                                <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;">Absent Players (${absentList.length})</div>
+                                ${absentList.map(p => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.3rem 0; font-size: 0.8rem;">
+                                        <div>
+                                            <span style="font-weight: 500;">${p.playerName}</span>
+                                            <span style="color: var(--text-muted); margin-left: 0.5rem;">${p.position || ''}</span>
+                                            ${p.keyStar ? '<span title="Key Star" style="margin-left: 0.25rem;">⭐</span>' : ''}
+                                        </div>
+                                        <div>
+                                            <span style="background: ${this.getStatusColor(p.status)}20; color: ${this.getStatusColor(p.status)}; padding: 0.15rem 0.5rem; border-radius: 8px; font-size: 0.7rem;">
+                                                ${p.status}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    ${p.reason ? `<div style="font-size: 0.7rem; color: var(--text-muted); padding-left: 0.5rem; margin-bottom: 0.25rem;">${p.reason}${p.expectedReturn ? ' — return: ' + p.expectedReturn : ''}</div>` : ''}
+                                `).join('')}
+                            </div>
+                        ` : `
+                            <div style="text-align: center; padding: 0.75rem; color: var(--text-muted); font-size: 0.85rem;">
+                                ✅ Full squad available
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+
+        } catch (error) {
+            console.error('Failed to load availability data:', error);
+            container.innerHTML = `
+                <div class="card" style="max-width: 600px; margin: 2rem auto;">
+                    <div class="card-body text-center" style="padding: 3rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+                        <h3>Failed to Load Availability Data</h3>
+                        <p style="color: var(--text-muted);">${error.message || 'Unknown error'}</p>
+                        <button class="btn btn-outline" onclick="window.router.loadPlayerAvailabilityData()" style="margin-top: 1rem;">
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    /**
+     * Get color for availability rating
+     */
+    getAvailabilityColor(rating) {
+        switch (rating) {
+            case 'FULL_STRENGTH': return '#27ae60';
+            case 'MINOR_CONCERNS': return '#f39c12';
+            case 'WEAKENED': return '#e67e22';
+            case 'SEVERELY_WEAKENED': return '#e74c3c';
+            default: return '#95a5a6';
+        }
+    }
+
+    /**
+     * Format availability rating for display
+     */
+    formatRating(rating) {
+        switch (rating) {
+            case 'FULL_STRENGTH': return 'Full Strength';
+            case 'MINOR_CONCERNS': return 'Minor Concerns';
+            case 'WEAKENED': return 'Weakened';
+            case 'SEVERELY_WEAKENED': return 'Severely Weakened';
+            default: return rating;
+        }
+    }
+
+    /**
+     * Get color for player status badge
+     */
+    getStatusColor(status) {
+        switch (status) {
+            case 'INJURED': return '#e74c3c';
+            case 'SUSPENDED': return '#e67e22';
+            case 'DOUBTFUL': return '#f39c12';
+            default: return '#95a5a6';
         }
     }
 

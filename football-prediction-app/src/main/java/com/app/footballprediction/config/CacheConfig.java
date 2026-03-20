@@ -59,6 +59,7 @@ public class CacheConfig {
     public static final String CACHE_HALF_ANALYSIS = "halfAnalysis";
     public static final String CACHE_EXPECTED_GOALS = "expectedGoals";
     public static final String CACHE_XG_PREDICTION = "xgPrediction";
+    public static final String CACHE_SCORE_PREDICTION = "scorePrediction";
     public static final String CACHE_KICKOFF_TIME_ANALYSIS = "kickoffTimeAnalysis";
     public static final String CACHE_FIXTURE_CONGESTION = "fixtureCongestion";
     public static final String CACHE_API_SYNC = "apiSync";
@@ -149,6 +150,9 @@ public class CacheConfig {
 
     @Value("${cache.xgPrediction.ttl:600}")
     private int xgPredictionTtl;
+
+    @Value("${cache.scorePrediction.ttl:600}")
+    private int scorePredictionTtl;
 
     @Value("${cache.kickoffTimeAnalysis.ttl:900}")
     private int kickoffTimeAnalysisTtl;
@@ -271,6 +275,9 @@ public class CacheConfig {
 
     @Value("${cache.xgPrediction.maxSize:200}")
     private int xgPredictionMaxSize;
+
+    @Value("${cache.scorePrediction.maxSize:200}")
+    private int scorePredictionMaxSize;
 
     @Value("${cache.kickoffTimeAnalysis.maxSize:100}")
     private int kickoffTimeAnalysisMaxSize;
@@ -408,6 +415,9 @@ public class CacheConfig {
         // xG prediction: moderate TTL (10 min), larger size for match combinations
         cacheConfigs.put(CACHE_XG_PREDICTION, buildCache(xgPredictionTtl, xgPredictionMaxSize));
 
+        // Score prediction (Poisson): moderate TTL (10 min), larger size for match combinations
+        cacheConfigs.put(CACHE_SCORE_PREDICTION, buildCache(scorePredictionTtl, scorePredictionMaxSize));
+
         // Kickoff time analysis: moderate TTL (15 min), moderate size for team kickoff time patterns
         cacheConfigs.put(CACHE_KICKOFF_TIME_ANALYSIS, buildCache(kickoffTimeAnalysisTtl, kickoffTimeAnalysisMaxSize));
 
@@ -520,6 +530,7 @@ public class CacheConfig {
             case CACHE_HALF_ANALYSIS -> halfAnalysisTtl;
             case CACHE_EXPECTED_GOALS -> expectedGoalsTtl;
             case CACHE_XG_PREDICTION -> xgPredictionTtl;
+            case CACHE_SCORE_PREDICTION -> scorePredictionTtl;
             case CACHE_KICKOFF_TIME_ANALYSIS -> kickoffTimeAnalysisTtl;
             case CACHE_FIXTURE_CONGESTION -> fixtureCongestionTtl;
             case CACHE_API_SYNC -> apiSyncTtl;

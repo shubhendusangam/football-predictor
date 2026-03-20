@@ -4,6 +4,7 @@
 -- Date: 2026-02-23
 -- Description: Adds fields to track when logos were last updated and for which
 --              season, preventing redundant logo seeding on every startup.
+-- NOTE: These columns are now created in V1. IF NOT EXISTS ensures idempotency.
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Add logo tracking columns to teams table

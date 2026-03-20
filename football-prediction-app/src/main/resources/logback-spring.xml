@@ -3,6 +3,10 @@
     ────────────────────────────────────────────────
     Includes the shared base from football-prediction-common,
     then adds app-specific rolling-file appenders and loggers.
+
+    Profile-aware:
+      dev    → coloured console (human-readable)
+      prod/docker → JSON via LogstashEncoder (ELK-compatible)
 -->
 <configuration scan="true" scanPeriod="30 seconds">
 
@@ -10,7 +14,82 @@
     <include resource="logback-base.xml"/>
 
     <!-- ═══════════════════════════════════════════════════════════
-         APP-SPECIFIC APPENDERS
+         PROFILE: dev — coloured console appender (human-readable)
+         ═══════════════════════════════════════════════════════════ -->
+    <springProfile name="dev,test,default">
+        <appender name="DevConsole" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) [%15.15t] %cyan(%-40.40logger{39}) : [%X{requestId:-system}] [%X{userId:-anonymous}] %msg%n%throwable</pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         PROFILE: prod / docker — JSON appender (ELK-compatible)
+         ═══════════════════════════════════════════════════════════ -->
+    <springProfile name="prod,docker">
+        <appender name="JsonConsole" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>clientIp</includeMdcKeyName>
+                <includeMdcKeyName>httpMethod</includeMdcKeyName>
+                <includeMdcKeyName>requestUri</includeMdcKeyName>
+                <customFields>{"service":"football-prediction-app"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <version>[ignore]</version>
+                    <levelValue>[ignore]</levelValue>
+                </fieldNames>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                    <shortenedClassNameLength>30</shortenedClassNameLength>
+                    <rootCauseFirst>true</rootCauseFirst>
+                </throwableConverter>
+            </encoder>
+        </appender>
+
+        <appender name="JsonFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <file>${LOG_DIR}/app-json.log</file>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_DIR}/app-json-%d{yyyy-MM-dd}-%i.log.gz</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>30</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <includeMdcKeyName>requestId</includeMdcKeyName>
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+                <includeMdcKeyName>userId</includeMdcKeyName>
+                <includeMdcKeyName>clientIp</includeMdcKeyName>
+                <includeMdcKeyName>httpMethod</includeMdcKeyName>
+                <includeMdcKeyName>requestUri</includeMdcKeyName>
+                <customFields>{"service":"football-prediction-app"}</customFields>
+                <fieldNames>
+                    <timestamp>@timestamp</timestamp>
+                    <version>[ignore]</version>
+                    <levelValue>[ignore]</levelValue>
+                </fieldNames>
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                    <shortenedClassNameLength>30</shortenedClassNameLength>
+                    <rootCauseFirst>true</rootCauseFirst>
+                </throwableConverter>
+            </encoder>
+        </appender>
+
+        <appender name="AsyncJsonFile" class="ch.qos.logback.classic.AsyncAppender">
+            <queueSize>2048</queueSize>
+            <discardingThreshold>0</discardingThreshold>
+            <appender-ref ref="JsonFile"/>
+        </appender>
+    </springProfile>
+
+    <!-- ═══════���═══════════════════════════════════════════════════
+         APP-SPECIFIC APPENDERS (text-based rolling files, all profiles)
          ═══════════════════════════════════════════════════════════ -->
 
     <!-- API requests/responses log -->
@@ -98,108 +177,225 @@
          APPLICATION LOGGERS
          ═══════════════════════════════════════════════════════════ -->
 
-    <!-- API / Controller layer → api.log + console + error.log -->
-    <logger name="com.app.footballprediction.controller" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncApi"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+    <!-- === DEV / TEST profile loggers === -->
+    <springProfile name="dev,test,default">
+        <logger name="com.app.footballprediction.controller" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncApi"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- MDC Logging Filter (request entry/exit) → api.log -->
-    <logger name="com.app.common.logging.MdcLoggingFilter" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncApi"/>
-    </logger>
+        <logger name="com.app.common.logging.MdcLoggingFilter" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncApi"/>
+        </logger>
 
-    <!-- CSV ingestion → ingestion.log + console + error.log -->
-    <logger name="com.app.footballprediction.service.CsvIngestionService" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncIngestion"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction.config.RequestLoggingFilter" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncApi"/>
+        </logger>
 
-    <logger name="com.app.footballprediction.ingestion" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncIngestion"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction.service.CsvIngestionService" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncIngestion"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Model training → model.log + console + error.log -->
-    <logger name="com.app.footballprediction.modeltraining" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncModel"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction.ingestion" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncIngestion"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Feature engineering → features.log + console + error.log -->
-    <logger name="com.app.common.service.FeatureEngineeringService" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncFeature"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction.modeltraining" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncModel"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Polling / sync services → api.log -->
-    <logger name="com.app.footballprediction.polling" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncApi"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.common.service.FeatureEngineeringService" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncFeature"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Schedulers → console + error.log -->
-    <logger name="com.app.footballprediction.scheduler" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction.polling" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncApi"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Category loggers (used via AppLoggerFactory) -->
-    <logger name="API" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncApi"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction.scheduler" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <logger name="INGESTION" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncIngestion"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="API" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncApi"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <logger name="MODEL" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncModel"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="INGESTION" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncIngestion"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <logger name="FEATURES" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncFeature"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="MODEL" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncModel"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <logger name="SCHEDULER" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="FEATURES" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncFeature"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Main application package — catch-all -->
-    <logger name="com.app.footballprediction" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="SCHEDULER" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
 
-    <!-- Common module services -->
-    <logger name="com.app.common" level="INFO" additivity="false">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncError"/>
-    </logger>
+        <logger name="com.app.footballprediction" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.common" level="INFO" additivity="false">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+    </springProfile>
+
+    <!-- === PROD / DOCKER profile loggers (JSON output) === -->
+    <springProfile name="prod,docker">
+        <logger name="com.app.footballprediction.controller" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncApi"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.common.logging.MdcLoggingFilter" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncApi"/>
+        </logger>
+
+        <logger name="com.app.footballprediction.config.RequestLoggingFilter" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncApi"/>
+        </logger>
+
+        <logger name="com.app.footballprediction.service.CsvIngestionService" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncIngestion"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.footballprediction.ingestion" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncIngestion"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.footballprediction.modeltraining" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncModel"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.common.service.FeatureEngineeringService" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncFeature"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.footballprediction.polling" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncApi"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.footballprediction.scheduler" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="API" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncApi"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="INGESTION" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncIngestion"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="MODEL" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncModel"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="FEATURES" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncFeature"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="SCHEDULER" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.footballprediction" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+
+        <logger name="com.app.common" level="INFO" additivity="false">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncError"/>
+        </logger>
+    </springProfile>
 
     <!-- ═══════════════════════════════════════════════════════════
          ROOT LOGGER — catches everything not matched above
          ═══════════════════════════════════════════════════════════ -->
-    <root level="WARN">
-        <appender-ref ref="Console"/>
-        <appender-ref ref="AsyncError"/>
-    </root>
+    <springProfile name="dev,test,default">
+        <root level="WARN">
+            <appender-ref ref="DevConsole"/>
+            <appender-ref ref="AsyncError"/>
+        </root>
+    </springProfile>
+
+    <springProfile name="prod,docker">
+        <root level="WARN">
+            <appender-ref ref="JsonConsole"/>
+            <appender-ref ref="AsyncJsonFile"/>
+            <appender-ref ref="AsyncError"/>
+        </root>
+    </springProfile>
 
 </configuration>
 

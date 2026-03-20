@@ -20,6 +20,7 @@ import com.app.footballprediction.modeltraining.ModelTrainingService;
 import com.app.footballprediction.service.CsvIngestionService;
 import com.app.footballprediction.service.MatchCompletionService;
 import com.app.footballprediction.service.ModelSelfTrainingService;
+import com.app.footballprediction.service.PoissonSelfTrainingService;
 
 import java.util.List;
 
@@ -35,6 +36,7 @@ public class FootballPredictionApplication implements ApplicationRunner {
    private final CsvIngestionService csvIngestionService;
    private final ModelTrainingService modelTrainingService;
    private final ModelSelfTrainingService modelSelfTrainingService;
+   private final PoissonSelfTrainingService poissonSelfTrainingService;
    private final MatchCompletionService matchCompletionService;
    private final MatchRepository matchRepository;
    private final SeasonTeamStatsRepository seasonTeamStatsRepository;
@@ -65,17 +67,25 @@ public class FootballPredictionApplication implements ApplicationRunner {
       log.info("📂 Loading historical match data...");
       csvIngestionService.ingestAll();
 
-      // ── Step 1.5: Update fouls data for existing matches ───────
+      // ── Step 1.5: Backfill NULL season values ─────────────────
+      // Matches loaded before season-extraction was added, or via older
+      // API sync code, may have season = NULL. Derive from matchDate.
+      int seasonsBackfilled = csvIngestionService.backfillMissingSeasons();
+      if (seasonsBackfilled > 0) {
+         log.info("📅 Backfilled season for {} matches", seasonsBackfilled);
+      }
+
+      // ── Step 1.6: Update fouls data for existing matches ───────
       int foulsUpdated = csvIngestionService.updateFoulsData();
       log.debug("Fouls data update: {} matches updated", foulsUpdated);
 
-      // ── Step 1.6: Enrich matches with missing statistics ───────
+      // ── Step 1.7: Enrich matches with missing statistics ───────
       // Matches inserted via API polling lack detailed stats (shots, corners, etc.)
       // This re-reads CSV files to fill in any missing statistics
       int statsEnriched = csvIngestionService.enrichMissingStats();
       log.debug("Stats enrichment: {} matches enriched", statsEnriched);
 
-      // ── Step 1.7: Compute Season Team Stats / Elo ratings ─────
+      // ── Step 1.8: Compute Season Team Stats / Elo ratings ─────
       computeSeasonStatsIfNeeded();
 
       // ── Step 2: Model loading / training ──────────────────────
@@ -89,6 +99,12 @@ public class FootballPredictionApplication implements ApplicationRunner {
          log.info("   ⏳ Training new model (30-60s)...");
          modelSelfTrainingService.trainWithHistory("STARTUP_INITIAL");
          log.info("   ✓ Model trained");
+      }
+
+      // ── Step 3: Poisson score model ───────────────────────────
+      if (modelTrainingEnabled) {
+         log.info("🎯 Initializing Poisson score model...");
+         poissonSelfTrainingService.trainIfMissing();
       }
 
       printReadyBanner();

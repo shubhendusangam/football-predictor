@@ -180,7 +180,28 @@ public class MatchFeatures {
    @Builder.Default
    private int awayMotivationLevel = 5;
 
+   // ── Phase 10 features (Squad Strength / Player Availability) ───
+   /**
+    * Home team squad strength (0.0–1.0).
+    * 1.0 = full strength, lower = key players missing.
+    * Computed from active injuries/suspensions weighted by player importance.
+    */
+   @Builder.Default
+   private double homeSquadStrength = 1.0;
+
+   /**
+    * Away team squad strength (0.0–1.0).
+    */
+   @Builder.Default
+   private double awaySquadStrength = 1.0;
+
+   /**
+    * squadStrengthDifference = homeSquadStrength - awaySquadStrength.
+    * Positive means home team has fewer key absentees.
+    */
+   @Builder.Default
+   private double squadStrengthDifference = 0.0;
+
    // ── Label (training only) ──────────────────────────────
    private String actualResult;        // "H", "D", "A" — null at prediction time
 }
-

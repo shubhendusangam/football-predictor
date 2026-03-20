@@ -38,6 +38,15 @@ public final class LogConstants {
     /** Active Spring profile (dev, docker, test). */
     public static final String MDC_PROFILE = "profile";
 
+    /** Distributed trace ID for correlation across services. */
+    public static final String MDC_TRACE_ID = "traceId";
+
+    /** Span ID within a distributed trace. */
+    public static final String MDC_SPAN_ID = "spanId";
+
+    /** Authenticated user identity (username or "anonymous"). */
+    public static final String MDC_USER_ID = "userId";
+
     // ── Logger Categories (used in logback-spring.xml & aspects) ────────────
     /** Controllers / REST API layer. */
     public static final String LOGGER_API = "API";

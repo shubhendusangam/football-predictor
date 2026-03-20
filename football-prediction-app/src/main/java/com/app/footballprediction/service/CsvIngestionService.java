@@ -4,6 +4,7 @@ import org.springframework.stereotype.Service;
 
 import com.app.common.model.Match;
 import com.app.common.repository.MatchRepository;
+import com.app.common.util.SeasonHelper;
 import com.opencsv.CSVReader;
 import com.opencsv.exceptions.CsvValidationException;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,42 @@ public class CsvIngestionService {
       // Log final DB state after ingestion finishes.
       log.info("CSV ingestion complete: {} files processed, {} new matches loaded, {} total in DB",
             paths.length, totalLoaded, matchRepository.count());
+   }
+
+   /**
+    * Backfill the {@code season} column for any matches that have it set to {@code NULL}.
+    *
+    * <p>This handles two cases:
+    * <ol>
+    *   <li>Matches loaded before the season-extraction logic was added to CSV ingestion</li>
+    *   <li>Matches inserted via API sync code that didn't set the season field</li>
+    * </ol>
+    *
+    * <p>The season is derived from {@code matchDate} using {@link SeasonHelper#deriveSeason(LocalDate)}
+    * (Aug–Jul football calendar: Oct 2025 → "2025-26", Mar 2026 → "2025-26").</p>
+    *
+    * @return number of matches updated
+    */
+   public int backfillMissingSeasons() {
+      List<Match> nullSeasonMatches = matchRepository.findAll()
+            .stream()
+            .filter(m -> m.getSeason() == null && m.getMatchDate() != null)
+            .toList();
+
+      if (nullSeasonMatches.isEmpty()) {
+         log.debug("Season backfill: all matches already have a season value");
+         return 0;
+      }
+
+      List<Match> toUpdate = new ArrayList<>(nullSeasonMatches.size());
+      for (Match m : nullSeasonMatches) {
+         m.setSeason(SeasonHelper.deriveSeason(m.getMatchDate()));
+         toUpdate.add(m);
+      }
+
+      matchRepository.saveAll(toUpdate);
+      log.info("Season backfill: updated {} matches with derived season values", toUpdate.size());
+      return toUpdate.size();
    }
 
    /**
@@ -580,3 +617,4 @@ public class CsvIngestionService {
       return null;
    }
 }
+

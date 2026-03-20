@@ -4,6 +4,7 @@ import com.app.common.model.ModelTrainingHistory;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.ModelTrainingHistoryRepository;
 import com.app.modeltraining.service.ModelTrainingService;
+import com.app.modeltraining.service.PoissonModelTrainingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,7 +14,8 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 
 /**
- * Scheduled task to automatically train the model twice monthly
+ * Scheduled task to automatically train models twice monthly.
+ * Trains both the outcome model (Random Forest) and the Poisson score model.
  * Runs on 1st and 15th of each month at 3:00 AM
  */
 @Component
@@ -23,6 +25,7 @@ import java.time.LocalDateTime;
 public class ModelTrainingScheduler {
 
     private final ModelTrainingService modelTrainingService;
+    private final PoissonModelTrainingService poissonModelTrainingService;
     private final ModelTrainingHistoryRepository trainingHistoryRepository;
     private final MatchRepository matchRepository;
 
@@ -51,8 +54,16 @@ public class ModelTrainingScheduler {
             history.setSuccess(true);
             history.setModelVersion("v" + System.currentTimeMillis());
 
-            log.info("Scheduled training completed successfully in {} ms", duration);
+            log.info("Scheduled outcome model training completed successfully in {} ms", duration);
             log.info("Training Report:\n{}", report);
+
+            // Train Poisson score model
+            try {
+                String poissonReport = poissonModelTrainingService.trainPoissonModel();
+                log.info("Scheduled Poisson model training completed.\n{}", poissonReport);
+            } catch (Exception pe) {
+                log.error("Scheduled Poisson model training failed (outcome model OK)", pe);
+            }
 
         } catch (Exception e) {
             long duration = System.currentTimeMillis() - startTime;

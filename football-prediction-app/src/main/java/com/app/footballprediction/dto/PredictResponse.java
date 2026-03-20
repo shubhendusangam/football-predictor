@@ -44,6 +44,18 @@ public class PredictResponse {
    private String upsetTeam;
    private PredictionExplanation explanation;
 
+   // Score prediction (Poisson model)
+   private ScorePredictionDTO scorePrediction;
+
+   // Player Availability Context (Phase 10)
+   @Schema(description = "Home team squad availability")
+   private PlayerAvailabilityDTO homeAvailability;
+   @Schema(description = "Away team squad availability")
+   private PlayerAvailabilityDTO awayAvailability;
+   @Schema(description = "Summary note about player availability impact",
+           example = "Chelsea missing Reece James (injury)")
+   private String availabilityNote;
+
    @Data
    @Builder
    public static class FeatureSummary {

@@ -50,6 +50,14 @@ class APIClient {
     }
 
     /**
+     * Predict match scoreline (Poisson model)
+     */
+    async predictScore(homeTeam, awayTeam) {
+        const params = `home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`;
+        return this.fetch(`/predict/score?${params}`);
+    }
+
+    /**
      * Get all predictions
      */
     async getAllPredictions() {
@@ -242,6 +250,32 @@ class APIClient {
             console.error('Health check failed:', error);
             return false;
         }
+    }
+
+    // ==================== Player Availability ====================
+
+    /**
+     * Get team squad availability
+     * @param {string} teamName - Team name (e.g., "Chelsea")
+     */
+    async getTeamAvailability(teamName) {
+        return this.fetch(`/availability/team?name=${encodeURIComponent(teamName)}`);
+    }
+
+    /**
+     * Get all teams' squad availability
+     */
+    async getAllTeamAvailability() {
+        return this.fetch('/availability/all');
+    }
+
+    /**
+     * Get match availability context (both teams)
+     * @param {string} home - Home team name
+     * @param {string} away - Away team name
+     */
+    async getMatchAvailability(home, away) {
+        return this.fetch(`/availability/match?home=${encodeURIComponent(home)}&away=${encodeURIComponent(away)}`);
     }
 }
 

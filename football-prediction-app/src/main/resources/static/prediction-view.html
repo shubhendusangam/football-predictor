@@ -243,6 +243,110 @@
                 </div>
 
 
+                <!-- Score Prediction Section (Poisson Model) -->
+                <div class="score-prediction-section hidden" id="scorePredictionSection">
+                    <!-- Predicted Score Display -->
+                    <div class="predicted-score-card">
+                        <h3 class="card-section-title">🎯 Predicted Score</h3>
+                        <div class="predicted-score-display">
+                            <div class="predicted-score-team home">
+                                <span class="predicted-team-name" id="scoreHomeTeamName">Home</span>
+                            </div>
+                            <div class="predicted-score-center">
+                                <span class="predicted-score-value" id="predictedScoreValue">2 - 1</span>
+                                <span class="predicted-score-prob" id="predictedScoreProb">17% probability</span>
+                            </div>
+                            <div class="predicted-score-team away">
+                                <span class="predicted-team-name" id="scoreAwayTeamName">Away</span>
+                            </div>
+                        </div>
+
+                        <!-- Top 3 Most Likely Scores -->
+                        <div class="top-scores-container">
+                            <h4 class="top-scores-title">Top 3 Most Likely Scores</h4>
+                            <div class="top-scores-list" id="topScoresList">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Goals Market Probabilities -->
+                    <div class="goals-market-card">
+                        <h3 class="card-section-title">⚽ Goals Market</h3>
+                        <div class="goals-market-grid">
+                            <div class="market-item">
+                                <div class="market-label">Over 1.5 Goals</div>
+                                <div class="market-bar-container">
+                                    <div class="market-bar over15" id="over15Bar" style="width: 0%"></div>
+                                </div>
+                                <div class="market-value" id="over15Value">—</div>
+                            </div>
+                            <div class="market-item">
+                                <div class="market-label">Over 2.5 Goals</div>
+                                <div class="market-bar-container">
+                                    <div class="market-bar over25" id="over25Bar" style="width: 0%"></div>
+                                </div>
+                                <div class="market-value" id="over25Value">—</div>
+                            </div>
+                            <div class="market-item">
+                                <div class="market-label">Over 3.5 Goals</div>
+                                <div class="market-bar-container">
+                                    <div class="market-bar over35" id="over35Bar" style="width: 0%"></div>
+                                </div>
+                                <div class="market-value" id="over35Value">—</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- BTTS & Clean Sheet -->
+                    <div class="btts-cleansheet-card">
+                        <h3 class="card-section-title">🛡️ BTTS & Clean Sheet</h3>
+                        <div class="btts-grid">
+                            <div class="btts-stat-card btts">
+                                <div class="btts-stat-icon">⚽⚽</div>
+                                <div class="btts-stat-label">Both Teams to Score</div>
+                                <div class="btts-stat-value" id="bttsValue">—</div>
+                                <div class="btts-mini-bar-container">
+                                    <div class="btts-mini-bar btts-bar" id="bttsBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="btts-stat-card cs-home">
+                                <div class="btts-stat-icon">🧤</div>
+                                <div class="btts-stat-label">Clean Sheet Home</div>
+                                <div class="btts-stat-value" id="csHomeValue">—</div>
+                                <div class="btts-mini-bar-container">
+                                    <div class="btts-mini-bar cs-home-bar" id="csHomeBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                            <div class="btts-stat-card cs-away">
+                                <div class="btts-stat-icon">🧤</div>
+                                <div class="btts-stat-label">Clean Sheet Away</div>
+                                <div class="btts-stat-value" id="csAwayValue">—</div>
+                                <div class="btts-mini-bar-container">
+                                    <div class="btts-mini-bar cs-away-bar" id="csAwayBar" style="width: 0%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Score Probability Matrix (Heatmap) -->
+                    <div class="score-matrix-card">
+                        <h3 class="card-section-title">📊 Score Probability Matrix</h3>
+                        <p class="matrix-subtitle">Probability of each exact scoreline (home goals × away goals)</p>
+                        <div class="score-matrix-wrapper">
+                            <table class="score-matrix-table" id="scoreMatrixTable">
+                                <!-- Populated dynamically -->
+                            </table>
+                        </div>
+                        <div class="matrix-legend">
+                            <span class="matrix-legend-label">Low</span>
+                            <div class="matrix-legend-gradient"></div>
+                            <span class="matrix-legend-label">High</span>
+                        </div>
+                    </div>
+                </div>
+
+
                 <!-- Form Comparison Section -->
                 <div id="formComparisonSection" class="form-comparison-section hidden" style="margin-top: 1.5rem;">
                     <div id="formComparisonContainer"></div>

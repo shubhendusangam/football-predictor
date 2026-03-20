@@ -7,7 +7,7 @@
 ## Module Overview
 
 ### Purpose
-The `model-training-service` is a **dedicated microservice** for training, evaluating, and managing the machine learning models used in the Football Prediction Platform. It operates independently from the main application, allowing model training to run without impacting prediction service availability.
+The `model-training-service` is a **dedicated microservice** for training, evaluating, and managing the machine learning models used in the Football Prediction Platform. It trains the stacked ensemble classifier (47 features across 10 phases) and operates independently from the main application, allowing model training to run without impacting prediction service availability.
 
 ### Scope within the System
 
@@ -43,7 +43,6 @@ The `model-training-service` is a **dedicated microservice** for training, evalu
 - [Main Platform README](../README.md)
 - [Main Application](../football-prediction-app/README.md)
 - [Common Module](../football-prediction-common/README.md)
-- [Frontend Components](../frontend/README.md)
 
 ---
 
@@ -66,9 +65,10 @@ The `model-training-service` is a **dedicated microservice** for training, evalu
 
 ### 1. Model Training
 - Train stacked ensemble classifier on historical match data
-- Build 25-feature vectors for each training sample
+- Build 47-feature vectors for each training sample (10 phases)
 - Perform temporal train/test split (80/20)
 - Save trained model to shared storage
+- Automatic schema validation and retrain on feature changes
 
 ### 2. Model Evaluation
 - Evaluate model on held-out test set
@@ -125,15 +125,15 @@ com.app.modeltraining/
 │                     STACKED ENSEMBLE MODEL                      │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│   Input: MatchFeatures (25 features)                            │
+│   Input: MatchFeatures (47 features, 10 phases)                │
 │                                                                 │
 │   ┌─────────────────────────────────────────────────────────┐   │
 │   │              BASE CLASSIFIERS (Level 1)                 │   │
 │   │                                                         │   │
 │   │   ┌─────────────────┐     ┌─────────────────┐           │   │
 │   │   │  RandomForest   │     │   AdaBoostM1    │           │   │
-│   │   │  • 100 trees    │     │  • 100 iters    │           │   │
-│   │   │  • 5 features   │     │  • REPTree base │           │   │
+│   │   │  • 200 trees    │     │  • 100 iters    │           │   │
+│   │   │  • 7 features   │     │  • REPTree base │           │   │
 │   │   │  • Seed: 42     │     │                 │           │   │
 │   │   └────────┬────────┘     └────────┬────────┘           │   │
 │   │            │                       │                    │   │
@@ -162,8 +162,8 @@ com.app.modeltraining/
 
 ```java
 RandomForest rf = new RandomForest();
-rf.setNumIterations(100);  // 100 decision trees
-rf.setNumFeatures(5);       // sqrt(25) ≈ 5 features per split
+rf.setNumIterations(200);  // 200 decision trees
+rf.setNumFeatures(7);       // sqrt(47) ≈ 7 features per split
 rf.setSeed(42);             // Reproducible results
 rf.buildClassifier(trainData);
 ```
@@ -194,7 +194,7 @@ rf.buildClassifier(trainData);
 │  │                                        │                              │
 │  │ For each match:                        │                              │
 │  │ • Use match_date as temporal cutoff    │                              │
-│  │ • Calculate 25 features from history   │                              │
+│  │ • Calculate 47 features from history   │                              │
 │  │ • Set actualResult as label            │                              │
 │  └────────────────────────────────────────┘                              │
 │            │                                                             │
@@ -247,36 +247,58 @@ List<MatchFeatures> testSet = allFeatures.subList(splitIdx, allFeatures.size());
 
 ## Feature Vector
 
-Each training sample has 25 numeric features + 1 class label:
+Each training sample has 47 numeric features + 1 class label:
 
-| Index | Feature | Type | Description |
-|-------|---------|------|-------------|
-| 0 | homeFormPoints | Numeric | Avg points/game (last 5 home) |
-| 1 | awayFormPoints | Numeric | Avg points/game (last 5 away) |
-| 2 | homeGoalsScoredAvg | Numeric | Avg goals scored at home |
-| 3 | homeGoalsConcededAvg | Numeric | Avg goals conceded at home |
-| 4 | awayGoalsScoredAvg | Numeric | Avg goals scored away |
-| 5 | awayGoalsConcededAvg | Numeric | Avg goals conceded away |
-| 6 | homeTotalGoalsAvg | Numeric | Avg total goals/game |
-| 7 | awayTotalGoalsAvg | Numeric | Avg total goals/game |
-| 8 | h2hHomeWinRate | Numeric | H2H home win rate |
-| 9 | h2hDrawRate | Numeric | H2H draw rate |
-| 10 | h2hAwayWinRate | Numeric | H2H away win rate |
-| 11 | homeShotsOnTargetAvg | Numeric | Avg shots on target (home) |
-| 12 | awayShotsOnTargetAvg | Numeric | Avg shots on target (away) |
-| 13 | homeCornersAvg | Numeric | Avg corners (home) |
-| 14 | awayCornersAvg | Numeric | Avg corners (away) |
-| 15 | homeGoalDifference | Numeric | Recent goal difference |
-| 16 | awayGoalDifference | Numeric | Recent goal difference |
-| 17 | homeOverallFormPoints | Numeric | Overall form (all matches) |
-| 18 | awayOverallFormPoints | Numeric | Overall form (all matches) |
-| 19 | homeWinStreak | Numeric | Consecutive wins |
-| 20 | awayWinStreak | Numeric | Consecutive wins |
-| 21 | homeUnbeatenStreak | Numeric | Consecutive non-losses |
-| 22 | awayUnbeatenStreak | Numeric | Consecutive non-losses |
-| 23 | homeDaysRest | Numeric | Days since last match |
-| 24 | awayDaysRest | Numeric | Days since last match |
-| 25 | result | Nominal | Class: {H, D, A} |
+| Index | Feature | Type | Phase | Description |
+|-------|---------|------|-------|-------------|
+| 0 | homeFormPoints | Numeric | 1 | Avg points/game (last 5 home) |
+| 1 | awayFormPoints | Numeric | 1 | Avg points/game (last 5 away) |
+| 2 | homeGoalsScoredAvg | Numeric | 1 | Avg goals scored at home |
+| 3 | homeGoalsConcededAvg | Numeric | 1 | Avg goals conceded at home |
+| 4 | awayGoalsScoredAvg | Numeric | 1 | Avg goals scored away |
+| 5 | awayGoalsConcededAvg | Numeric | 1 | Avg goals conceded away |
+| 6 | homeTotalGoalsAvg | Numeric | 1 | Avg total goals/game |
+| 7 | awayTotalGoalsAvg | Numeric | 1 | Avg total goals/game |
+| 8 | h2hHomeWinRate | Numeric | 1 | H2H home win rate |
+| 9 | h2hDrawRate | Numeric | 1 | H2H draw rate |
+| 10 | h2hAwayWinRate | Numeric | 1 | H2H away win rate |
+| 11 | homeShotsOnTargetAvg | Numeric | 2 | Avg shots on target (home) |
+| 12 | awayShotsOnTargetAvg | Numeric | 2 | Avg shots on target (away) |
+| 13 | homeCornersAvg | Numeric | 2 | Avg corners (home) |
+| 14 | awayCornersAvg | Numeric | 2 | Avg corners (away) |
+| 15 | homeGoalDifference | Numeric | 3 | Recent goal difference |
+| 16 | awayGoalDifference | Numeric | 3 | Recent goal difference |
+| 17 | homeOverallFormPoints | Numeric | 3 | Overall form (all matches) |
+| 18 | awayOverallFormPoints | Numeric | 3 | Overall form (all matches) |
+| 19 | homeWinStreak | Numeric | 3 | Consecutive wins |
+| 20 | awayWinStreak | Numeric | 3 | Consecutive wins |
+| 21 | homeUnbeatenStreak | Numeric | 3 | Consecutive non-losses |
+| 22 | awayUnbeatenStreak | Numeric | 3 | Consecutive non-losses |
+| 23 | homeDaysRest | Numeric | 3 | Days since last match |
+| 24 | awayDaysRest | Numeric | 3 | Days since last match |
+| 25 | homeHalfTimeLeadRate | Numeric | 4 | Rate of leading at half-time |
+| 26 | awayHalfTimeLeadRate | Numeric | 4 | Rate of leading at half-time |
+| 27 | homeComebackRate | Numeric | 4 | Comeback rate from trailing |
+| 28 | awayComebackRate | Numeric | 4 | Comeback rate from trailing |
+| 29 | homeLeaguePosition | Numeric | 4 | League position (1-20) |
+| 30 | awayLeaguePosition | Numeric | 4 | League position (1-20) |
+| 31 | homePossessionProxy | Numeric | 5 | Estimated possession (0-1) |
+| 32 | awayPossessionProxy | Numeric | 5 | Estimated possession (0-1) |
+| 33 | homeEloRating | Numeric | 6 | Current Elo rating |
+| 34 | awayEloRating | Numeric | 6 | Current Elo rating |
+| 35 | formDifference | Numeric | 7 | Home form - Away form |
+| 36 | goalDiffDifference | Numeric | 7 | Home GD - Away GD |
+| 37 | h2hDominance | Numeric | 7 | H2H home rate - away rate |
+| 38 | restAdvantage | Numeric | 7 | Home rest - Away rest |
+| 39 | eloDifference | Numeric | 7 | Home Elo - Away Elo |
+| 40 | homeWeightedForm | Numeric | 8 | Exponential decay form |
+| 41 | awayWeightedForm | Numeric | 8 | Exponential decay form |
+| 42 | homeMotivationLevel | Numeric | 9 | Motivation (0-10) |
+| 43 | awayMotivationLevel | Numeric | 9 | Motivation (0-10) |
+| 44 | homeSquadStrength | Numeric | 10 | Squad strength (0.3-1.0) |
+| 45 | awaySquadStrength | Numeric | 10 | Squad strength (0.3-1.0) |
+| 46 | squadStrengthDifference | Numeric | 10 | Relative squad fitness |
+| 47 | result | Nominal | — | Class: {H, D, A} |
 
 > For detailed feature engineering documentation, see [Common Module](../football-prediction-common/README.md#feature-engineering-pipeline).
 
@@ -466,7 +488,7 @@ void ensuresNoFutureDataLeakage() {
 | Lines of Code | ~800 |
 | Service Classes | 2 |
 | Controller Endpoints | 3 |
-| ML Features | 25 |
+| ML Features | 47 (10 phases) |
 | Target Accuracy | ~62% |
 
 ---

@@ -123,6 +123,13 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Structured JSON Logging (ELK / log aggregation) -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>8.0</version>
+        </dependency>
+
         <!-- External Libraries -->
         <dependency>
             <groupId>com.opencsv</groupId>

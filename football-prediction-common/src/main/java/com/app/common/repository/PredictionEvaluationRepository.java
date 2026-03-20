@@ -73,6 +73,18 @@ public interface PredictionEvaluationRepository extends JpaRepository<Prediction
     @Query("SELECT AVG(e.cornerPredictionError) FROM PredictionEvaluation e WHERE e.cornerPredictionError IS NOT NULL")
     Double getAverageCornerPredictionError();
 
+    /**
+     * Count evaluations where Poisson exact score was correct.
+     */
+    @Query("SELECT COUNT(e) FROM PredictionEvaluation e WHERE e.poissonScoreExact = true")
+    long countPoissonExactScorePredictions();
+
+    /**
+     * Get average Poisson goal error.
+     */
+    @Query("SELECT AVG(e.poissonGoalError) FROM PredictionEvaluation e WHERE e.poissonGoalError IS NOT NULL")
+    Double getAveragePoissonGoalError();
+
     // ═══════════════════════════════════════════════════════════════════
     // Per-team queries
     // ═══════════════════════════════════════════════════════════════════

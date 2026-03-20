@@ -267,6 +267,15 @@
         },
 
         /**
+         * Predict match scoreline (Poisson model)
+         * GET /api/predict/score?home=X&away=Y
+         */
+        predictScore: async (homeTeam, awayTeam) => {
+            const params = `home=${encodeURIComponent(homeTeam)}&away=${encodeURIComponent(awayTeam)}`;
+            return api.get(`/predict/score?${params}`);
+        },
+
+        /**
          * Get upcoming matches
          * GET /api/matches/upcoming?limit=N
          */

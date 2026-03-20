@@ -82,6 +82,19 @@ public class ModelAccuracy {
     @Builder.Default
     private Double cornerErrorAverage = 0.0;
 
+    /**
+     * Poisson model exact score accuracy (0.0 - 1.0).
+     * Calculated from Dixon-Coles Poisson model predictions.
+     */
+    @Builder.Default
+    private Double poissonScoreAccuracy = 0.0;
+
+    /**
+     * Poisson model average goal error (MAE of predicted lambdas vs actuals).
+     */
+    @Builder.Default
+    private Double poissonGoalErrorAverage = 0.0;
+
     /** Season identifier for tracking accuracy over time */
     private String season;
 

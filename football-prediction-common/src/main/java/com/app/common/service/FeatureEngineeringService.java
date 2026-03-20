@@ -15,8 +15,10 @@ import java.util.TreeSet;
 import com.app.common.model.Match;
 import com.app.common.model.MatchFeatures;
 import com.app.common.model.SeasonTeamStats;
+import com.app.common.model.PlayerAvailability;
 import com.app.common.repository.MatchRepository;
 import com.app.common.repository.SeasonTeamStatsRepository;
+import com.app.common.repository.PlayerAvailabilityRepository;
 import com.app.common.util.SeasonHelper;
 
 /**
@@ -52,6 +54,9 @@ public class FeatureEngineeringService {
 
    @Autowired(required = false)
    private SeasonTeamStatsRepository seasonTeamStatsRepository;
+
+   @Autowired(required = false)
+   private PlayerAvailabilityRepository playerAvailabilityRepository;
 
    @Value("${feature.form.window:5}")
    private int formWindow;
@@ -282,6 +287,10 @@ public class FeatureEngineeringService {
             .homeMotivationLevel(calcMotivation(homeTeam, beforeDate))
             .awayMotivationLevel(calcMotivation(awayTeam, beforeDate))
 
+            // Squad strength (Phase 10 — from player availability data)
+            .homeSquadStrength(calcSquadStrength(homeTeam, beforeDate))
+            .awaySquadStrength(calcSquadStrength(awayTeam, beforeDate))
+
             .build();
 
       // ── Compute derived interaction features ──────────────────
@@ -290,6 +299,7 @@ public class FeatureEngineeringService {
       features.setH2hDominance(features.getH2hHomeWinRate() - features.getH2hAwayWinRate());
       features.setRestAdvantage(features.getHomeDaysSinceLastMatch() - features.getAwayDaysSinceLastMatch());
       features.setEloDifference(features.getHomeEloRating() - features.getAwayEloRating());
+      features.setSquadStrengthDifference(features.getHomeSquadStrength() - features.getAwaySquadStrength());
 
       return features;
    }
@@ -741,5 +751,46 @@ public class FeatureEngineeringService {
       }
 
       return motivationService.calculateMotivation(teamName, asOfDate);
+   }
+
+   // ── Squad Strength (Phase 10) ─────────────────────────────────────────
+
+   /**
+    * Calculate squad strength from player availability data.
+    * Returns 1.0 (full strength) if no availability data exists.
+    *
+    * @param teamName Team name
+    * @param asOfDate Date to evaluate absences against
+    * @return Squad strength 0.3–1.0
+    */
+   private double calcSquadStrength(String teamName, LocalDate asOfDate) {
+      if (playerAvailabilityRepository == null) {
+         return 1.0; // No availability data — assume full strength
+      }
+      try {
+         List<PlayerAvailability> absences = playerAvailabilityRepository
+               .findActiveAbsences(teamName, asOfDate);
+
+         if (absences.isEmpty()) {
+            return 1.0;
+         }
+
+         double totalPenalty = 0.0;
+         for (PlayerAvailability p : absences) {
+            double weight = switch (p.getStatus()) {
+               case INJURED, SUSPENDED -> 1.0;
+               case DOUBTFUL -> 0.5;
+               default -> 0.0;
+            };
+            totalPenalty += p.getImportanceRating() * weight;
+         }
+
+         // Normalize: max penalty ~30 (3 stars × importance 10 × weight 1.0)
+         double normalizedPenalty = Math.min(totalPenalty / 30.0, 1.0);
+         return Math.max(0.3, 1.0 - normalizedPenalty);
+      } catch (Exception e) {
+         log.debug("Could not compute squad strength for {}: {}", teamName, e.getMessage());
+         return 1.0;
+      }
    }
 }

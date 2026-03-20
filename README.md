@@ -1,6 +1,6 @@
 # ⚽ Football Match Prediction & Insights Platform
 
-A **Season-aware AI-powered Football Match Prediction & Insights Platform** built with Spring Boot and Machine Learning. This production-ready application predicts Premier League match outcomes using advanced ensemble learning while providing comprehensive pre-match insights, season-based trending analytics, expected goals (xG) modeling, referee analysis, fixture congestion tracking, and historical performance analysis.
+A **Season-aware AI-powered Football Match Prediction & Insights Platform** built with Spring Boot and Machine Learning. This production-ready application predicts Premier League match outcomes using advanced ensemble learning (47 engineered features across 10 phases), Dixon-Coles Poisson score predictions, player availability impact analysis, comprehensive pre-match insights, season-based trending analytics, expected goals (xG) modeling, referee analysis, fixture congestion tracking, and historical performance analysis.
 
 [![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)](https://openjdk.java.net/)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0.2-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)](https://spring.io/projects/spring-boot)
@@ -30,7 +30,9 @@ A **Season-aware AI-powered Football Match Prediction & Insights Platform** buil
 This platform is designed for **football analytics enthusiasts** who want data-driven match predictions and comprehensive team insights. The system combines:
 
 - **Machine Learning Predictions**: Stacked ensemble model (RandomForest + AdaBoostM1 + Logistic Regression)
+- **Dixon-Coles Score Prediction**: Poisson-based model for exact scoreline forecasting
 - **Expected Goals (xG) Modeling**: Shots-on-target proxy model with team-specific conversion rates
+- **Player Availability Impact**: Squad strength adjustment based on injuries, suspensions, and doubts
 - **Season-aware Analytics**: All insights are computed within season boundaries—no cross-season data mixing
 - **Real-time Data Integration**: Live data from football-data.org API and ESPN for upcoming matches and standings
 - **SSE Live Updates**: Server-Sent Events for real-time match completion notifications
@@ -41,7 +43,10 @@ This platform is designed for **football analytics enthusiasts** who want data-d
 | Feature | Description |
 |---------|-------------|
 | **Season Isolation** | Hot teams, cold teams, and all metrics are strictly per-season |
-| **25 ML Features** | Form, goals, H2H, shots, corners, streaks, rest days |
+| **47 ML Features** | Form, goals, H2H, shots, corners, streaks, rest, Elo, possession, motivation, squad strength |
+| **10 Feature Phases** | Form → Stats → Momentum → Half-Time → Possession → Elo → Derived → Weighted Form → Motivation → Squad Strength |
+| **Score Prediction** | Dixon-Coles Poisson model for exact scoreline forecasting with over/under & BTTS markets |
+| **Player Availability** | Squad strength impact from injuries, suspensions, and fitness doubts |
 | **Pre-Match Insights** | Goal threat, fatigue warnings, BTTS probability |
 | **Elo Rating System** | Dynamic team strength tracking with upset detection |
 | **Expected Goals (xG)** | Shot-based xG model with over/underperformance tracking |
@@ -50,6 +55,7 @@ This platform is designed for **football analytics enthusiasts** who want data-d
 | **Kickoff Time Analysis** | Performance breakdown by time-of-day slots |
 | **Smart Data Ingestion** | Idempotent upsert pipeline with shadow validation |
 | **Real-time SSE** | Server-Sent Events for live match completion updates |
+| **Schema Validation** | Automatic model retrain on feature schema changes |
 | **Multi-module Architecture** | Separate prediction app and training service |
 
 ---
@@ -65,21 +71,28 @@ The prediction engine uses a **Stacked Ensemble ML Model** enhanced with **Elo R
 │           Stacked Ensemble Model            │
 ├─────────────────────────────────────────────┤
 │  Base Models:                               │
-│  ├── RandomForest (100 trees)               │
+│  ├── RandomForest (200 trees)               │
 │  └── AdaBoostM1 (100 iterations)            │
 │                                             │
 │  Meta-Model:                                │
 │  └── Logistic Regression                    │
 │                                             │
-│  Elo Adjustment Layer:                      │
-│  └── Dynamic Elo-based probability tuning   │
+│  Post-Model Adjustments:                    │
+│  ├── Elo rating probability tuning          │
+│  └── Squad strength probability adjustment  │
+│                                             │
+│  Score Prediction:                          │
+│  └── Dixon-Coles Poisson Model              │
 │                                             │
 │  Output: H (Home Win) / D (Draw) / A (Away) │
+│  + Predicted Scoreline (e.g. 2-1)          │
 └─────────────────────────────────────────────┘
 ```
 
-- **25 Engineered Features** across 3 phases
+- **47 Engineered Features** across 10 phases
 - **Elo Rating Integration** for team strength comparison
+- **Squad Strength Adjustment** based on player injuries/suspensions
+- **Dixon-Coles Score Prediction** for exact scoreline forecasting
 - **Confidence Levels**: HIGH / MEDIUM / LOW based on probability distribution
 - **Prediction Explainability**: Breakdown of factors influencing the prediction
 - **Automatic Retraining**: Scheduled bi-monthly (1st & 15th @ 3 AM) + smart retrain on new data
@@ -104,6 +117,7 @@ Every prediction includes a breakdown of contributing factors:
 | **Goal Trend Impact** | Scoring/conceding trends effect |
 | **H2H Impact** | Head-to-head history influence |
 | **Home Advantage** | Home field advantage boost |
+| **Availability Impact** | Player injury/suspension effect on probability |
 
 ### 📊 Pre-Match Insights
 
@@ -202,6 +216,30 @@ Every prediction includes a breakdown of contributing factors:
 | **Win Rate from Drawing HT** | Win rate when drawing at half-time |
 | **Comeback Rate** | Percentage of wins after losing at half-time |
 | **Confidence Level** | Based on matches analyzed |
+
+### 🎯 Score Prediction (Dixon-Coles Poisson)
+
+| Metric | Description |
+|--------|-------------|
+| **Most Likely Score** | Predicted scoreline (e.g. 2-1) with probability |
+| **Top 3 Scores** | Three most probable scorelines |
+| **Over/Under Markets** | Probabilities for Over 1.5, 2.5, 3.5 goals |
+| **BTTS Probability** | Both teams to score probability |
+| **Clean Sheet Odds** | Probability of clean sheet for each team |
+| **Dixon-Coles Model** | Modified Poisson accounting for low-score correlation |
+
+### 🏥 Player Availability & Squad Strength
+
+| Metric | Description |
+|--------|-------------|
+| **Squad Strength** | 0.0–1.0 rating based on key player absences |
+| **Attack Impact** | Offensive impact of missing players (goals/assists weighted) |
+| **Defence Impact** | Defensive impact of missing players (position weighted) |
+| **Availability Rating** | FULL_STRENGTH / MINOR_CONCERNS / WEAKENED / SEVERELY_WEAKENED |
+| **Absent Players** | List of injured, suspended, and doubtful players |
+| **Importance Rating** | 1–10 star rating per player |
+| **Probability Adjustment** | ±8% max shift based on squad strength asymmetry |
+| **Daily Sync** | Automatic player data sync at 10:00 AM daily |
 
 ### 👨‍⚖️ Referee Analytics
 
@@ -377,13 +415,20 @@ Every prediction includes a breakdown of contributing factors:
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Feature Engineering Pipeline (25 Features)
+### Feature Engineering Pipeline (47 Features)
 
 | Phase | Features |
 |-------|----------|
-| **Phase 1: Form & Goals** | homeFormPoints, awayFormPoints, goalsScoredAvg, goalsConcededAvg, h2hRates |
+| **Phase 1: Form & Goals** | homeFormPoints, awayFormPoints, goalsScoredAvg, goalsConcededAvg, totalGoalsAvg, h2hRates |
 | **Phase 2: Match Statistics** | shotsOnTargetAvg, cornersAvg |
 | **Phase 3: Momentum & Fatigue** | goalDifference, overallForm, winStreak, unbeatenStreak, daysSinceLastMatch |
+| **Phase 4: Half-Time & Position** | halfTimeLeadRate, comebackRate, leaguePosition |
+| **Phase 5: Possession Proxy** | homePossessionProxy, awayPossessionProxy |
+| **Phase 6: Elo Ratings** | homeEloRating, awayEloRating |
+| **Phase 7: Derived Interactions** | formDifference, goalDiffDifference, h2hDominance, restAdvantage, eloDifference |
+| **Phase 8: Recency-Weighted Form** | homeWeightedForm, awayWeightedForm (exponential decay) |
+| **Phase 9: Motivation Level** | homeMotivationLevel, awayMotivationLevel (title/relegation context) |
+| **Phase 10: Squad Strength** | homeSquadStrength, awaySquadStrength, squadStrengthDifference |
 
 ### Caching Strategy
 
@@ -420,7 +465,6 @@ For detailed design documentation, please refer to the individual module READMEs
 | **football-prediction-app** | Main application with REST APIs, services, and web UI | [📖 View Details](./football-prediction-app/README.md) |
 | **football-prediction-common** | Shared entities, repositories, and feature engineering | [📖 View Details](./football-prediction-common/README.md) |
 | **model-training-service** | ML model training and evaluation microservice | [📖 View Details](./model-training-service/README.md) |
-| **frontend** | Frontend components (vanilla JS, no frameworks) | [📖 View Details](./frontend/README.md) |
 
 ### Module Dependency Graph
 
@@ -430,13 +474,14 @@ For detailed design documentation, please refer to the individual module READMEs
                     │         -common         │
                     └───────────┬─────────────┘
                                 │
-              ┌─────────────────┼─────────────────┐
-              │                 │                 │
-              ▼                 ▼                 ▼
-┌─────────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ football-prediction │ │ model-training  │ │    frontend     │
-│        -app         │ │    -service     │ │  (static files) │
-└─────────────────────┘ └─────────────────┘ └─────────────────┘
+              ┌─────────────────┴─────────────────┐
+              │                                   │
+              ▼                                   ▼
+┌─────────────────────┐               ┌─────────────────┐
+│ football-prediction │               │ model-training  │
+│        -app         │               │    -service     │
+│ (Port 8080)         │               │ (Port 8081)     │
+└─────────────────────┘               └─────────────────┘
 ```
 
 ---
@@ -514,9 +559,20 @@ docker-compose up -d
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/predict` | POST | Predict match outcome |
+| `/api/predict/score` | POST | Predict exact scoreline (Dixon-Coles) |
 | `/api/h2h` | GET | Head-to-head analysis |
 | `/api/insights/trending` | GET | Season trending insights |
 | `/api/insights/seasons` | GET | Available seasons |
+
+### Player Availability Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/availability/team` | GET | Team squad availability |
+| `/api/availability/all` | GET | All teams' availability overview |
+| `/api/availability/match` | GET | Match availability context (both teams) |
+| `/api/availability/update` | POST | Update player injury/suspension status |
+| `/api/availability/sync` | POST | Trigger manual player data sync |
 
 ### Analytics Endpoints
 
@@ -674,8 +730,28 @@ curl -X POST http://localhost:8080/api/predict \
   "homeElo": 1820.5,
   "awayElo": 1780.2,
   "explanation": {
-    "summary": "Arsenal favored due to higher Elo rating and strong home form"
-  }
+    "summary": "Arsenal favored due to higher Elo rating and strong home form",
+    "availabilityImpact": "+2%"
+  },
+  "scorePrediction": {
+    "scorePrediction": {
+      "mostLikelyScore": "2-1",
+      "probability": 0.12,
+      "over25Prob": 0.65,
+      "bttsProb": 0.58
+    }
+  },
+  "homeAvailability": {
+    "teamName": "Arsenal",
+    "squadStrength": 0.92,
+    "availabilityRating": "MINOR_CONCERNS"
+  },
+  "awayAvailability": {
+    "teamName": "Chelsea",
+    "squadStrength": 0.75,
+    "availabilityRating": "WEAKENED"
+  },
+  "availabilityNote": "Chelsea missing Reece James (injury)"
 }
 ```
 
@@ -824,6 +900,8 @@ scheduler.cron=0 0 3 1,15 * ?
 | `season_team_stats` | Per-season team statistics |
 | `admin_audit_logs` | Admin action audit trail |
 | `system_settings` | Application configuration |
+| `player_availability` | Player injury/suspension tracking |
+| `sync_status` | Data sync status tracking |
 
 ### Key Indexes
 
@@ -841,9 +919,9 @@ CREATE INDEX idx_prediction_season ON predictions(season);
 | Enhancement | Priority |
 |-------------|----------|
 | WebSocket real-time updates | High |
-| Player-level analytics | Medium |
 | Full xG model with event data | Medium |
 | Multi-league support (La Liga, Bundesliga) | Medium |
+| Enhanced player importance via market value API | Medium |
 | GraphQL API | Low |
 | Mobile app | Low |
 
@@ -853,16 +931,19 @@ CREATE INDEX idx_prediction_season ON predictions(season);
 
 | Metric | Value |
 |--------|-------|
-| **Modules** | 4 (app, common, training, frontend) |
-| **REST Endpoints** | 70+ |
-| **ML Features** | 25 |
+| **Modules** | 3 (app, common, training) |
+| **REST Endpoints** | 80+ |
+| **ML Features** | 47 (across 10 phases) |
 | **Cache Definitions** | 19 |
-| **Services** | 37+ |
-| **Controllers** | 23 (main) + 3 (polling/ingestion/SSE) |
-| **JPA Entities** | 12 |
-| **Repositories** | 11 |
+| **Services** | 60+ |
+| **Controllers** | 27 (24 main + 3 polling/ingestion/SSE) |
+| **JPA Entities** | 15 |
+| **Repositories** | 13 |
+| **Flyway Migrations** | 11 (V1–V11) |
+| **Scheduled Jobs** | 4 (predictions, data sync, retrain, player availability) |
 | **Historical Seasons** | 33 |
 | **Historical Matches** | ~12,500 |
+| **Unit Tests** | 609 |
 | **Frontend Components** | 5 team + 2 match |
 | **OpenAPI Groups** | 4 (predictions, analytics, teams, health) |
 | **Custom Prometheus Metrics** | 6 (counter, timer, gauge, cache stats) |

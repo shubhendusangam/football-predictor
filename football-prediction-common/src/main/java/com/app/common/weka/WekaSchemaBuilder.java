@@ -78,12 +78,16 @@ public final class WekaSchemaBuilder {
     // Phase 9 features (Motivation Level)
     public static final int IDX_HOME_MOTIVATION    = 42;
     public static final int IDX_AWAY_MOTIVATION    = 43;
+    // Phase 10 features (Squad Strength)
+    public static final int IDX_HOME_SQUAD_STRENGTH     = 44;
+    public static final int IDX_AWAY_SQUAD_STRENGTH     = 45;
+    public static final int IDX_SQUAD_STRENGTH_DIFF     = 46;
     // Label
-    public static final int IDX_LABEL             = 44;
+    public static final int IDX_LABEL             = 47;
     // Total number of attributes (features + label)
-    public static final int TOTAL_ATTRIBUTES      = 45;
+    public static final int TOTAL_ATTRIBUTES      = 48;
     // Number of input features (excluding label)
-    public static final int FEATURE_COUNT         = 44;
+    public static final int FEATURE_COUNT         = 47;
 
     /**
      * Defines the schema of the Weka dataset.
@@ -154,9 +158,14 @@ public final class WekaSchemaBuilder {
         attrs.add(new Attribute("homeMotivationLevel"));   // 42
         attrs.add(new Attribute("awayMotivationLevel"));   // 43
 
-        // Nominal label (index 44)
+        // Phase 10 numeric features - Squad Strength (indices 44-46)
+        attrs.add(new Attribute("homeSquadStrength"));     // 44
+        attrs.add(new Attribute("awaySquadStrength"));     // 45
+        attrs.add(new Attribute("squadStrengthDifference")); // 46
+
+        // Nominal label (index 47)
         ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
-        attrs.add(new Attribute("result", labels));        // 42
+        attrs.add(new Attribute("result", labels));        // 47
 
         return attrs;
     }
@@ -252,6 +261,11 @@ public final class WekaSchemaBuilder {
         // Phase 9 features (Motivation Level)
         inst.setValue(IDX_HOME_MOTIVATION,    PredictionUtils.safe(f.getHomeMotivationLevel()));
         inst.setValue(IDX_AWAY_MOTIVATION,    PredictionUtils.safe(f.getAwayMotivationLevel()));
+
+        // Phase 10 features (Squad Strength)
+        inst.setValue(IDX_HOME_SQUAD_STRENGTH,     PredictionUtils.safe(f.getHomeSquadStrength()));
+        inst.setValue(IDX_AWAY_SQUAD_STRENGTH,     PredictionUtils.safe(f.getAwaySquadStrength()));
+        inst.setValue(IDX_SQUAD_STRENGTH_DIFF,     PredictionUtils.safe(f.getSquadStrengthDifference()));
 
         // Label only set during training — null at prediction time
         if (f.getActualResult() != null) {

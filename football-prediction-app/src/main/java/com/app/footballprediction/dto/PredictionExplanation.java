@@ -42,6 +42,12 @@ public class PredictionExplanation {
     private String homeAdvantageImpact;
 
     /**
+     * Impact of player availability / squad strength.
+     * Format: "+2%" or "-5%"
+     */
+    private String availabilityImpact;
+
+    /**
      * Summary explanation text.
      */
     private String summary;

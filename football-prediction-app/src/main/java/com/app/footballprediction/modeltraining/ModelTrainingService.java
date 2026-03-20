@@ -813,7 +813,21 @@ public class ModelTrainingService {
    }
 
    public boolean isModelLoaded() {
-      return trainedModel != null && trainingHeader != null;
+      if (trainedModel == null || trainingHeader == null) {
+         return false;
+      }
+      // Schema validation: if the model was trained with a different number of
+      // attributes (e.g. before Phase 10 added 3 new features), it's incompatible.
+      int expectedAttrs = WekaSchemaBuilder.TOTAL_ATTRIBUTES;
+      int actualAttrs = trainingHeader.numAttributes();
+      if (actualAttrs != expectedAttrs) {
+         log.warn("⚠ Loaded model schema mismatch: model has {} attributes, expected {}. "
+                 + "Model will be retrained.", actualAttrs, expectedAttrs);
+         this.trainedModel = null;
+         this.trainingHeader = null;
+         return false;
+      }
+      return true;
    }
 
    /**

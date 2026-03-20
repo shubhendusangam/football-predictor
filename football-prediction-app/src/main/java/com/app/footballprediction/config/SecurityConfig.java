@@ -95,10 +95,12 @@ public class SecurityConfig {
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
                 "Authorization", "Content-Type", "Accept", "Origin",
-                "X-Requested-With", "Cache-Control", "If-None-Match"
+                "X-Requested-With", "Cache-Control", "If-None-Match",
+                "X-Request-ID", "X-Trace-ID", "X-Span-ID"
         ));
         configuration.setExposedHeaders(List.of(
                 "X-RateLimit-Remaining", "X-RateLimit-Limit",
+                "X-Request-ID", "X-Trace-ID",
                 "ETag", "Cache-Control", "Content-Disposition"
         ));
         configuration.setAllowCredentials(true);
@@ -225,6 +227,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/insights/**").permitAll()
                 .requestMatchers("/api/seasons/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/season/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/availability/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/availability/update", "/api/availability/sync").hasRole("ADMIN")
 
                 // Cache monitoring — public read-only
                 .requestMatchers("/api/cache/status", "/api/cache/stats", "/api/cache/stats/**").permitAll()
@@ -232,6 +236,10 @@ public class SecurityConfig {
                 // Actuator health & metrics — public
                 .requestMatchers("/actuator/health", "/actuator/info",
                         "/actuator/prometheus", "/actuator/metrics", "/actuator/metrics/**").permitAll()
+
+                // Actuator loggers — GET is public (read), POST requires ADMIN (change levels at runtime)
+                .requestMatchers(org.springframework.http.HttpMethod.GET, "/actuator/loggers", "/actuator/loggers/**").permitAll()
+                .requestMatchers(org.springframework.http.HttpMethod.POST, "/actuator/loggers/**").hasRole("ADMIN")
 
                 // Admin verification
                 .requestMatchers("/api/admin/verify").authenticated()

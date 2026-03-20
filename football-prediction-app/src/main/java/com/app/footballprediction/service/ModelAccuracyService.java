@@ -66,6 +66,8 @@ public class ModelAccuracyService {
         Double avgGoalError = evaluationRepository.getAverageGoalDifferenceError();
         Double avgCardError = evaluationRepository.getAverageCardPredictionError();
         Double avgCornerError = evaluationRepository.getAverageCornerPredictionError();
+        long poissonExactScore = evaluationRepository.countPoissonExactScorePredictions();
+        Double avgPoissonGoalError = evaluationRepository.getAveragePoissonGoalError();
 
         ModelAccuracy accuracy = ModelAccuracy.builder()
                 .scope("GLOBAL")
@@ -78,6 +80,8 @@ public class ModelAccuracyService {
                 .goalErrorAverage(avgGoalError != null ? avgGoalError : 0.0)
                 .cardErrorAverage(avgCardError != null ? avgCardError : 0.0)
                 .cornerErrorAverage(avgCornerError != null ? avgCornerError : 0.0)
+                .poissonScoreAccuracy(total > 0 ? (double) poissonExactScore / total : 0.0)
+                .poissonGoalErrorAverage(avgPoissonGoalError != null ? avgPoissonGoalError : 0.0)
                 .calculatedAt(LocalDateTime.now())
                 .build();
 
@@ -172,6 +176,16 @@ public class ModelAccuracyService {
                 .average()
                 .orElse(0.0);
 
+        // Poisson score accuracy
+        long poissonExactScore = evaluations.stream()
+                .filter(e -> e.getPoissonScoreExact() != null && e.getPoissonScoreExact())
+                .count();
+        double poissonAvgGoalError = evaluations.stream()
+                .filter(e -> e.getPoissonGoalError() != null)
+                .mapToDouble(PredictionEvaluation::getPoissonGoalError)
+                .average()
+                .orElse(0.0);
+
         return ModelAccuracy.builder()
                 .scope(scope)
                 .scopeKey(scopeKey)
@@ -183,6 +197,8 @@ public class ModelAccuracyService {
                 .goalErrorAverage(avgGoalError)
                 .cardErrorAverage(avgCardError)
                 .cornerErrorAverage(avgCornerError)
+                .poissonScoreAccuracy(total > 0 ? (double) poissonExactScore / total : 0.0)
+                .poissonGoalErrorAverage(poissonAvgGoalError)
                 .calculatedAt(LocalDateTime.now())
                 .build();
     }

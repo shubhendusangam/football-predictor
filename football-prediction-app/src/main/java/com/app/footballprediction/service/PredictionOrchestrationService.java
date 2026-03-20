@@ -4,7 +4,10 @@ import com.app.common.model.MatchFeatures;
 import com.app.common.service.FeatureEngineeringService;
 import com.app.common.util.PredictionUtils;
 import com.app.footballprediction.dto.H2HInsightsResponse;
+import com.app.footballprediction.dto.PlayerAvailabilityDTO;
 import com.app.footballprediction.dto.PredictResponse;
+import com.app.footballprediction.dto.PredictionExplanation;
+import com.app.footballprediction.dto.ScorePredictionDTO;
 import com.app.footballprediction.modeltraining.ModelTrainingService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Timer;
@@ -27,6 +30,8 @@ public class PredictionOrchestrationService {
     private final EloPredictionService eloPredictionService;
     private final H2HInsightsService h2hInsightsService;
     private final TrendingInsightsService trendingInsightsService;
+    private final ScorePredictionService scorePredictionService;
+    private final PlayerImpactService playerImpactService;
 
     private final Timer predictionLatencyTimer;
     private final Counter predictionHomeCounter;
@@ -39,6 +44,8 @@ public class PredictionOrchestrationService {
             EloPredictionService eloPredictionService,
             H2HInsightsService h2hInsightsService,
             TrendingInsightsService trendingInsightsService,
+            ScorePredictionService scorePredictionService,
+            PlayerImpactService playerImpactService,
             Timer predictionLatencyTimer,
             Counter predictionHomeCounter,
             Counter predictionDrawCounter,
@@ -48,6 +55,8 @@ public class PredictionOrchestrationService {
         this.eloPredictionService = eloPredictionService;
         this.h2hInsightsService = h2hInsightsService;
         this.trendingInsightsService = trendingInsightsService;
+        this.scorePredictionService = scorePredictionService;
+        this.playerImpactService = playerImpactService;
         this.predictionLatencyTimer = predictionLatencyTimer;
         this.predictionHomeCounter = predictionHomeCounter;
         this.predictionDrawCounter = predictionDrawCounter;
@@ -119,11 +128,60 @@ public class PredictionOrchestrationService {
         H2HInsightsResponse h2hFull = h2hInsightsService.getH2HInsights(homeTeam, awayTeam);
         PredictResponse.H2HSummary h2hSummary = buildH2HSummary(h2hFull);
 
+        // ── Score prediction (Poisson model) ───────────────────
+        ScorePredictionDTO scorePrediction = null;
+        try {
+            if (scorePredictionService.isModelAvailable()) {
+                scorePrediction = scorePredictionService.predictScore(homeTeam, awayTeam);
+            }
+        } catch (Exception e) {
+            log.warn("Score prediction unavailable for {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
+        }
+
         // ── Pre-Match Insights ─────────────────────────────────
         double homeGoalThreat = clamp(
                 (features.getHomeGoalsScoredAvg() * 30) + (features.getAwayGoalsConcededAvg() * 20));
         double awayGoalThreat = clamp(
                 (features.getAwayGoalsScoredAvg() * 30) + (features.getHomeGoalsConcededAvg() * 20));
+
+        // ── Player Availability Context ────────────────────────
+        PlayerAvailabilityDTO homeAvailability = null;
+        PlayerAvailabilityDTO awayAvailability = null;
+        String availabilityNote = null;
+        try {
+            homeAvailability = playerImpactService.getTeamAvailability(homeTeam);
+            awayAvailability = playerImpactService.getTeamAvailability(awayTeam);
+
+            // Adjust probabilities based on squad strength
+            probes = playerImpactService.adjustPredictionProbabilities(
+                    probes, homeAvailability.getSquadStrength(), awayAvailability.getSquadStrength());
+            label = modelTrainingService.getPredictedLabel(probes);
+
+            // Set availability impact on the prediction explanation
+            if (eloResult.getExplanation() != null) {
+                double strengthDiff = homeAvailability.getSquadStrength() - awayAvailability.getSquadStrength();
+                double impactPct = strengthDiff * 8.0; // matches maxShift=0.08 → ±8%
+                eloResult.getExplanation().setAvailabilityImpact(
+                        PredictionExplanation.formatImpact(impactPct));
+            }
+
+            // Build combined note
+            StringBuilder noteBuilder = new StringBuilder();
+            if (homeAvailability.getAvailabilityNote() != null) {
+                noteBuilder.append(homeAvailability.getAvailabilityNote());
+            }
+            if (awayAvailability.getAvailabilityNote() != null) {
+                if (noteBuilder.length() > 0) noteBuilder.append(" | ");
+                noteBuilder.append(awayAvailability.getAvailabilityNote());
+            }
+            availabilityNote = noteBuilder.length() > 0 ? noteBuilder.toString() : null;
+
+            log.debug("Availability → Home:{} ({}) Away:{} ({})",
+                    homeAvailability.getSquadStrength(), homeAvailability.getAvailabilityRating(),
+                    awayAvailability.getSquadStrength(), awayAvailability.getAvailabilityRating());
+        } catch (Exception e) {
+            log.warn("Player availability unavailable for {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
+        }
 
         // ── Assemble response ──────────────────────────────────
         PredictResponse response = PredictResponse.builder()
@@ -161,6 +219,10 @@ public class PredictionOrchestrationService {
                         .awayGoalThreat(PredictionUtils.round(awayGoalThreat))
                         .build())
                 .h2hInsights(h2hSummary)
+                .scorePrediction(scorePrediction)
+                .homeAvailability(homeAvailability)
+                .awayAvailability(awayAvailability)
+                .availabilityNote(availabilityNote)
                 .build();
 
         log.info("Predicted: {} vs {} → {} (H:{} D:{} A:{}) Elo diff:{}",

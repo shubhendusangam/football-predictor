@@ -109,8 +109,8 @@ if [ $? -eq 0 ]; then
     print_success "All modules built successfully"
 
     print_module "Module JAR files created:"
-    if [ -f "football-prediction-app/target/football-prediction-app-1.0.0.jar" ]; then
-        print_success "football-prediction-app-1.0.0.jar"
+    if [ -f "football-prediction-app/target/football-prediction-app.jar" ]; then
+        print_success "football-prediction-app.jar"
     fi
 
     if [ -f "model-training-service/target/model-training-service-1.0.0.jar" ]; then
@@ -158,7 +158,7 @@ case $choice in
         print_info "Starting services in separate terminals..."
 
         # Start main app in background
-        java -jar football-prediction-app/target/football-prediction-app-1.0.0.jar > logs/main-app.log 2>&1 &
+        java -jar football-prediction-app/target/football-prediction-app.jar > logs/main-app.log 2>&1 &
         MAIN_PID=$!
         echo $MAIN_PID > .main-app.pid
         print_success "Main application started (PID: $MAIN_PID)"
@@ -191,7 +191,7 @@ case $choice in
         print_success "Build complete. Services not started."
         echo ""
         echo "To start services manually:"
-        echo "  Main app:         java -jar football-prediction-app/target/football-prediction-app-1.0.0.jar"
+        echo "  Main app:         java -jar football-prediction-app/target/football-prediction-app.jar"
         echo "  Training service: java -jar model-training-service/target/model-training-service-1.0.0.jar"
         ;;
     *)

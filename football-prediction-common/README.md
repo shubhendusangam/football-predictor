@@ -27,9 +27,9 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 │            ┌─────────────────────┐                              │
 │            │ football-prediction-│  ◄── THIS MODULE             │
 │            │ common              │                              │
-│            │ • Entities (12)     │                              │
-│            │ • Repositories (11) │                              │
-│            │ • Services (3)      │                              │
+│            │ • Entities (15)     │                              │
+│            │ • Repositories (13) │                              │
+│            │ • Services (4)      │                              │
 │            │ • Utilities (3)     │                              │
 │            │ • Ingestion Events  │                              │
 │            │ • Weka Integration  │                              │
@@ -42,7 +42,6 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 - [Main Platform README](../README.md)
 - [Main Application](../football-prediction-app/README.md)
 - [Model Training Service](../model-training-service/README.md)
-- [Frontend Components](../frontend/README.md)
 
 ---
 
@@ -66,18 +65,18 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 ## Responsibilities
 
 ### 1. Domain Entity Management
-- Define JPA entities for core domain objects (12 entities)
+- Define JPA entities for core domain objects (15 entities)
 - Enforce database constraints and indexing
 - Provide entity-level business methods
 
 ### 2. Data Access Layer
-- Spring Data JPA repositories for all entities (11 repositories)
+- Spring Data JPA repositories for all entities (13 repositories)
 - Temporal queries with date-based filtering
 - Season-scoped queries for insights engine
 - Head-to-head (H2H) historical queries
 
 ### 3. Feature Engineering
-- Calculate 25 ML features for match prediction
+- Calculate 47 ML features for match prediction (10 phases)
 - Support training mode (with labels) and prediction mode (without labels)
 - Implement temporal cutoffs to prevent data leakage
 
@@ -115,24 +114,27 @@ The `football-prediction-common` module serves as the **shared foundation layer*
 
 ```
 com.app.common/
-├── model/                           # JPA Entities (12)
+├── model/                           # JPA Entities (15)
 │   ├── Match.java                   # Core match data with statistics
 │   ├── Team.java                    # Team metadata with logos
 │   ├── League.java                  # League configuration
 │   ├── LeagueStanding.java         # Season standings
 │   ├── Prediction.java             # Prediction tracking
 │   ├── PredictionEvaluation.java   # Prediction evaluation metrics
-│   ├── MatchFeatures.java          # ML feature DTO (25 features)
+│   ├── MatchFeatures.java          # ML feature DTO (47 features, 10 phases)
 │   ├── ModelAccuracy.java          # Model accuracy tracking
 │   ├── ModelTrainingHistory.java   # Training run history
 │   ├── SeasonTeamStats.java        # Per-season team statistics
+│   ├── PlayerAvailability.java     # Player injury/suspension tracking
+│   ├── PoissonParameters.java      # Dixon-Coles Poisson model parameters
+│   ├── SyncStatusEntry.java        # Data sync status tracking
 │   ├── AdminAuditLog.java          # Admin action logging
 │   └── SystemSettings.java         # Application settings
 │
 ├── dto/                             # Data Transfer Objects
 │   └── ShotQualityDTO.java         # Shot quality metrics DTO
 │
-├── repository/                      # Spring Data JPA (11)
+├── repository/                      # Spring Data JPA (13)
 │   ├── MatchRepository.java                # Match queries
 │   ├── TeamRepository.java                 # Team queries
 │   ├── LeagueRepository.java               # League queries
@@ -142,13 +144,16 @@ com.app.common/
 │   ├── ModelAccuracyRepository.java        # Accuracy history
 │   ├── ModelTrainingHistoryRepository.java # Training history
 │   ├── SeasonTeamStatsRepository.java      # Season team stats
+│   ├── PlayerAvailabilityRepository.java   # Player availability queries
+│   ├── SyncStatusEntryRepository.java      # Sync status queries
 │   ├── AdminAuditLogRepository.java        # Audit queries
 │   └── SystemSettingsRepository.java       # Settings queries
 │
-├── service/                         # Shared Business Logic (3)
-│   ├── FeatureEngineeringService.java  # 25-feature ML pipeline
+├── service/                         # Shared Business Logic (4)
+│   ├── FeatureEngineeringService.java  # 47-feature ML pipeline (10 phases)
 │   ├── EloRatingService.java           # Elo rating calculations
-│   └── LeaguePositionService.java      # League position lookups
+│   ├── LeaguePositionService.java      # League position lookups
+│   └── MotivationService.java          # Motivation level calculations
 │
 ├── ingestion/                       # Data Ingestion Infrastructure
 │   ├── dto/
@@ -209,7 +214,7 @@ com.app.common/
 │         ┌──────────────┼──────────────┐                     │
 │         ▼              ▼              ▼                     │
 │  EloRatingService  WekaSchema   MatchFeatures DTO           │
-│  • Elo calculation  Builder     (25 features)               │
+│  • Elo calculation  Builder     (47 features, 10 phases)    │
 │  • Rating updates                                           │
 └─────────────────────────────────────────────────────────────┘
                          │
@@ -268,43 +273,89 @@ public class Match {
 
 ### MatchFeatures DTO
 
-Data transfer object containing 25 ML features.
+Data transfer object containing 47 ML features across 10 phases.
 
 ```java
 public class MatchFeatures {
-    // Phase 1: Form & Goals (10 features)
-    private double homeFormPoints;
-    private double awayFormPoints;
-    private double homeGoalsScoredAvg;
-    private double homeGoalsConcededAvg;
-    private double awayGoalsScoredAvg;
-    private double awayGoalsConcededAvg;
-    private double homeTotalGoalsAvg;
-    private double awayTotalGoalsAvg;
-    private double h2hHomeWinRate;
-    private double h2hDrawRate;
-    private double h2hAwayWinRate;
+    // Phase 1: Form & Goals (11 features)
+    private double homeFormPoints, awayFormPoints;
+    private double homeGoalsScoredAvg, homeGoalsConcededAvg;
+    private double awayGoalsScoredAvg, awayGoalsConcededAvg;
+    private double h2hHomeWinRate, h2hDrawRate, h2hAwayWinRate;
+    private double homeTotalGoalsAvg, awayTotalGoalsAvg;
 
     // Phase 2: Match Statistics (4 features)
-    private double homeShotsOnTargetAvg;
-    private double awayShotsOnTargetAvg;
-    private double homeCornersAvg;
-    private double awayCornersAvg;
+    private double homeShotsOnTargetAvg, awayShotsOnTargetAvg;
+    private double homeCornersAvg, awayCornersAvg;
 
-    // Phase 3: Momentum & Fatigue (11 features)
-    private double homeGoalDifference;
-    private double awayGoalDifference;
-    private double homeOverallFormPoints;
-    private double awayOverallFormPoints;
-    private int homeWinStreak;
-    private int awayWinStreak;
-    private int homeUnbeatenStreak;
-    private int awayUnbeatenStreak;
-    private int homeDaysSinceLastMatch;
-    private int awayDaysSinceLastMatch;
+    // Phase 3: Momentum & Fatigue (10 features)
+    private double homeGoalDifference, awayGoalDifference;
+    private double homeOverallFormPoints, awayOverallFormPoints;
+    private int homeWinStreak, awayWinStreak;
+    private int homeUnbeatenStreak, awayUnbeatenStreak;
+    private int homeDaysSinceLastMatch, awayDaysSinceLastMatch;
+
+    // Phase 4: Half-Time & League Position (6 features)
+    private double homeHalfTimeLeadRate, awayHalfTimeLeadRate;
+    private double homeComebackRate, awayComebackRate;
+    private int homeLeaguePosition, awayLeaguePosition;
+
+    // Phase 5: Possession Proxy (2 features)
+    private double homePossessionProxy, awayPossessionProxy;
+
+    // Phase 6: Elo Ratings (2 features)
+    private double homeEloRating, awayEloRating;
+
+    // Phase 7: Derived Interactions (5 features)
+    private double formDifference, goalDiffDifference;
+    private double h2hDominance, restAdvantage, eloDifference;
+
+    // Phase 8: Recency-Weighted Form (2 features)
+    private double homeWeightedForm, awayWeightedForm;
+
+    // Phase 9: Motivation Level (2 features)
+    private int homeMotivationLevel, awayMotivationLevel;
+
+    // Phase 10: Squad Strength (3 features)
+    private double homeSquadStrength, awaySquadStrength;
+    private double squadStrengthDifference;
 
     // Label (training only)
     private String actualResult;
+}
+```
+
+### PlayerAvailability Entity
+
+Tracks player injuries, suspensions, and fitness doubts for squad strength analysis.
+
+```java
+@Entity
+@Table(name = "player_availability")
+public class PlayerAvailability {
+    @Id @GeneratedValue
+    private Long id;
+
+    private String teamName;
+    private String playerName;
+    private String position;           // GK, DEF, MID, FWD
+
+    @Enumerated(EnumType.STRING)
+    private AvailabilityStatus status; // INJURED, SUSPENDED, DOUBTFUL, AVAILABLE
+
+    private String reason;
+    private LocalDate expectedReturn;
+    private int importanceRating;      // 1–10 (9-10 = star player)
+    private boolean keyStar;
+    private double avgGoalsPerGame;
+    private double avgAssistsPerGame;
+    private int suspensionMatchesRemaining;
+    private LocalDate reportDate;
+    private String season;
+
+    public enum AvailabilityStatus {
+        INJURED, SUSPENDED, DOUBTFUL, AVAILABLE
+    }
 }
 ```
 
@@ -320,6 +371,8 @@ public class MatchFeatures {
 | **ModelAccuracy** | Model accuracy history per evaluation run |
 | **ModelTrainingHistory** | Training run logs with parameters and metrics |
 | **SeasonTeamStats** | Per-season team statistics (Elo, form, streaks, goals) |
+| **PoissonParameters** | Dixon-Coles Poisson model parameters (attack/defence strengths) |
+| **SyncStatusEntry** | Data synchronization status tracking |
 | **AdminAuditLog** | Admin actions audit trail |
 | **SystemSettings** | Application configuration key-value pairs |
 | **ShotQualityDTO** | Shot quality metrics for team analytics |
@@ -328,9 +381,9 @@ public class MatchFeatures {
 
 ## Feature Engineering Pipeline
 
-The `FeatureEngineeringService` computes 25 features organized in 3 phases:
+The `FeatureEngineeringService` computes 47 features organized in 10 phases:
 
-### Phase 1: Form & Goals (10 features)
+### Phase 1: Form & Goals (11 features)
 
 | Feature | Formula | Description |
 |---------|---------|-------------|
@@ -368,6 +421,63 @@ The `FeatureEngineeringService` computes 25 features organized in 3 phases:
 | `awayUnbeatenStreak` | `COUNT consecutive non-losses` | Unbeaten run |
 | `homeDaysSinceLastMatch` | `DAYS_BETWEEN(last_match, today)` | Rest days (capped at 30) |
 | `awayDaysSinceLastMatch` | `DAYS_BETWEEN(last_match, today)` | Rest days (capped at 30) |
+
+### Phase 4: Half-Time & League Position (6 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `homeHalfTimeLeadRate` | `COUNT(leading at HT) / COUNT(matches)` | Rate of leading at half-time |
+| `awayHalfTimeLeadRate` | `COUNT(leading at HT) / COUNT(matches)` | Rate of leading at half-time |
+| `homeComebackRate` | `COUNT(comebacks) / COUNT(trailing at HT)` | Comeback rate from trailing |
+| `awayComebackRate` | `COUNT(comebacks) / COUNT(trailing at HT)` | Comeback rate from trailing |
+| `homeLeaguePosition` | `POSITION in season standings` | League position (1-20) |
+| `awayLeaguePosition` | `POSITION in season standings` | League position (1-20) |
+
+### Phase 5: Possession Proxy (2 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `homePossessionProxy` | `(shotRatio × 0.6) + (cornerRatio × 0.4)` | Estimated possession (0.0-1.0) |
+| `awayPossessionProxy` | `(shotRatio × 0.6) + (cornerRatio × 0.4)` | Estimated possession (0.0-1.0) |
+
+### Phase 6: Elo Ratings (2 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `homeEloRating` | From `SeasonTeamStats` | Current Elo rating (default 1500) |
+| `awayEloRating` | From `SeasonTeamStats` | Current Elo rating (default 1500) |
+
+### Phase 7: Derived Interaction Features (5 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `formDifference` | `homeFormPoints - awayFormPoints` | Relative form |
+| `goalDiffDifference` | `homeGoalDiff - awayGoalDiff` | Relative goal difference |
+| `h2hDominance` | `h2hHomeWinRate - h2hAwayWinRate` | Historical H2H dominance |
+| `restAdvantage` | `homeDaysRest - awayDaysRest` | Relative rest advantage |
+| `eloDifference` | `homeElo - awayElo` | Elo rating gap |
+
+### Phase 8: Recency-Weighted Form (2 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `homeWeightedForm` | `Σ(points × 0.7^i) / Σ(0.7^i)` | Exponential decay form (most recent = highest) |
+| `awayWeightedForm` | `Σ(points × 0.7^i) / Σ(0.7^i)` | Exponential decay form (most recent = highest) |
+
+### Phase 9: Motivation Level (2 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `homeMotivationLevel` | Based on league position context | 0-10 score (title/relegation fight = 10) |
+| `awayMotivationLevel` | Based on league position context | 0-10 score (title/relegation fight = 10) |
+
+### Phase 10: Squad Strength (3 features)
+
+| Feature | Formula | Description |
+|---------|---------|-------------|
+| `homeSquadStrength` | `1.0 - (Σ importance × statusWeight) / 30` | Squad strength (0.3-1.0, 1.0 = full) |
+| `awaySquadStrength` | `1.0 - (Σ importance × statusWeight) / 30` | Squad strength (0.3-1.0, 1.0 = full) |
+| `squadStrengthDifference` | `homeSquadStrength - awaySquadStrength` | Relative squad fitness |
 
 ### Points System
 
@@ -502,6 +612,8 @@ The ingestion package provides a shared event-driven architecture for data inges
 | `model_accuracy` | Accuracy history | `id`, `recorded_at`, `accuracy`, `total_predictions` |
 | `model_training_history` | Training logs | `id`, `trained_at`, `duration_ms`, `accuracy`, `model_type` |
 | `season_team_stats` | Season team stats | `id`, `season`, `team_id`, `elo_rating`, `form_points` |
+| `player_availability` | Player injury/suspension tracking | `id`, `team_name`, `player_name`, `status`, `importance_rating` |
+| `sync_status` | Data sync status | `id`, `source`, `last_sync`, `status` |
 | `admin_audit_logs` | Admin actions | `id`, `action`, `username`, `timestamp` |
 | `system_settings` | App config | `id`, `key`, `value` |
 
@@ -600,7 +712,7 @@ return (double) wins / h2hMatches.size();  // Guaranteed non-zero denominator
 |------------|----------|
 | `MatchTest` | Entity methods |
 | `MatchFeaturesTest` | DTO builder and validation |
-| `FeatureEngineeringServiceTest` | All 25 feature calculations |
+| `FeatureEngineeringServiceTest` | All 47 feature calculations (10 phases) |
 
 ### Test Scenarios
 
@@ -638,11 +750,11 @@ To use this module in other modules:
 
 | Metric | Value |
 |--------|-------|
-| Entities | 12 |
-| Repositories | 11 |
-| Services | 3 |
+| Entities | 15 |
+| Repositories | 13 |
+| Services | 4 |
 | Utilities | 3 |
-| ML Features | 25 |
+| ML Features | 47 (10 phases) |
 | Ingestion Events | 4 |
 | Ingestion DTOs | 2 |
 | Provider Interfaces | 2 |

@@ -2,12 +2,14 @@ package com.app.footballprediction.controller;
 
 import com.app.footballprediction.dto.PredictRequest;
 import com.app.footballprediction.dto.PredictResponse;
+import com.app.footballprediction.dto.ScorePredictionDTO;
 import com.app.footballprediction.dto.H2HInsightsResponse;
 import com.app.footballprediction.dto.TrendingInsightsResponse;
 import com.app.footballprediction.service.FootballDataApiService;
 import com.app.footballprediction.service.H2HInsightsService;
 import com.app.footballprediction.service.PredictionOrchestrationService;
 import com.app.footballprediction.service.PredictionTrackingService;
+import com.app.footballprediction.service.ScorePredictionService;
 import com.app.footballprediction.service.TeamValidationService;
 import com.app.footballprediction.service.TrendingInsightsService;
 import com.app.footballprediction.scheduler.DailyPredictionScheduler;
@@ -41,6 +43,7 @@ public class PredictionController {
     private final PredictionTrackingService predictionTrackingService;
     private final FootballDataApiService footballDataApiService;
     private final DailyPredictionScheduler dailyPredictionScheduler;
+    private final ScorePredictionService scorePredictionService;
 
     // ── Prediction ────────────────────────────────────────────────────────
 
@@ -99,6 +102,76 @@ public class PredictionController {
 
         PredictResponse response = predictionOrchestrationService.predict(homeTeam, awayTeam);
         return ResponseEntity.ok(response);
+    }
+
+    // ── Score Prediction ────────────────────────────────────────────────
+
+    /**
+     * Predict exact match scoreline using Poisson regression (Dixon-Coles model).
+     * GET /api/predict/score?home=Arsenal&away=Chelsea
+     */
+    @Operation(summary = "Predict match scoreline",
+            description = "Predicts the exact scoreline of a match using a Dixon-Coles Poisson model. " +
+                    "Returns most likely score, top-3 scores, over/under probabilities, BTTS, " +
+                    "and a full 0-0 to 5-5 score probability matrix.",
+            responses = {
+                    @ApiResponse(responseCode = "200", description = "Score prediction generated successfully"),
+                    @ApiResponse(responseCode = "400", description = "Invalid team name or request"),
+                    @ApiResponse(responseCode = "503", description = "Poisson model not trained yet")
+            })
+    @GetMapping("/predict/score")
+    public ResponseEntity<?> predictScore(
+            @Parameter(description = "Home team name", example = "Arsenal") @RequestParam String home,
+            @Parameter(description = "Away team name", example = "Chelsea") @RequestParam String away,
+            @Parameter(description = "Season (optional, for future use)", example = "2025") @RequestParam(required = false) String season) {
+
+        if (home == null || home.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "home is required",
+                    "hint", "Use GET /api/teams to see valid team names"
+            ));
+        }
+        if (away == null || away.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "away is required",
+                    "hint", "Use GET /api/teams to see valid team names"
+            ));
+        }
+        if (home.equalsIgnoreCase(away)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "home and away cannot be the same team"
+            ));
+        }
+
+        // Validate and normalize team names
+        TeamValidationService.ValidationResult homeValidation = teamValidationService.validateTeam(home);
+        if (!homeValidation.isValid()) {
+            return ResponseEntity.badRequest().body(homeValidation.toErrorResponse());
+        }
+        TeamValidationService.ValidationResult awayValidation = teamValidationService.validateTeam(away);
+        if (!awayValidation.isValid()) {
+            return ResponseEntity.badRequest().body(awayValidation.toErrorResponse());
+        }
+
+        String homeTeam = homeValidation.getNormalizedName();
+        String awayTeam = awayValidation.getNormalizedName();
+
+        if (!scorePredictionService.isModelAvailable()) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "error", "Poisson score model not available",
+                    "hint", "Train the model first via POST /api/training/train-poisson"
+            ));
+        }
+
+        try {
+            ScorePredictionDTO prediction = scorePredictionService.predictScore(homeTeam, awayTeam);
+            return ResponseEntity.ok(prediction);
+        } catch (Exception e) {
+            log.error("Score prediction failed for {} vs {}: {}", homeTeam, awayTeam, e.getMessage());
+            return ResponseEntity.status(500).body(Map.of(
+                    "error", "Score prediction failed: " + e.getMessage()
+            ));
+        }
     }
 
     // ── Head-to-Head Insights ──────────────────────────────────────────────

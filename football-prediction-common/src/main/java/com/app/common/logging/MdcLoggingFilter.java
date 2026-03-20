@@ -21,6 +21,9 @@ import java.util.UUID;
  * Populated MDC keys (see {@link LogConstants}):
  * <ul>
  *   <li>{@code requestId}  - UUID generated per request (or from X-Request-ID header)</li>
+ *   <li>{@code traceId}    - distributed trace ID (from header or generated)</li>
+ *   <li>{@code spanId}     - span ID (from header or generated)</li>
+ *   <li>{@code userId}     - authenticated user identity (from SecurityContext)</li>
  *   <li>{@code clientIp}   - caller's remote address</li>
  *   <li>{@code httpMethod} - GET / POST / ...</li>
  *   <li>{@code requestUri} - the URI path</li>
@@ -53,18 +56,30 @@ public class MdcLoggingFilter implements Filter {
         MDC.put(LogConstants.MDC_HTTP_METHOD, httpReq.getMethod());
         MDC.put(LogConstants.MDC_REQUEST_URI, httpReq.getRequestURI());
 
-        // Propagate request-id back in the response header for tracing
+        // Distributed tracing: traceId and spanId
+        String traceId = resolveHeader(httpReq, "X-Trace-ID", UUID.randomUUID().toString());
+        String spanId = resolveHeader(httpReq, "X-Span-ID", UUID.randomUUID().toString().substring(0, 16));
+        MDC.put(LogConstants.MDC_TRACE_ID, traceId);
+        MDC.put(LogConstants.MDC_SPAN_ID, spanId);
+
+        // userId from SecurityContext (if Spring Security is on the classpath)
+        String userId = resolveUserId();
+        MDC.put(LogConstants.MDC_USER_ID, userId);
+
+        // Propagate request-id and trace headers back in the response
         httpResp.setHeader("X-Request-ID", requestId);
+        httpResp.setHeader("X-Trace-ID", traceId);
 
         long start = System.currentTimeMillis();
 
         try {
             // Skip detailed logging for static resources and health checks
             if (!isStaticResource(httpReq.getRequestURI())) {
-                log.info("-> {} {} [from: {}]",
+                log.info("-> {} {} [from: {}] [user: {}]",
                         httpReq.getMethod(),
                         httpReq.getRequestURI(),
-                        resolveClientIp(httpReq));
+                        resolveClientIp(httpReq),
+                        userId);
             }
 
             chain.doFilter(request, response);
@@ -95,6 +110,14 @@ public class MdcLoggingFilter implements Filter {
     }
 
     /**
+     * Resolve a header value, falling back to a default if absent.
+     */
+    private String resolveHeader(HttpServletRequest req, String headerName, String defaultValue) {
+        String header = req.getHeader(headerName);
+        return (header != null && !header.isBlank()) ? header : defaultValue;
+    }
+
+    /**
      * Resolve client IP, respecting X-Forwarded-For when behind a proxy.
      */
     private String resolveClientIp(HttpServletRequest req) {
@@ -103,6 +126,37 @@ public class MdcLoggingFilter implements Filter {
             return forwarded.split(",")[0].trim();
         }
         return req.getRemoteAddr();
+    }
+
+    /**
+     * Extract the authenticated username from Spring Security's SecurityContext.
+     * Returns "anonymous" if no authentication is present or user is not authenticated.
+     */
+    private String resolveUserId() {
+        try {
+            // Use reflection to avoid hard dependency on spring-security
+            Class<?> contextHolderClass = Class.forName(
+                    "org.springframework.security.core.context.SecurityContextHolder");
+            Object context = contextHolderClass.getMethod("getContext").invoke(null);
+            if (context == null) return "anonymous";
+
+            Object authentication = context.getClass().getMethod("getAuthentication").invoke(context);
+            if (authentication == null) return "anonymous";
+
+            boolean isAuthenticated = (boolean) authentication.getClass()
+                    .getMethod("isAuthenticated").invoke(authentication);
+            if (!isAuthenticated) return "anonymous";
+
+            Object name = authentication.getClass().getMethod("getName").invoke(authentication);
+            String username = name != null ? name.toString() : "anonymous";
+
+            // Filter out anonymous tokens
+            if ("anonymousUser".equals(username)) return "anonymous";
+            return username;
+        } catch (Exception e) {
+            // Spring Security not on classpath or other issue — that's fine
+            return "anonymous";
+        }
     }
 
     /**

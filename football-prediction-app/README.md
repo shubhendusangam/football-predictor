@@ -7,7 +7,7 @@
 ## Module Overview
 
 ### Purpose
-The `football-prediction-app` is the **main application module** of the Football Prediction Platform. It serves as the primary interface for users, providing REST APIs for match predictions, comprehensive analytics dashboards, team statistics, expected goals (xG), referee analysis, fixture congestion tracking, kickoff time analysis, and a modern web UI. This module orchestrates all user-facing functionality and integrates with external APIs for live data, along with a real-time SSE event system and smart data ingestion pipeline.
+The `football-prediction-app` is the **main application module** of the Football Prediction Platform. It serves as the primary interface for users, providing REST APIs for match predictions (outcome + exact score), comprehensive analytics dashboards, team statistics, expected goals (xG), referee analysis, fixture congestion tracking, kickoff time analysis, player availability & squad strength impact, Dixon-Coles Poisson score predictions, and a modern web UI. This module orchestrates all user-facing functionality and integrates with external APIs for live data, along with a real-time SSE event system and smart data ingestion pipeline.
 
 ### Scope within the System
 
@@ -68,7 +68,6 @@ The `football-prediction-app` is the **main application module** of the Football
 - [Main Platform README](../README.md)
 - [Common Module](../football-prediction-common/README.md)
 - [Model Training Service](../model-training-service/README.md)
-- [Frontend Components](../frontend/README.md)
 
 ---
 
@@ -216,6 +215,24 @@ The `football-prediction-app` is the **main application module** of the Football
 - Cache invalidation on data changes
 - Feature flag service for controlled rollouts
 
+### 18. Score Prediction (Dixon-Coles Poisson)
+- Exact scoreline prediction (e.g. "2-1" with probability)
+- Top 3 most likely scores
+- Over/Under goal market probabilities (1.5, 2.5, 3.5)
+- Both Teams to Score (BTTS) probability
+- Clean sheet probabilities for both teams
+- Dixon-Coles modification for low-score correlation
+
+### 19. Player Availability & Squad Strength
+- Player injury/suspension/doubt tracking
+- Squad strength calculation (0.0–1.0) from key player absences
+- Attack impact: goals/assists contribution of absent players
+- Defence impact: position-weighted absence effect
+- Availability ratings: FULL_STRENGTH / MINOR_CONCERNS / WEAKENED / SEVERELY_WEAKENED
+- Probability adjustment: ±8% max shift based on squad asymmetry
+- Daily automatic sync from football-data.org (10:00 AM)
+- Admin API for manual player status updates
+
 ---
 
 ## Architecture
@@ -261,7 +278,7 @@ The `football-prediction-app` is the **main application module** of the Football
 com.app.footballprediction/
 ├── FootballPredictionApplication.java    # Spring Boot entry point
 │
-├── controller/                           # REST API Layer (23 controllers)
+├── controller/                           # REST API Layer (24 controllers)
 │   ├── PredictionController.java         # Predictions, H2H, trending insights
 │   ├── AdminController.java              # Admin dashboard, settings, system controls
 │   ├── AnalyticsController.java          # League stats, pre-match, H2H, trends
@@ -281,6 +298,7 @@ com.app.footballprediction/
 │   ├── ModelPerformanceController.java   # Model accuracy, error analysis
 │   ├── ModelTrainingController.java      # ML model training & status
 │   ├── NewsController.java               # Football news (RSS feeds)
+│   ├── PlayerAvailabilityController.java # Player injury/suspension tracking & API
 │   ├── RefereeController.java            # Referee statistics & rankings
 │   ├── SeasonTeamStatsController.java    # Season team stats, Elo/form rankings
 │   ├── SeasonsController.java            # Season management and stats
@@ -322,7 +340,12 @@ com.app.footballprediction/
 │   ├── SeasonTeamStatsService.java       # Per-season team stats
 │   ├── ApiDataSyncService.java           # API data synchronization
 │   ├── TeamService.java                  # Team CRUD
-│   └── AdminService.java                 # Admin operations
+│   ├── AdminService.java                 # Admin operations
+│   ├── ScorePredictionService.java       # Dixon-Coles Poisson score prediction
+│   ├── PoissonSelfTrainingService.java   # Poisson model self-training at startup
+│   ├── PredictionOrchestrationService.java # Full prediction pipeline orchestrator
+│   ├── PlayerImpactService.java          # Squad strength & availability impact
+│   └── PlayerAvailabilityApiService.java # External player data sync (football-data.org)
 │
 ├── dto/                                  # Data Transfer Objects
 │   ├── PredictRequest.java
@@ -350,6 +373,8 @@ com.app.footballprediction/
 │   ├── CongestionComparisonDTO.java      # Congestion comparison
 │   ├── KickoffTimeAnalysisDTO.java       # Kickoff time analysis
 │   ├── KickoffTimeStatsDTO.java          # Kickoff time stats
+│   ├── ScorePredictionDTO.java           # Dixon-Coles score prediction
+│   ├── PlayerAvailabilityDTO.java        # Player availability & impact
 │   ├── SeasonStatsResponse.java
 │   ├── SeasonTeamStatsResponse.java
 │   ├── UpcomingPredictionResponse.java
@@ -446,8 +471,10 @@ com.app.footballprediction/
 │   ├── PredictionBackfillListener.java   # Backfill on startup
 │   └── StartupDataSyncListener.java      # Data sync on startup
 │
-├── scheduler/                            # Scheduled Tasks
+├── scheduler/                            # Scheduled Tasks (4)
+│   ├── DailyPredictionScheduler.java     # Daily prediction generation
 │   ├── DataUpdateScheduler.java          # Periodic data refresh
+│   ├── PlayerAvailabilityScheduler.java  # Daily player injury/suspension sync (10 AM)
 │   └── PredictionRecalculationScheduler.java # Prediction recalculation
 │
 └── util/                                 # Utilities
@@ -635,6 +662,7 @@ public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/predict` | POST | Predict match outcome |
+| `/api/predict/score` | POST | Predict exact scoreline (Dixon-Coles Poisson) |
 | `/api/h2h` | GET | Head-to-head analysis |
 | `/api/insights/trending` | GET | Season trending insights |
 | `/api/insights/seasons` | GET | Available seasons |
@@ -695,6 +723,16 @@ public TrendingInsightsResponse getTrendingInsightsBySeason(String season) {
 | `/api/matches/predict-cards` | GET | Cards prediction |
 | `/api/matches/predict-xg` | GET | xG prediction |
 | `/api/matches/congestion-comparison` | GET | Fatigue comparison |
+
+### Player Availability Endpoints (PlayerAvailabilityController - `/api/availability`)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/availability/team` | GET | Team squad availability & strength |
+| `/api/availability/all` | GET | All teams' availability overview |
+| `/api/availability/match` | GET | Match availability context (both teams) |
+| `/api/availability/update` | POST | Update player injury/suspension status |
+| `/api/availability/sync` | POST | Trigger manual player data sync |
 
 ### Referee Endpoints (RefereeController - `/api/referees`)
 
@@ -1248,11 +1286,12 @@ scheduler.cron=0 0 6 * * MON,FRI
 
 | Metric | Value |
 |--------|-------|
-| Controllers | 23 (main) + 3 (polling/ingestion/SSE) |
-| Services | 37+ |
-| REST Endpoints | 70+ |
+| Controllers | 24 (main) + 3 (polling/ingestion/SSE) |
+| Services | 55+ |
+| REST Endpoints | 80+ |
+| Scheduled Jobs | 4 (predictions, data sync, retrain, player availability) |
 | Cache Definitions | 19 |
-| DTOs | 30+ |
+| DTOs | 47+ |
 | Config Classes | 11 |
 | Custom Exceptions | 5 |
 | Error Codes | 8 |
