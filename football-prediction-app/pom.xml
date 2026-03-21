@@ -130,6 +130,13 @@
             <version>8.0</version>
         </dependency>
 
+        <!-- Bucket4j Rate Limiter (local in-memory, no Redis) -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j-core</artifactId>
+            <version>8.10.1</version>
+        </dependency>
+
         <!-- External Libraries -->
         <dependency>
             <groupId>com.opencsv</groupId>

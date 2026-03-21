@@ -323,6 +323,9 @@
         // Update Player Availability Section (Phase 10)
         displayPlayerAvailability(data, homeTeam, awayTeam);
 
+        // Update Injury Context Section (API-Football integration)
+        displayInjuryContext(data);
+
         // Show results
         if (elements.predictionResults) {
             elements.predictionResults.classList.remove('hidden');
@@ -763,6 +766,35 @@
                 ${noteHtml}
             </div>
         `;
+    }
+
+    /**
+     * Display injury context from API-Football integration.
+     * Uses the InjuryCard component if injuryContext data is present.
+     */
+    function displayInjuryContext(data) {
+        var section = document.getElementById('injuryContextSection');
+        var container = document.getElementById('injuryCardsContainer');
+        var noteEl = document.getElementById('injuryAdjustmentNote');
+        if (!section || !container) return;
+
+        if (!data.injuryContext) {
+            section.classList.add('hidden');
+            return;
+        }
+
+        section.classList.remove('hidden');
+
+        if (window.InjuryCard) {
+            window.InjuryCard.renderMatchContext(container, data.injuryContext);
+        }
+
+        if (noteEl && data.injuryAdjustmentNote) {
+            noteEl.textContent = data.injuryAdjustmentNote;
+            noteEl.classList.remove('hidden');
+        } else if (noteEl) {
+            noteEl.classList.add('hidden');
+        }
     }
 
     /**

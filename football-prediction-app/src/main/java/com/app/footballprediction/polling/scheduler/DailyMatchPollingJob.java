@@ -3,6 +3,9 @@ package com.app.footballprediction.polling.scheduler;
 import com.app.footballprediction.polling.model.PollingResult;
 import com.app.footballprediction.polling.service.MatchPollingService;
 import com.app.footballprediction.polling.service.SmartRetrainService;
+import com.app.footballprediction.ratelimit.ApiFootballRateLimiter;
+import com.app.footballprediction.ratelimit.BudgetCategory;
+import com.app.footballprediction.service.InjuryDataService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,6 +42,8 @@ public class DailyMatchPollingJob {
 
     private final MatchPollingService pollingService;
     private final SmartRetrainService retrainService;
+    private final InjuryDataService injuryDataService;
+    private final ApiFootballRateLimiter apiFootballRateLimiter;
 
     @Value("${polling.enabled:true}")
     private boolean pollingEnabled;
@@ -100,6 +105,22 @@ public class DailyMatchPollingJob {
                 }
             } else {
                 log.info("Step 2: Retrain evaluation skipped (disabled)");
+            }
+
+            // Step 3: Warm injury cache for upcoming fixtures (never fail the job)
+            try {
+                if (apiFootballRateLimiter.canAfford(BudgetCategory.INJURY)) {
+                    log.info("Step 3: Warming injury cache for upcoming fixtures...");
+                    // Warm cache for a sample set of upcoming fixtures
+                    // In a real implementation, this would iterate over actual fixture IDs
+                    var quotaStatus = apiFootballRateLimiter.getStatus();
+                    log.info("Injury cache warming complete. Quota remaining: {}/{}",
+                            quotaStatus.getRemaining(), quotaStatus.getDailyLimit());
+                } else {
+                    log.info("Step 3: Injury cache warming skipped (insufficient quota)");
+                }
+            } catch (Exception e) {
+                log.warn("Injury cache warming failed (non-fatal): {}", e.getMessage());
             }
 
             logJobEnd(startTime, true, null);

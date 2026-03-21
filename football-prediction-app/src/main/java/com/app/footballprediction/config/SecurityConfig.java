@@ -226,6 +226,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/analytics/**").permitAll()
                 .requestMatchers("/api/insights/**").permitAll()
                 .requestMatchers("/api/seasons/**").permitAll()
+                .requestMatchers("/api/injuries/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/season/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/availability/**").permitAll()
                 .requestMatchers(org.springframework.http.HttpMethod.POST, "/api/availability/update", "/api/availability/sync").hasRole("ADMIN")

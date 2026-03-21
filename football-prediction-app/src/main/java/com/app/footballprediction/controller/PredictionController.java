@@ -7,11 +7,14 @@ import com.app.footballprediction.dto.H2HInsightsResponse;
 import com.app.footballprediction.dto.TrendingInsightsResponse;
 import com.app.footballprediction.service.FootballDataApiService;
 import com.app.footballprediction.service.H2HInsightsService;
+import com.app.footballprediction.service.InjuryAdjustmentService;
+import com.app.footballprediction.service.InjuryDataService;
 import com.app.footballprediction.service.PredictionOrchestrationService;
 import com.app.footballprediction.service.PredictionTrackingService;
 import com.app.footballprediction.service.ScorePredictionService;
 import com.app.footballprediction.service.TeamValidationService;
 import com.app.footballprediction.service.TrendingInsightsService;
+import com.app.common.dto.MatchInjuryContextDTO;
 import com.app.footballprediction.scheduler.DailyPredictionScheduler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -44,6 +47,8 @@ public class PredictionController {
     private final FootballDataApiService footballDataApiService;
     private final DailyPredictionScheduler dailyPredictionScheduler;
     private final ScorePredictionService scorePredictionService;
+    private final InjuryDataService injuryDataService;
+    private final InjuryAdjustmentService injuryAdjustmentService;
 
     // ── Prediction ────────────────────────────────────────────────────────
 
@@ -59,7 +64,9 @@ public class PredictionController {
                     @ApiResponse(responseCode = "503", description = "Model not trained yet")
             })
     @PostMapping("/predict")
-    public ResponseEntity<?> predict(@RequestBody PredictRequest request) {
+    public ResponseEntity<?> predict(
+            @RequestBody PredictRequest request,
+            @RequestParam(required = false) Long fixtureId) {
 
         if (request.getHomeTeam() == null || request.getHomeTeam().isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -101,6 +108,53 @@ public class PredictionController {
         }
 
         PredictResponse response = predictionOrchestrationService.predict(homeTeam, awayTeam);
+
+        // ── Injury adjustment (when fixtureId is provided) ──────
+        if (fixtureId != null) {
+            try {
+                // Use teamId=0 as placeholder — the API resolves by fixtureId
+                MatchInjuryContextDTO injuryContext = injuryDataService
+                        .getMatchInjuryContext(fixtureId, 0, 0);
+
+                if (injuryContext.isProbabilitiesAdjusted()) {
+                    double[] adjusted = injuryAdjustmentService.adjustProbabilities(
+                            response.getProbHomeWin(), response.getProbDraw(), response.getProbAwayWin(),
+                            injuryContext.getHomeAvailability(), injuryContext.getAwayAvailability());
+
+                    String note = injuryAdjustmentService.buildAdjustmentNote(
+                            injuryContext.getHomeAvailability(), injuryContext.getAwayAvailability());
+
+                    // Rebuild response with injury data overlaid
+                    response = PredictResponse.builder()
+                            .homeTeam(response.getHomeTeam())
+                            .awayTeam(response.getAwayTeam())
+                            .prediction(response.getPrediction())
+                            .predictionCode(response.getPredictionCode())
+                            .probHomeWin(adjusted[0])
+                            .probDraw(adjusted[1])
+                            .probAwayWin(adjusted[2])
+                            .confidence(response.getConfidence())
+                            .features(response.getFeatures())
+                            .h2hInsights(response.getH2hInsights())
+                            .homeElo(response.getHomeElo())
+                            .awayElo(response.getAwayElo())
+                            .eloDifference(response.getEloDifference())
+                            .upsetAlert(response.getUpsetAlert())
+                            .upsetTeam(response.getUpsetTeam())
+                            .explanation(response.getExplanation())
+                            .scorePrediction(response.getScorePrediction())
+                            .homeAvailability(response.getHomeAvailability())
+                            .awayAvailability(response.getAwayAvailability())
+                            .availabilityNote(response.getAvailabilityNote())
+                            .injuryContext(injuryContext)
+                            .injuryAdjustmentNote(note)
+                            .build();
+                }
+            } catch (Exception e) {
+                log.warn("Injury adjustment failed for fixtureId {}: {}", fixtureId, e.getMessage());
+            }
+        }
+
         return ResponseEntity.ok(response);
     }
 

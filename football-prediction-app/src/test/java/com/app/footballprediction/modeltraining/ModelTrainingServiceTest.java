@@ -47,6 +47,7 @@ class ModelTrainingServiceTest {
     void setUp() {
         ReflectionTestUtils.setField(modelTrainingService, "modelOutputPath",
                 "./data/test_model.model");
+        ReflectionTestUtils.setField(modelTrainingService, "drawThreshold", 0.05);
     }
 
     @Nested
@@ -109,7 +110,7 @@ class ModelTrainingServiceTest {
     class GetPredictedLabelTests {
 
         @Test
-        @DisplayName("returns H when home win probability is highest")
+        @DisplayName("returns H when home win probability is clearly highest")
         void returnsHForHomeWin() {
             double[] probes = {0.55, 0.25, 0.20};
 
@@ -129,7 +130,7 @@ class ModelTrainingServiceTest {
         }
 
         @Test
-        @DisplayName("returns A when away win probability is highest")
+        @DisplayName("returns A when away win probability is clearly highest")
         void returnsAForAwayWin() {
             double[] probes = {0.20, 0.25, 0.55};
 
@@ -139,13 +140,36 @@ class ModelTrainingServiceTest {
         }
 
         @Test
-        @DisplayName("returns H when home and draw are equal (home preference)")
-        void returnsHWhenHomeAndDrawEqual() {
-            double[] probes = {0.40, 0.40, 0.20};
+        @DisplayName("returns D when draw + threshold >= max non-draw (threshold effect)")
+        void returnsDWhenThresholdApplies() {
+            // draw=0.38, H=0.42, A=0.20 → draw + 0.05 = 0.43 >= 0.42 → D
+            double[] probes = {0.42, 0.38, 0.20};
+
+            String label = modelTrainingService.getPredictedLabel(probes);
+
+            assertThat(label).isEqualTo("D");
+        }
+
+        @Test
+        @DisplayName("returns H when home > draw + threshold")
+        void returnsHWhenClearlyAboveThreshold() {
+            // draw=0.30, H=0.50 → draw + 0.05 = 0.35 < 0.50 → H
+            double[] probes = {0.50, 0.30, 0.20};
 
             String label = modelTrainingService.getPredictedLabel(probes);
 
             assertThat(label).isEqualTo("H");
+        }
+
+        @Test
+        @DisplayName("returns D when draw + threshold equals max non-draw exactly")
+        void returnsDWhenThresholdEqualsMax() {
+            // draw=0.35, H=0.40, A=0.25 → draw + 0.05 = 0.40 >= 0.40 → D
+            double[] probes = {0.40, 0.35, 0.25};
+
+            String label = modelTrainingService.getPredictedLabel(probes);
+
+            assertThat(label).isEqualTo("D");
         }
     }
 

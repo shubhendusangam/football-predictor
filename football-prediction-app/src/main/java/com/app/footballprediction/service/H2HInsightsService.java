@@ -63,6 +63,13 @@ public class H2HInsightsService {
             h2hMatches = tryFuzzyH2HSearch(normalizedHome, normalizedAway, beforeDate);
         }
 
+        // Filter out matches with incomplete data (e.g., scheduled but not yet played)
+        h2hMatches = h2hMatches.stream()
+                .filter(m -> m.getFullTimeHomeGoals() != null
+                        && m.getFullTimeAwayGoals() != null
+                        && m.getFullTimeResult() != null)
+                .collect(Collectors.toList());
+
         if (h2hMatches.isEmpty()) {
             log.info("No H2H history found between {} and {} (searched as {} vs {})",
                      homeTeam, awayTeam, normalizedHome, normalizedAway);
@@ -416,10 +423,13 @@ public class H2HInsightsService {
         int awayTeamHomeLosses = 0;
 
         for (Match match : h2hMatches) {
+            String result = match.getFullTimeResult();
+            if (result == null) continue;
+
             if (match.getHomeTeam().equalsIgnoreCase(homeTeam)) {
                 // homeTeam was playing at home
                 homeTeamHomeMatches++;
-                switch (match.getFullTimeResult()) {
+                switch (result) {
                     case "H" -> homeTeamHomeWins++;
                     case "D" -> homeTeamHomeDraws++;
                     case "A" -> homeTeamHomeLosses++;
@@ -427,7 +437,7 @@ public class H2HInsightsService {
             } else {
                 // awayTeam was playing at home (homeTeam was away)
                 awayTeamHomeMatches++;
-                switch (match.getFullTimeResult()) {
+                switch (result) {
                     case "H" -> awayTeamHomeWins++;
                     case "D" -> awayTeamHomeDraws++;
                     case "A" -> awayTeamHomeLosses++;
@@ -477,7 +487,11 @@ public class H2HInsightsService {
      * Get the winning team name from a match, or null for draws.
      */
     private String getWinnerTeam(Match match) {
-        return switch (match.getFullTimeResult()) {
+        String result = match.getFullTimeResult();
+        if (result == null) {
+            return null;
+        }
+        return switch (result) {
             case "H" -> match.getHomeTeam();
             case "A" -> match.getAwayTeam();
             default -> null;  // Draw

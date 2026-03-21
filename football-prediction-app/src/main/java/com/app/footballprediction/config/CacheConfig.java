@@ -76,6 +76,8 @@ public class CacheConfig {
     public static final String CACHE_GOALS_TRENDS = "goalsTrends";
     public static final String CACHE_FORM_GUIDE = "formGuide";
     public static final String CACHE_POSITION_HISTORY = "positionHistory";
+    public static final String CACHE_INJURY_AVAILABILITY = "injuryAvailability";
+    public static final String CACHE_INJURY_RAW = "injuryRaw";
 
     // TTL values from properties (in seconds)
     @Value("${cache.standings.ttl:300}")
@@ -202,6 +204,12 @@ public class CacheConfig {
     @Value("${cache.positionHistory.ttl:900}")
     private int positionHistoryTtl;
 
+    @Value("${cache.injuryAvailability.ttl:21600}")
+    private int injuryAvailabilityTtl;
+
+    @Value("${cache.injuryRaw.ttl:43200}")
+    private int injuryRawTtl;
+
     // Max size limits
     @Value("${cache.standings.maxSize:50}")
     private int standingsMaxSize;
@@ -326,6 +334,12 @@ public class CacheConfig {
 
     @Value("${cache.positionHistory.maxSize:100}")
     private int positionHistoryMaxSize;
+
+    @Value("${cache.injuryAvailability.maxSize:100}")
+    private int injuryAvailabilityMaxSize;
+
+    @Value("${cache.injuryRaw.maxSize:50}")
+    private int injuryRawMaxSize;
 
     /**
      * Creates the primary cache manager with customized Caffeine caches.
@@ -466,6 +480,12 @@ public class CacheConfig {
         // Position history: longer TTL (15 min), moderate size for team+season combinations
         cacheConfigs.put(CACHE_POSITION_HISTORY, buildCache(positionHistoryTtl, positionHistoryMaxSize));
 
+        // Injury availability: long TTL (6 hours), moderate size for fixture+team combinations
+        cacheConfigs.put(CACHE_INJURY_AVAILABILITY, buildCache(injuryAvailabilityTtl, injuryAvailabilityMaxSize));
+
+        // Injury raw data: long TTL (12 hours), smaller size for raw API response caching
+        cacheConfigs.put(CACHE_INJURY_RAW, buildCache(injuryRawTtl, injuryRawMaxSize));
+
         // Register all cache names
         cacheManager.setCacheNames(cacheConfigs.keySet());
 
@@ -543,6 +563,8 @@ public class CacheConfig {
             case CACHE_REFEREE_SUMMARY -> refereeSummaryTtl;
             case CACHE_REFEREE_COMPARE -> refereeCompareTtl;
             case CACHE_POSITION_HISTORY -> positionHistoryTtl;
+            case CACHE_INJURY_AVAILABILITY -> injuryAvailabilityTtl;
+            case CACHE_INJURY_RAW -> injuryRawTtl;
             default -> 300;
         };
     }

@@ -82,12 +82,17 @@ public final class WekaSchemaBuilder {
     public static final int IDX_HOME_SQUAD_STRENGTH     = 44;
     public static final int IDX_AWAY_SQUAD_STRENGTH     = 45;
     public static final int IDX_SQUAD_STRENGTH_DIFF     = 46;
+    // Phase 11 features (Draw-Specific Signals)
+    public static final int IDX_FORM_SYMMETRY           = 47;
+    public static final int IDX_GOAL_SYMMETRY           = 48;
+    public static final int IDX_DRAW_TENDENCY           = 49;
+    public static final int IDX_DEFENSIVE_TIGHTNESS     = 50;
     // Label
-    public static final int IDX_LABEL             = 47;
+    public static final int IDX_LABEL             = 51;
     // Total number of attributes (features + label)
-    public static final int TOTAL_ATTRIBUTES      = 48;
+    public static final int TOTAL_ATTRIBUTES      = 52;
     // Number of input features (excluding label)
-    public static final int FEATURE_COUNT         = 47;
+    public static final int FEATURE_COUNT         = 51;
 
     /**
      * Defines the schema of the Weka dataset.
@@ -163,9 +168,15 @@ public final class WekaSchemaBuilder {
         attrs.add(new Attribute("awaySquadStrength"));     // 45
         attrs.add(new Attribute("squadStrengthDifference")); // 46
 
-        // Nominal label (index 47)
+        // Phase 11 numeric features - Draw-Specific Signals (indices 47-50)
+        attrs.add(new Attribute("formSymmetry"));          // 47
+        attrs.add(new Attribute("goalSymmetry"));          // 48
+        attrs.add(new Attribute("drawTendency"));          // 49
+        attrs.add(new Attribute("defensiveTightness"));    // 50
+
+        // Nominal label (index 51)
         ArrayList<String> labels = new ArrayList<>(List.of("H", "D", "A"));
-        attrs.add(new Attribute("result", labels));        // 47
+        attrs.add(new Attribute("result", labels));        // 51
 
         return attrs;
     }
@@ -266,6 +277,12 @@ public final class WekaSchemaBuilder {
         inst.setValue(IDX_HOME_SQUAD_STRENGTH,     PredictionUtils.safe(f.getHomeSquadStrength()));
         inst.setValue(IDX_AWAY_SQUAD_STRENGTH,     PredictionUtils.safe(f.getAwaySquadStrength()));
         inst.setValue(IDX_SQUAD_STRENGTH_DIFF,     PredictionUtils.safe(f.getSquadStrengthDifference()));
+
+        // Phase 11 features (Draw-Specific Signals)
+        inst.setValue(IDX_FORM_SYMMETRY,           PredictionUtils.safe(f.getFormSymmetry()));
+        inst.setValue(IDX_GOAL_SYMMETRY,           PredictionUtils.safe(f.getGoalSymmetry()));
+        inst.setValue(IDX_DRAW_TENDENCY,            PredictionUtils.safe(f.getDrawTendency()));
+        inst.setValue(IDX_DEFENSIVE_TIGHTNESS,     PredictionUtils.safe(f.getDefensiveTightness()));
 
         // Label only set during training — null at prediction time
         if (f.getActualResult() != null) {

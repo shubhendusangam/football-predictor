@@ -66,7 +66,7 @@ public class FeatureEngineeringService {
       List<Match> h2hMatches = matchRepository
             .findH2HBeforeDate(homeTeam, awayTeam, beforeDate);
 
-      return MatchFeatures.builder()
+      MatchFeatures features = MatchFeatures.builder()
             .homeTeam(homeTeam)
             .awayTeam(awayTeam)
 
@@ -142,6 +142,22 @@ public class FeatureEngineeringService {
             .awayMotivationLevel(calcMotivation(awayTeam, beforeDate))
 
             .build();
+
+      // ── Compute derived interaction features ──────────────────
+      features.setFormDifference(features.getHomeFormPoints() - features.getAwayFormPoints());
+      features.setGoalDiffDifference(features.getHomeGoalDifference() - features.getAwayGoalDifference());
+      features.setH2hDominance(features.getH2hHomeWinRate() - features.getH2hAwayWinRate());
+      features.setRestAdvantage(features.getHomeDaysSinceLastMatch() - features.getAwayDaysSinceLastMatch());
+
+      // ── Draw-specific derived features ──────────────────────
+      features.setFormSymmetry(Math.abs(features.getHomeFormPoints() - features.getAwayFormPoints()));
+      features.setGoalSymmetry(Math.abs(features.getHomeGoalsScoredAvg() - features.getAwayGoalsScoredAvg()));
+      features.setDrawTendency(calcDrawTendency(homeTeamAllMatches, homeTeam,
+              awayTeamAllMatches, awayTeam, formWindow));
+      features.setDefensiveTightness(
+              (features.getHomeGoalsConcededAvg() + features.getAwayGoalsConcededAvg()) / 2.0);
+
+      return features;
    }
 
    // ── Feature calculators ───────────────────────────────────────────────
@@ -214,6 +230,31 @@ public class FeatureEngineeringService {
             .count();
 
       return (double) draws / h2hMatches.size();
+   }
+
+   /**
+    * Compute draw tendency as the average draw rate of both teams over recent matches.
+    */
+   private double calcDrawTendency(List<Match> homeMatches, String homeTeam,
+                                    List<Match> awayMatches, String awayTeam, int window) {
+      double homeDrawRate = calcTeamDrawRate(homeMatches, window);
+      double awayDrawRate = calcTeamDrawRate(awayMatches, window);
+      return (homeDrawRate + awayDrawRate) / 2.0;
+   }
+
+   /**
+    * Calculate the draw rate for a team over its recent matches.
+    */
+   private double calcTeamDrawRate(List<Match> matches, int window) {
+      if (matches.isEmpty()) return 0.33;
+
+      long draws = matches.stream()
+            .limit(window)
+            .filter(m -> "D".equals(m.getFullTimeResult()))
+            .count();
+
+      long total = Math.min(matches.size(), window);
+      return (double) draws / total;
    }
 
    private double calcShotsOnTargetAvg(List<Match> matches, boolean isHome) {

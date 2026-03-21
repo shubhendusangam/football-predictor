@@ -55,6 +55,9 @@ public class ModelTrainingService {
    @Value("${model.smote.percentage:100}")
    private int smotePercentage;
 
+   @Value("${model.draw.threshold:0.05}")
+   private double drawThreshold;
+
    @Autowired(required = false)
    @Qualifier("trainedModel")
    private RandomForest trainedModel;
@@ -206,6 +209,7 @@ public class ModelTrainingService {
       // ── Step 2: Train Stacked Ensemble ─────────────────────────
       // RandomForest + Gradient Boosting + Logistic Regression meta-model
       log.info("Training stacked ensemble: RandomForest + Gradient Boosting + Logistic Regression");
+      stackedEnsembleService.setDrawThreshold(drawThreshold);
       stackedEnsembleService.trainStackedEnsemble(baseTrainData, validationData);
 
       // ── Step 3: Evaluate ───────────────────────────────────────
@@ -307,7 +311,7 @@ public class ModelTrainingService {
       // ── Step 1: Train Random Forest ────────────────────────────
       RandomForest rf = new RandomForest();
       rf.setNumIterations(200);   // 200 trees for better generalization
-      rf.setNumFeatures(7);       // sqrt(42) ≈ 6.5, round up
+      rf.setNumFeatures(8);       // sqrt(51) ≈ 7.1, round up
       rf.setMaxDepth(20);         // Limit depth to prevent overfitting
       rf.setSeed(42);
       rf.buildClassifier(trainData);
@@ -691,7 +695,7 @@ public class ModelTrainingService {
       // Random Forest (tuned)
       RandomForest rf = new RandomForest();
       rf.setNumIterations(200);
-      rf.setNumFeatures(7);
+      rf.setNumFeatures(8);
       rf.setMaxDepth(20);
       rf.setSeed(42);
       classifiers.put("Random Forest", rf);
@@ -728,7 +732,7 @@ public class ModelTrainingService {
          CostSensitiveClassifier csc = new CostSensitiveClassifier();
          RandomForest rfCost = new RandomForest();
          rfCost.setNumIterations(200);
-         rfCost.setNumFeatures(7);
+         rfCost.setNumFeatures(8);
          rfCost.setMaxDepth(20);
          rfCost.setSeed(42);
          csc.setClassifier(rfCost);
@@ -747,7 +751,7 @@ public class ModelTrainingService {
       Vote vote = new Vote();
       RandomForest rfVote = new RandomForest();
       rfVote.setNumIterations(100);
-      rfVote.setNumFeatures(7);
+      rfVote.setNumFeatures(8);
       rfVote.setSeed(42);
       AdaBoostM1 abVote = new AdaBoostM1();
       abVote.setNumIterations(50);
@@ -804,9 +808,19 @@ public class ModelTrainingService {
 
    /**
     * Converts probability array to a label.
-    * Picks the class with the highest probability.
+    * Applies draw threshold: if draw probability + threshold >= max(H,A), predict Draw.
+    * This improves draw recall without overpredicting draws.
     */
    public String getPredictedLabel(double[] probes) {
+      // probes[0]=H, probes[1]=D, probes[2]=A
+      double maxNonDraw = Math.max(probes[0], probes[2]);
+
+      // If draw prob + threshold exceeds the max non-draw prob, predict Draw.
+      // Use small epsilon to handle floating-point precision (e.g. 0.35+0.05 ≠ 0.40 in IEEE 754)
+      if (probes[1] + drawThreshold >= maxNonDraw - 1e-9) {
+         return "D";
+      }
+
       if (probes[0] >= probes[1] && probes[0] >= probes[2]) return "H";
       if (probes[1] >= probes[0] && probes[1] >= probes[2]) return "D";
       return "A";
@@ -1067,7 +1081,7 @@ public class ModelTrainingService {
 
       RandomForest rf = new RandomForest();
       rf.setNumIterations(200);
-      rf.setNumFeatures(7);
+      rf.setNumFeatures(8);
       rf.setMaxDepth(20);
       rf.setSeed(42);
       rf.setComputeAttributeImportance(true);
@@ -1147,7 +1161,7 @@ public class ModelTrainingService {
 
          RandomForest rf = new RandomForest();
          rf.setNumIterations(200);
-         rf.setNumFeatures(7);
+         rf.setNumFeatures(8);
          rf.setMaxDepth(20);
          rf.setSeed(42);
          rf.buildClassifier(trainData);
@@ -1222,7 +1236,7 @@ public class ModelTrainingService {
 
       RandomForest rf = new RandomForest();
       rf.setNumIterations(200);
-      rf.setNumFeatures(7);
+      rf.setNumFeatures(8);
       rf.setMaxDepth(20);
       rf.setSeed(42);
       rf.buildClassifier(balancedTrainData);

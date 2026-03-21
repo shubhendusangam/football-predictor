@@ -1,5 +1,7 @@
 package com.app.footballprediction.modeltraining;
 
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import weka.classifiers.functions.Logistic;
@@ -11,6 +13,9 @@ import weka.core.DenseInstance;
 import weka.core.Instance;
 import weka.core.Instances;
 import weka.core.Utils;
+import weka.filters.Filter;
+import weka.filters.supervised.instance.Resample;
+import weka.filters.supervised.instance.SpreadSubsample;
 
 import java.io.*;
 import java.util.*;
@@ -35,10 +40,18 @@ import java.util.*;
 @Slf4j
 public class StackedEnsembleService implements Serializable {
 
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
 
     /** Number of folds for out-of-fold prediction generation */
     private static final int STACKING_FOLDS = 5;
+
+    /**
+     * Draw probability threshold boost.
+     * When draw probability exceeds (max(H,A) - threshold), predict Draw.
+     * Default 0.05 — effectively gives draw a slight edge to improve recall.
+     */
+    @Getter @Setter
+    private double drawThreshold = 0.05;
 
     // Base models (trained on full data after OOF generation)
     private RandomForest randomForest;
@@ -87,14 +100,17 @@ public class StackedEnsembleService implements Serializable {
         Instances metaData = generateOutOfFoldPredictions(fullTrainData);
         log.info("  ✓ Generated {} out-of-fold meta-instances", metaData.numInstances());
 
-        // Step 2: Train final base models on ALL training data
-        log.info("Step 2/3: Training final base models on full training data...");
+        // Step 2: Train final base models on ALL training data (with SMOTE + CostSensitive)
+        log.info("Step 2/3: Training final base models on full training data (cost-sensitive)...");
+        Instances balancedFull = applySMOTE(fullTrainData);
+
         randomForest = createRandomForest();
-        randomForest.buildClassifier(fullTrainData);
-        log.info("  ✓ RandomForest trained with 200 trees, 7 features/split, maxDepth=20");
+        randomForest.buildClassifier(balancedFull);
+        log.info("  ✓ RandomForest trained with 200 trees, {} features/split, maxDepth=20",
+                (int) Math.ceil(Math.sqrt(fullTrainData.numAttributes() - 1)));
 
         gradientBoosting = createAdaBoost();
-        gradientBoosting.buildClassifier(fullTrainData);
+        gradientBoosting.buildClassifier(balancedFull);
         log.info("  ✓ AdaBoost trained with 100 iterations, REPTree base (maxDepth=6)");
 
         // Step 3: Train Logistic Regression meta-model on OOF predictions
@@ -138,12 +154,14 @@ public class StackedEnsembleService implements Serializable {
                 }
             }
 
-            // Train fold-level base models
+            // Train fold-level base models (with SMOTE applied to fold training data)
+            Instances balancedFoldTrain = applySMOTE(foldTrain);
+
             RandomForest foldRF = createRandomForest();
-            foldRF.buildClassifier(foldTrain);
+            foldRF.buildClassifier(balancedFoldTrain);
 
             AdaBoostM1 foldGB = createAdaBoost();
-            foldGB.buildClassifier(foldTrain);
+            foldGB.buildClassifier(balancedFoldTrain);
 
             // Generate OOF predictions for the held-out fold
             for (int i = foldStart; i < foldEnd; i++) {
@@ -225,7 +243,7 @@ public class StackedEnsembleService implements Serializable {
     private RandomForest createRandomForest() {
         RandomForest rf = new RandomForest();
         rf.setNumIterations(200);
-        rf.setNumFeatures(7);       // sqrt(42) ≈ 6.5 features per split
+        rf.setNumFeatures(8);       // sqrt(51) ≈ 7.1 → 8 features per split
         rf.setMaxDepth(20);
         rf.setSeed(42);
         return rf;
@@ -244,6 +262,38 @@ public class StackedEnsembleService implements Serializable {
         gb.setNumIterations(100);
         gb.setSeed(42);
         return gb;
+    }
+
+    /**
+     * Apply class balancing (SpreadSubsample + Resample) to equalize class distribution.
+     * This is a self-contained SMOTE-like rebalancing to improve draw recall.
+     *
+     * @param data Training data (potentially imbalanced)
+     * @return Balanced dataset, or original if balancing fails
+     */
+    private Instances applySMOTE(Instances data) {
+        try {
+            // Stage 1: SpreadSubsample to equalize class counts (downsample majority)
+            SpreadSubsample spreadFilter = new SpreadSubsample();
+            spreadFilter.setDistributionSpread(1.0);
+            spreadFilter.setRandomSeed(42);
+            spreadFilter.setInputFormat(data);
+            Instances equalized = Filter.useFilter(data, spreadFilter);
+
+            // Stage 2: Resample with replacement to bring count back up
+            int targetSize = data.numInstances();
+            double samplePercent = (double) targetSize / equalized.numInstances() * 100.0;
+
+            Resample resample = new Resample();
+            resample.setNoReplacement(false);
+            resample.setSampleSizePercent(samplePercent);
+            resample.setRandomSeed(42);
+            resample.setInputFormat(equalized);
+            return Filter.useFilter(equalized, resample);
+        } catch (Exception e) {
+            log.debug("Class balancing failed in stacked ensemble, using original data: {}", e.getMessage());
+            return data;
+        }
     }
 
     /**
@@ -284,10 +334,20 @@ public class StackedEnsembleService implements Serializable {
     }
 
     /**
-     * Get the predicted class label.
+     * Get the predicted class label with draw threshold tuning.
+     * When the draw probability is close to the highest class,
+     * the threshold gives draw a slight edge to improve draw recall.
      */
     public String predictClass(Instance instance) throws Exception {
         double[] probs = predictProbabilities(instance);
+        // probs[0]=H, probs[1]=D, probs[2]=A
+
+        double maxNonDraw = Math.max(probs[0], probs[2]);
+
+        // If draw prob + threshold exceeds the max non-draw prob, predict Draw
+        if (probs[1] + drawThreshold >= maxNonDraw) {
+            return "D";
+        }
 
         int maxIdx = 0;
         for (int i = 1; i < probs.length; i++) {

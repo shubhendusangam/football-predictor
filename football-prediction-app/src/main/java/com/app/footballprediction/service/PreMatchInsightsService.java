@@ -6,6 +6,7 @@ import com.app.common.repository.MatchRepository;
 import com.app.common.repository.SeasonTeamStatsRepository;
 import com.app.common.util.PredictionUtils;
 import com.app.common.util.TeamNameNormalizer;
+import com.app.common.dto.MatchInjuryContextDTO;
 import com.app.footballprediction.dto.PreMatchInsightsResponse;
 import com.app.footballprediction.dto.PreMatchInsightsResponse.*;
 import lombok.RequiredArgsConstructor;
@@ -879,6 +880,34 @@ public class PreMatchInsightsService {
                 .keyInsights(List.of("Insufficient data available"))
                 .generatedAt(LocalDate.now().format(DATE_FORMATTER))
                 .build();
+    }
+
+    /**
+     * Enrich a pre-match insights response with injury context.
+     * Adds injury-related key insights when data is available.
+     */
+    public PreMatchInsightsResponse enrichWithInjuryContext(
+            PreMatchInsightsResponse insights, MatchInjuryContextDTO injuryContext) {
+        if (injuryContext == null) return insights;
+
+        List<String> enrichedInsights = new ArrayList<>(insights.getKeyInsights());
+
+        if (injuryContext.getHomeAvailability() != null &&
+                injuryContext.getHomeAvailability().isDataAvailable() &&
+                injuryContext.getHomeAvailability().getTotalMissing() > 0) {
+            enrichedInsights.add("🏥 " + insights.getHomeTeam() + ": " +
+                    injuryContext.getHomeAvailability().getImpactSummary());
+        }
+
+        if (injuryContext.getAwayAvailability() != null &&
+                injuryContext.getAwayAvailability().isDataAvailable() &&
+                injuryContext.getAwayAvailability().getTotalMissing() > 0) {
+            enrichedInsights.add("🏥 " + insights.getAwayTeam() + ": " +
+                    injuryContext.getAwayAvailability().getImpactSummary());
+        }
+
+        insights.setKeyInsights(enrichedInsights);
+        return insights;
     }
 }
 

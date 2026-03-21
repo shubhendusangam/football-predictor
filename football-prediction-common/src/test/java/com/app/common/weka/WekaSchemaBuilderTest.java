@@ -127,6 +127,10 @@ class WekaSchemaBuilderTest {
                     .eloDifference(130.0)
                     .homeWeightedForm(2.6)
                     .awayWeightedForm(1.5)
+                    .formSymmetry(0.6)
+                    .goalSymmetry(0.3)
+                    .drawTendency(0.25)
+                    .defensiveTightness(0.9)
                     .actualResult("H")
                     .build();
 
@@ -137,6 +141,10 @@ class WekaSchemaBuilderTest {
             assertThat(instance.value(WekaSchemaBuilder.IDX_AWAY_FORM)).isEqualTo(1.8);
             assertThat(instance.value(WekaSchemaBuilder.IDX_HOME_ELO)).isEqualTo(1650.0);
             assertThat(instance.value(WekaSchemaBuilder.IDX_ELO_DIFF)).isEqualTo(130.0);
+            assertThat(instance.value(WekaSchemaBuilder.IDX_FORM_SYMMETRY)).isEqualTo(0.6);
+            assertThat(instance.value(WekaSchemaBuilder.IDX_GOAL_SYMMETRY)).isEqualTo(0.3);
+            assertThat(instance.value(WekaSchemaBuilder.IDX_DRAW_TENDENCY)).isEqualTo(0.25);
+            assertThat(instance.value(WekaSchemaBuilder.IDX_DEFENSIVE_TIGHTNESS)).isEqualTo(0.9);
             assertThat(instance.stringValue(WekaSchemaBuilder.IDX_LABEL)).isEqualTo("H");
         }
 

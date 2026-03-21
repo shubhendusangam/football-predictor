@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Builder;
 import lombok.Data;
 
+import com.app.common.dto.MatchInjuryContextDTO;
 import java.util.List;
 
 @Data
@@ -52,9 +53,15 @@ public class PredictResponse {
    private PlayerAvailabilityDTO homeAvailability;
    @Schema(description = "Away team squad availability")
    private PlayerAvailabilityDTO awayAvailability;
-   @Schema(description = "Summary note about player availability impact",
-           example = "Chelsea missing Reece James (injury)")
-   private String availabilityNote;
+    @Schema(description = "Summary note about player availability impact",
+            example = "Chelsea missing Reece James (injury)")
+    private String availabilityNote;
+
+    // Injury Context (API-Football integration)
+    @Schema(description = "Detailed injury/suspension context from API-Football")
+    private MatchInjuryContextDTO injuryContext;
+    @Schema(description = "Note about injury-based probability adjustments")
+    private String injuryAdjustmentNote;
 
    @Data
    @Builder

@@ -195,13 +195,63 @@ public class MatchFeatures {
    @Builder.Default
    private double awaySquadStrength = 1.0;
 
-   /**
-    * squadStrengthDifference = homeSquadStrength - awaySquadStrength.
-    * Positive means home team has fewer key absentees.
-    */
-   @Builder.Default
-   private double squadStrengthDifference = 0.0;
+    /**
+     * squadStrengthDifference = homeSquadStrength - awaySquadStrength.
+     * Positive means home team has fewer key absentees.
+     */
+    @Builder.Default
+    private double squadStrengthDifference = 0.0;
 
-   // ── Label (training only) ──────────────────────────────
-   private String actualResult;        // "H", "D", "A" — null at prediction time
+     // ── Phase 11 features (Draw-Specific Signals) ──────────
+     /**
+      * Absolute difference between home and away form points.
+      * Low values indicate similar form → higher draw probability.
+      */
+     @Builder.Default
+     private double formSymmetry = 0.0;
+
+     /**
+      * Absolute difference between home goals scored avg and away goals scored avg.
+      * Low values suggest evenly-matched attacking outputs → draw signal.
+      */
+     @Builder.Default
+     private double goalSymmetry = 0.0;
+
+     /**
+      * Average draw rate of both teams in recent matches.
+      * Higher values indicate draw-prone teams.
+      */
+     @Builder.Default
+     private double drawTendency = 0.0;
+
+     /**
+      * Combined defensive tightness: average goals conceded by both teams.
+      * Lower values mean both defences are strong → more likely low-scoring draw.
+      */
+     @Builder.Default
+     private double defensiveTightness = 0.0;
+
+     // ── Phase 12 features (Injury Data — API-Football) ─────
+     /** Attack penalty from confirmed injuries (0.0 = no impact, 0.30 = max) */
+    @Builder.Default
+    private double homeAttackInjuryPenalty = 0.0;
+
+    /** Defence penalty from confirmed injuries (0.0 = no impact, 0.25 = max) */
+    @Builder.Default
+    private double homeDefenceInjuryPenalty = 0.0;
+
+    /** Attack penalty from confirmed injuries (0.0 = no impact, 0.30 = max) */
+    @Builder.Default
+    private double awayAttackInjuryPenalty = 0.0;
+
+    /** Defence penalty from confirmed injuries (0.0 = no impact, 0.25 = max) */
+    @Builder.Default
+    private double awayDefenceInjuryPenalty = 0.0;
+
+    /** Whether real-time injury data was available from API-Football */
+    @Builder.Default
+    private boolean injuryDataAvailable = false;
+
+    // ── Label (training only) ──────────────────────────────
+    private String actualResult;        // "H", "D", "A" — null at prediction time
 }

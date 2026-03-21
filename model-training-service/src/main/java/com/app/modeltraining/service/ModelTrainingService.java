@@ -92,7 +92,7 @@ public class ModelTrainingService {
       // Train Random Forest
       RandomForest rf = new RandomForest();
       rf.setNumIterations(200);
-      rf.setNumFeatures(7);
+      rf.setNumFeatures(8);
       rf.setMaxDepth(20);
       rf.setSeed(42);
       rf.buildClassifier(trainData);

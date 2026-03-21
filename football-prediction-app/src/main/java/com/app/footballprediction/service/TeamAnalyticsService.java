@@ -848,7 +848,12 @@ public class TeamAnalyticsService {
     }
 
     private HomeTrend buildHomeTrend(List<Match> homeMatches, String teamName) {
-        if (homeMatches.isEmpty()) {
+        // Filter out scheduled/unplayed matches (null goals) to prevent NPE on auto-unboxing
+        List<Match> playedMatches = homeMatches.stream()
+                .filter(m -> m.getFullTimeHomeGoals() != null && m.getFullTimeAwayGoals() != null)
+                .toList();
+
+        if (playedMatches.isEmpty()) {
             return HomeTrend.builder()
                     .totalMatches(0)
                     .recentResults(List.of())
@@ -858,7 +863,7 @@ public class TeamAnalyticsService {
         int wins = 0, draws = 0, losses = 0;
         int goalsScored = 0, goalsConceded = 0, cleanSheets = 0;
 
-        for (Match match : homeMatches) {
+        for (Match match : playedMatches) {
             int scored = match.getFullTimeHomeGoals();
             int conceded = match.getFullTimeAwayGoals();
             goalsScored += scored;
@@ -872,28 +877,28 @@ public class TeamAnalyticsService {
             else losses++;
         }
 
-        int total = homeMatches.size();
+        int total = playedMatches.size();
         double winRate = (double) wins / total * 100;
         double avgScored = (double) goalsScored / total;
         double avgConceded = (double) goalsConceded / total;
         double cleanSheetRate = (double) cleanSheets / total * 100;
 
-        // Recent results
-        List<RecentResult> recentResults = homeMatches.stream()
+        // Recent results (only played matches with non-null goals)
+        List<RecentResult> recentResults = playedMatches.stream()
                 .sorted(Comparator.comparing(Match::getMatchDate).reversed())
                 .limit(MAX_RECENT_RESULTS)
                 .map(m -> RecentResult.builder()
                         .date(m.getMatchDate())
                         .opponent(m.getAwayTeam())
-                        .goalsScored(m.getFullTimeHomeGoals())
-                        .goalsConceded(m.getFullTimeAwayGoals())
+                        .goalsScored(m.getFullTimeHomeGoals() != null ? m.getFullTimeHomeGoals() : 0)
+                        .goalsConceded(m.getFullTimeAwayGoals() != null ? m.getFullTimeAwayGoals() : 0)
                         .result(resultToLetter(m.getFullTimeResult(), true))
                         .isHome(true)
                         .build())
                 .collect(Collectors.toList());
 
         // Current streak
-        int[] streakInfo = calculateStreak(homeMatches, true);
+        int[] streakInfo = calculateStreak(playedMatches, true);
 
         return HomeTrend.builder()
                 .totalMatches(total)
@@ -914,7 +919,12 @@ public class TeamAnalyticsService {
     }
 
     private AwayTrend buildAwayTrend(List<Match> awayMatches, String teamName) {
-        if (awayMatches.isEmpty()) {
+        // Filter out scheduled/unplayed matches (null goals) to prevent NPE on auto-unboxing
+        List<Match> playedMatches = awayMatches.stream()
+                .filter(m -> m.getFullTimeHomeGoals() != null && m.getFullTimeAwayGoals() != null)
+                .toList();
+
+        if (playedMatches.isEmpty()) {
             return AwayTrend.builder()
                     .totalMatches(0)
                     .recentResults(List.of())
@@ -924,7 +934,7 @@ public class TeamAnalyticsService {
         int wins = 0, draws = 0, losses = 0;
         int goalsScored = 0, goalsConceded = 0, cleanSheets = 0;
 
-        for (Match match : awayMatches) {
+        for (Match match : playedMatches) {
             int scored = match.getFullTimeAwayGoals();
             int conceded = match.getFullTimeHomeGoals();
             goalsScored += scored;
@@ -938,28 +948,28 @@ public class TeamAnalyticsService {
             else losses++;
         }
 
-        int total = awayMatches.size();
+        int total = playedMatches.size();
         double winRate = (double) wins / total * 100;
         double avgScored = (double) goalsScored / total;
         double avgConceded = (double) goalsConceded / total;
         double cleanSheetRate = (double) cleanSheets / total * 100;
 
-        // Recent results
-        List<RecentResult> recentResults = awayMatches.stream()
+        // Recent results (only played matches with non-null goals)
+        List<RecentResult> recentResults = playedMatches.stream()
                 .sorted(Comparator.comparing(Match::getMatchDate).reversed())
                 .limit(MAX_RECENT_RESULTS)
                 .map(m -> RecentResult.builder()
                         .date(m.getMatchDate())
                         .opponent(m.getHomeTeam())
-                        .goalsScored(m.getFullTimeAwayGoals())
-                        .goalsConceded(m.getFullTimeHomeGoals())
+                        .goalsScored(m.getFullTimeAwayGoals() != null ? m.getFullTimeAwayGoals() : 0)
+                        .goalsConceded(m.getFullTimeHomeGoals() != null ? m.getFullTimeHomeGoals() : 0)
                         .result(resultToLetter(m.getFullTimeResult(), false))
                         .isHome(false)
                         .build())
                 .collect(Collectors.toList());
 
         // Current streak
-        int[] streakInfo = calculateStreak(awayMatches, false);
+        int[] streakInfo = calculateStreak(playedMatches, false);
 
         return AwayTrend.builder()
                 .totalMatches(total)
